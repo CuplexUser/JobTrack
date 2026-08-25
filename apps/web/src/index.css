@@ -1,0 +1,25 @@
+:root {
+  color-scheme: light dark;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+  margin: 0;
+}
+
+/* The period tree and long tables scroll inside their own panes rather than the page. */
+.jobtrack-sider-scroll {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* Search hits get a subtle emphasis rather than the usual jarring yellow. */
+mark.jobtrack-hit {
+  background: transparent;
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 3px;
+}

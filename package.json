@@ -1,0 +1,32 @@
+{
+  "name": "jobtrack",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal job application tracker with hybrid semantic search and duplicate detection",
+  "type": "module",
+  "engines": { "node": ">=24.0.0" },
+  "workspaces": ["packages/*", "apps/*"],
+  "scripts": {
+    "predev": "npm run build --workspace=@jobtrack/shared",
+    "dev": "run-p dev:shared dev:api dev:web",
+    "dev:shared": "npm run dev --workspace=@jobtrack/shared",
+    "dev:api": "npm run dev --workspace=@jobtrack/api",
+    "dev:web": "npm run dev --workspace=@jobtrack/web",
+    "prebuild": "npm run build --workspace=@jobtrack/shared",
+    "build": "npm run build --workspace=@jobtrack/web",
+    "preseed": "npm run build --workspace=@jobtrack/shared",
+    "seed": "npm run seed --workspace=@jobtrack/api",
+    "pretest": "npm run build --workspace=@jobtrack/shared",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --build --force",
+    "clean": "rimraf packages/*/dist apps/*/dist \"**/*.tsbuildinfo\""
+  },
+  "devDependencies": {
+    "@types/node": "^24.10.1",
+    "npm-run-all2": "^8.0.4",
+    "rimraf": "^6.0.1",
+    "typescript": "7.0.2",
+    "vitest": "^4.1.11"
+  }
+}
