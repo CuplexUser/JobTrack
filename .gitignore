@@ -7,6 +7,7 @@ coverage/
 data/*.db
 data/*.db-shm
 data/*.db-wal
+data/active-db.json
 
 # Transformers.js model cache
 .cache/

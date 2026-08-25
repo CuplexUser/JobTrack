@@ -24,6 +24,8 @@ export const keys = {
   search: (q: string) => ['search', q] as const,
   openings: (params: unknown) => ['openings', params] as const,
   opening: (id: string) => ['opening', id] as const,
+  dbTargets: () => ['db-targets'] as const,
+  dataStatus: () => ['data-status'] as const,
 };
 
 /** Everything an application write can invalidate. */
@@ -228,5 +230,38 @@ export function useConvertOpening() {
       void client.invalidateQueries({ queryKey: ['companies'] });
       void client.invalidateQueries({ queryKey: ['search'] });
     },
+  });
+}
+
+export function useDbTargets() {
+  return useQuery({ queryKey: keys.dbTargets(), queryFn: () => api.getDbTargets() });
+}
+
+/**
+ * No cache to invalidate on success — a successful switch means the server is about to exit,
+ * so the caller's job is to poll `/api/db/targets` until it answers again and reload.
+ */
+export function useSwitchDb() {
+  return useMutation({ mutationFn: (target: string) => api.switchDb(target) });
+}
+
+export function useDataStatus() {
+  return useQuery({ queryKey: keys.dataStatus(), queryFn: () => api.getDataStatus() });
+}
+
+/** Clearing (or seeding) touches every table, so every cached query is invalidated, not just a scoped list. */
+export function useClearDatabase() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.clearDatabase(),
+    onSuccess: () => void client.invalidateQueries(),
+  });
+}
+
+export function useSeedDatabase() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.seedDatabase(),
+    onSuccess: () => void client.invalidateQueries(),
   });
 }

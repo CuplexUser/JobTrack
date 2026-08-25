@@ -19,6 +19,8 @@ import { exportRoutes } from './routes/export.routes.js';
 import { importRoutes } from './routes/import.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { openingRoutes } from './routes/openings.routes.js';
+import { backupRoutes } from './routes/backup.routes.js';
+import { dbRoutes } from './routes/db.routes.js';
 
 export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
@@ -34,7 +36,12 @@ export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): 
   // instead — read as a Buffer rather than sniffed, so the route sees exactly the bytes the
   // browser sent regardless of what content type it decided the file was.
   app.addContentTypeParser(
-    ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    [
+      'text/csv',
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      // Backup uploads: xor-obfuscated gzip, see backup/codec.ts.
+      'application/octet-stream',
+    ],
     { parseAs: 'buffer' },
     (_request, payload, done) => done(null, payload),
   );
@@ -50,6 +57,8 @@ export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): 
   await app.register(async (instance) => importRoutes(instance, deps));
   await app.register(async (instance) => dashboardRoutes(instance, deps));
   await app.register(async (instance) => openingRoutes(instance, deps));
+  await app.register(async (instance) => backupRoutes(instance, deps));
+  await app.register(async (instance) => dbRoutes(instance, deps));
 
   return app;
 }

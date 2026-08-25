@@ -147,6 +147,39 @@ export interface ImportCommitResponse {
   errors: { rowNumber: number; message: string }[];
 }
 
+export interface DbTargetsResponse {
+  targets: { name: string; driver: 'sqlite' | 'postgres' | 'mysql' }[];
+  active: string;
+}
+
+export interface BackupPreviewResponse {
+  mode: 'preview';
+  exportedAt: string;
+  counts: Record<string, number>;
+}
+
+export interface BackupCommitResponse {
+  mode: 'commit';
+  exportedAt: string;
+  counts: Record<string, number>;
+}
+
+export interface DataStatusResponse {
+  counts: Record<string, number>;
+  empty: boolean;
+}
+
+export interface ClearDatabaseResponse {
+  counts: Record<string, number>;
+}
+
+export interface SeedDatabaseResponse {
+  applications: number;
+  companies: number;
+  tags: number;
+  notes: number;
+}
+
 export interface SearchResponse {
   results: {
     type: 'application' | 'company' | 'note';
@@ -177,6 +210,32 @@ async function importRequest<T>(
   const response = await fetch(`/api/import${toQuery({ format, mode })}`, {
     method: 'POST',
     headers: { 'Content-Type': IMPORT_CONTENT_TYPE[format] },
+    body: file,
+  });
+
+  const text = await response.text();
+  const body = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      body?.error ?? 'unknown',
+      body?.message ?? response.statusText,
+      body?.details,
+    );
+  }
+  return body as T;
+}
+
+/**
+ * Backup upload — same reasoning as `importRequest`: a raw file body, not JSON. The file is
+ * already gzip + xor-obfuscated (see `backup/codec.ts`), so it goes over as
+ * `application/octet-stream`, never as JSON.
+ */
+async function backupRequest<T>(file: File, mode: 'preview' | 'commit'): Promise<T> {
+  const response = await fetch(`/api/backup/import${toQuery({ mode })}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/octet-stream' },
     body: file,
   });
 
@@ -286,4 +345,25 @@ export const api = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  getDbTargets: () => request<DbTargetsResponse>('/api/db/targets'),
+
+  switchDb: (target: string) =>
+    request<{ ok: true; restarting: boolean }>('/api/db/switch', {
+      method: 'POST',
+      body: JSON.stringify({ target }),
+    }),
+
+  /** Same reasoning as `exportUrl` — a plain navigation, so the browser downloads it directly. */
+  backupExportUrl: '/api/backup/export',
+
+  previewBackup: (file: File) => backupRequest<BackupPreviewResponse>(file, 'preview'),
+
+  commitBackup: (file: File) => backupRequest<BackupCommitResponse>(file, 'commit'),
+
+  getDataStatus: () => request<DataStatusResponse>('/api/backup/status'),
+
+  clearDatabase: () => request<ClearDatabaseResponse>('/api/backup/clear', { method: 'POST' }),
+
+  seedDatabase: () => request<SeedDatabaseResponse>('/api/backup/seed', { method: 'POST' }),
 };

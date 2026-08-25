@@ -68,7 +68,9 @@ still a record of what it became.
 
 **Everything else.** Applications divided by year and month, full status pipeline with a
 dated history, companies as first-class records, a free-form tag vocabulary attachable to
-both companies and applications, notes that link to either, and CSV/Excel export and import.
+both companies and applications, notes that link to either, CSV/Excel export and import, and
+a Settings page for switching between pre-configured databases and for full-fidelity
+backup/restore (see "Switching databases" and "Backup & restore" below).
 
 ---
 
@@ -118,13 +120,35 @@ That portability costs something, and the design works around it deliberately:
 
 | variable | default | meaning |
 |---|---|---|
-| `DB_DRIVER` | `sqlite` | `sqlite`, `postgres` or `mysql` |
+| `DB_DRIVER` | `sqlite` | `sqlite`, `postgres` or `mysql` — the implicit `"default"` target |
 | `DB_FILE` | `data/jobtrack.db` | SQLite only |
 | `DATABASE_URL` | — | required for postgres/mysql |
+| `DB_TARGETS` | — | JSON array of *additional* named targets, see below |
 | `PORT` / `HOST` | `3001` / `127.0.0.1` | API bind address |
 | `SEMANTIC_SEARCH` | `true` | `false` skips the model entirely; search stays lexical |
 | `EMBEDDING_MODEL` | `Xenova/all-MiniLM-L6-v2` | any transformers.js feature-extraction model |
 | `MODEL_CACHE_DIR` | `.models` | where the ONNX model is cached |
+
+### Switching databases
+
+`DB_DRIVER` / `DB_FILE` / `DATABASE_URL` always describe one implicit target named
+`"default"`. `DB_TARGETS` can name more:
+
+```bash
+DB_TARGETS='[{"name":"cloud","driver":"postgres","url":"postgres://user:pass@host/db"}]'
+```
+
+When more than one target is configured, the app's **Settings** page shows a switcher.
+Connection settings themselves are never shown or editable there — only `.env` holds them.
+Switching writes which target is active to `data/active-db.json` (a name only, never a
+credential) and **restarts the server** to connect to it — it is not a live hot-swap. That
+means something has to bring the process back up:
+
+- `npm run dev`'s `tsx watch` does **not** restart on a self-exit (only on a file change), so
+  a dev server needs restarting by hand after a switch.
+- A production deployment needs a process supervisor with a restart policy — pm2, systemd
+  `Restart=always`, Docker `restart: unless-stopped`, or similar — for the switch to be
+  seamless.
 
 ---
 
@@ -252,6 +276,49 @@ Point an MCP client at it with a config like:
 > `search.markStale()` — the web app's search results only pick it up once its own index is
 > separately invalidated (a later write there, or a restart). Every other read — lists,
 > detail pages, the dashboard — hits SQLite directly and is unaffected.
+
+---
+
+## Backup & restore
+
+The **Settings** page can export a full-fidelity snapshot of every table — every field, every
+id, every relation — and restore it later. This is a different thing from the CSV/Excel
+export elsewhere in the app, which is a deliberately lossy report meant for a person to read
+(`apps/api/src/export/columns.ts`). A backup is meant to be read back by JobTrack itself and
+reconstruct the database exactly, so it's useful for:
+
+- **Resetting** a database seeded with test data, on any driver — restore an empty/earlier
+  snapshot, or just don't restore at all and use the database with confidence it's really
+  clean.
+- **Disaster recovery** — export regularly, restore onto a fresh install if something goes
+  wrong.
+- **Migrating drivers** — export from SQLite, switch the active target to Postgres (see
+  "Switching databases" above), import the same file there.
+
+A restore **replaces** everything in the active database — every backed-up table is wiped and
+recreated from the file, inside one transaction, not merged with what's already there.
+
+The file (`.jtbak`) is gzip-compressed and then obfuscated with a fixed XOR keystream, so it
+isn't plain, readable JSON if it's opened in a text editor. **This is not encryption** — there
+is no passphrase, the "key" is a constant in `apps/api/src/backup/codec.ts`, and it does not
+protect the personal data inside (salaries, notes, company names) from anyone who actually
+wants it. Treat a `.jtbak` file the same way you'd treat a database dump.
+
+One known gap: repolayer stamps `createdAt`/`updatedAt` to the moment of restore — it has no
+way to pass a specific timestamp through `create()`. Every other field, including all of the
+app's own date fields (`appliedOn`, `savedOn`, `occurredOn`, …), round-trips exactly.
+
+`searchVectors` (embeddings) is deliberately excluded — it's fully derived from the other
+tables' text and rebuilds itself automatically after a restore.
+
+### Reset & demo data
+
+The same Settings page has a **Clear database** button (every backed-up table wiped, nothing
+recreated — type `CLEAR` to confirm) and, only while the active database is empty, a **Seed
+with demo data** button that writes the same realistic multi-year job search
+`npm run seed` does (`apps/api/src/backup/seed.ts`, shared by both). The API refuses to seed a
+database that already has data in it — clear it first — so this is a safe pair of buttons to
+leave on a page nobody but you can reach.
 
 ---
 

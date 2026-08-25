@@ -6,13 +6,14 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Typography, type MenuProps } from 'antd';
 import {
-  BgColorsOutlined,
   BulbOutlined,
-  CheckOutlined,
   DashboardOutlined,
   FileTextOutlined,
+  MoonOutlined,
   ProfileOutlined,
+  SettingOutlined,
   ShopOutlined,
+  SunOutlined,
 } from '@ant-design/icons';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { ApplicationsPage } from './pages/ApplicationsPage.js';
@@ -21,6 +22,7 @@ import { CompaniesPage } from './pages/CompaniesPage.js';
 import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
 import { NotesPage } from './pages/NotesPage.js';
 import { OpeningsPage } from './pages/OpeningsPage.js';
+import { SettingsPage } from './pages/SettingsPage.js';
 import { buildAntdTheme, palette } from './theme.js';
 
 const THEME_KEY = 'jobtrack.theme';
@@ -31,6 +33,19 @@ const NAV_ITEMS = [
   { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">Openings</Link> },
   { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">Companies</Link> },
   { key: '/notes', icon: <FileTextOutlined />, label: <Link to="/notes">Notes</Link> },
+  { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Settings</Link> },
+];
+
+/**
+ * Flat, not grouped — a group whose label duplicated its single child's label used to render
+ * "Light" (a dim, non-interactive header) directly above "Light" (the actual, unstyled menu
+ * item), which is what made the unselected option look broken next to the selected one's
+ * highlighted pill. Each option now carries its own icon, and `selectedKeys` on the Dropdown
+ * below is the only thing that marks which one is active.
+ */
+const THEME_MENU_ITEMS: MenuProps['items'] = [
+  { key: 'light', icon: <SunOutlined />, label: 'Light' },
+  { key: 'dark', icon: <MoonOutlined />, label: 'Dark' },
 ];
 
 export function App() {
@@ -59,20 +74,6 @@ export function App() {
     const match = NAV_ITEMS.find((item) => location.pathname.startsWith(item.key));
     return match ? [match.key] : ['/dashboard'];
   }, [location.pathname]);
-
-  // Grouped like a settings panel rather than a bare toggle, so a third mode (e.g. an
-  // "auto" entry that follows the OS) has somewhere to go later without redesigning this.
-  const themeMenuItems: MenuProps['items'] = useMemo(() => {
-    const checkmark = (mode: 'light' | 'dark') => (
-      <span style={{ display: 'inline-flex', width: 14, justifyContent: 'center' }}>
-        {(mode === 'dark') === dark ? <CheckOutlined /> : null}
-      </span>
-    );
-    return [
-      { type: 'group', label: 'Light', children: [{ key: 'light', label: 'Light', icon: checkmark('light') }] },
-      { type: 'group', label: 'Dark', children: [{ key: 'dark', label: 'Dark', icon: checkmark('dark') }] },
-    ];
-  }, [dark]);
 
   return (
     <ConfigProvider theme={buildAntdTheme(dark ? 'dark' : 'light')}>
@@ -104,13 +105,13 @@ export function App() {
             <Dropdown
               trigger={['click']}
               menu={{
-                items: themeMenuItems,
+                items: THEME_MENU_ITEMS,
                 selectable: true,
                 selectedKeys: [dark ? 'dark' : 'light'],
                 onClick: ({ key }) => setDark(key === 'dark'),
               }}
             >
-              <Button icon={<BgColorsOutlined />} aria-label="Theme settings">
+              <Button icon={dark ? <MoonOutlined /> : <SunOutlined />} aria-label="Theme settings">
                 Theme
               </Button>
             </Dropdown>
@@ -126,6 +127,7 @@ export function App() {
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/companies/:id" element={<CompanyDetailPage />} />
               <Route path="/notes" element={<NotesPage />} />
+              <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
           </Layout.Content>

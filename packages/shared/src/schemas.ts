@@ -274,6 +274,11 @@ export const convertJobOpeningSchema = z.object({
   tags: tagList.optional(),
 });
 
+/** Which configured database target to make active. */
+export const switchDbTargetSchema = z.object({
+  target: z.string().min(1),
+});
+
 export type CreateApplicationInput = z.input<typeof createApplicationSchema>;
 export type PatchApplicationInput = z.input<typeof patchApplicationSchema>;
 export type CreateCompanyInput = z.input<typeof createCompanySchema>;
