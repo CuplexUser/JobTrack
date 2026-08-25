@@ -4,12 +4,12 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { App as AntApp, ConfigProvider, Layout, Menu, Switch, Typography, theme } from 'antd';
+import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Typography, type MenuProps } from 'antd';
 import {
-  BulbOutlined,
+  BgColorsOutlined,
+  CheckOutlined,
   DashboardOutlined,
   FileTextOutlined,
-  MoonOutlined,
   ProfileOutlined,
   ShopOutlined,
 } from '@ant-design/icons';
@@ -19,6 +19,7 @@ import { ApplicationDetailPage } from './pages/ApplicationDetailPage.js';
 import { CompaniesPage } from './pages/CompaniesPage.js';
 import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
 import { NotesPage } from './pages/NotesPage.js';
+import { buildAntdTheme, palette } from './theme.js';
 
 const THEME_KEY = 'jobtrack.theme';
 
@@ -41,6 +42,7 @@ export function App() {
   });
 
   useEffect(() => {
+    document.documentElement.setAttribute('data-theme', dark ? 'dark' : 'light');
     try {
       localStorage.setItem(THEME_KEY, dark ? 'dark' : 'light');
     } catch {
@@ -55,22 +57,22 @@ export function App() {
     return match ? [match.key] : ['/dashboard'];
   }, [location.pathname]);
 
+  // Grouped like a settings panel rather than a bare toggle, so a third mode (e.g. an
+  // "auto" entry that follows the OS) has somewhere to go later without redesigning this.
+  const themeMenuItems: MenuProps['items'] = useMemo(() => {
+    const checkmark = (mode: 'light' | 'dark') => (
+      <span style={{ display: 'inline-flex', width: 14, justifyContent: 'center' }}>
+        {(mode === 'dark') === dark ? <CheckOutlined /> : null}
+      </span>
+    );
+    return [
+      { type: 'group', label: 'Light', children: [{ key: 'light', label: 'Light', icon: checkmark('light') }] },
+      { type: 'group', label: 'Dark', children: [{ key: 'dark', label: 'Dark', icon: checkmark('dark') }] },
+    ];
+  }, [dark]);
+
   return (
-    <ConfigProvider
-      theme={{
-        algorithm: dark ? theme.darkAlgorithm : theme.defaultAlgorithm,
-        token: {
-          colorPrimary: '#4f46e5',
-          borderRadius: 8,
-          fontSize: 14,
-        },
-        components: {
-          Layout: dark
-            ? { siderBg: '#141414', headerBg: '#141414' }
-            : { siderBg: '#ffffff', headerBg: '#ffffff' },
-        },
-      }}
-    >
+    <ConfigProvider theme={buildAntdTheme(dark ? 'dark' : 'light')}>
       <AntApp>
         <Layout style={{ minHeight: '100vh' }}>
           <Layout.Header
@@ -79,14 +81,14 @@ export function App() {
               alignItems: 'center',
               gap: 24,
               paddingInline: 24,
-              borderBottom: `1px solid ${dark ? '#303030' : '#f0f0f0'}`,
+              borderBottom: `1px solid ${palette.border}`,
               position: 'sticky',
               top: 0,
               zIndex: 10,
             }}
           >
             <Typography.Title level={4} style={{ margin: 0, whiteSpace: 'nowrap' }}>
-              Job<span style={{ color: '#4f46e5' }}>Track</span>
+              Job<span style={{ color: palette.accent }}>Track</span>
             </Typography.Title>
 
             <Menu
@@ -96,13 +98,19 @@ export function App() {
               style={{ flex: 1, minWidth: 0, borderBottom: 'none' }}
             />
 
-            <Switch
-              checked={dark}
-              onChange={setDark}
-              checkedChildren={<MoonOutlined />}
-              unCheckedChildren={<BulbOutlined />}
-              aria-label="Toggle dark mode"
-            />
+            <Dropdown
+              trigger={['click']}
+              menu={{
+                items: themeMenuItems,
+                selectable: true,
+                selectedKeys: [dark ? 'dark' : 'light'],
+                onClick: ({ key }) => setDark(key === 'dark'),
+              }}
+            >
+              <Button icon={<BgColorsOutlined />} aria-label="Theme settings">
+                Theme
+              </Button>
+            </Dropdown>
           </Layout.Header>
 
           <Layout.Content style={{ padding: 24 }}>

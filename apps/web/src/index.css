@@ -1,5 +1,37 @@
-:root {
-  color-scheme: light dark;
+/* [data-theme] on <html> picks the set; App.tsx keeps it in step with the AntD algorithm.
+   Values mirror theme.ts's HEX_PALETTES — Ant Design needs the hex there, components read
+   these vars. */
+:root,
+:root[data-theme='dark'] {
+  color-scheme: dark;
+  --jt-bg-base: #0d1117;
+  --jt-bg-raised: #161b22;
+  --jt-bg-sunken: #010409;
+  --jt-border: #30363d;
+  --jt-border-strong: #444c56;
+  --jt-text-primary: #e6edf3;
+  --jt-text-muted: #8b949e;
+  --jt-text-faint: #6e7681;
+  --jt-accent: #58a6ff;
+  --jt-success: #3fb950;
+  --jt-danger: #f85149;
+  --jt-warning: #d29922;
+}
+
+:root[data-theme='light'] {
+  color-scheme: light;
+  --jt-bg-base: #ffffff;
+  --jt-bg-raised: #ffffff;
+  --jt-bg-sunken: #f6f8fa;
+  --jt-border: #d0d7de;
+  --jt-border-strong: #afb8c1;
+  --jt-text-primary: #1f2328;
+  --jt-text-muted: #656d76;
+  --jt-text-faint: #8c959f;
+  --jt-accent: #0969da;
+  --jt-success: #1a7f37;
+  --jt-danger: #d1242f;
+  --jt-warning: #9a6700;
 }
 
 html,

@@ -24,6 +24,7 @@ import { useDashboard } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { PreApplyCheck } from '../components/PreApplyCheck.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
+import { palette } from '../theme.js';
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
@@ -46,7 +47,7 @@ export function DashboardPage() {
         </Col>
         <Col xs={12} sm={12} md={6}>
           <Card>
-            <Statistic title="Still active" value={stats.active} valueStyle={{ color: '#4f46e5' }} />
+            <Statistic title="Still active" value={stats.active} valueStyle={{ color: palette.accent }} />
           </Card>
         </Col>
         <Col xs={12} sm={12} md={6}>
@@ -65,7 +66,7 @@ export function DashboardPage() {
               <Progress
                 percent={Math.round(stats.responseRate * 100)}
                 size="small"
-                strokeColor="#4f46e5"
+                strokeColor={palette.accent}
               />
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                 Anything past “applied” counts as a reply

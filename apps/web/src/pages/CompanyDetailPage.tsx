@@ -26,6 +26,7 @@ import { Button } from 'antd';
 import type { JobApplicationView } from '@jobtrack/shared';
 import { useCompany, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
+import { palette } from '../theme.js';
 
 export function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -87,7 +88,7 @@ export function CompanyDetailPage() {
         </Col>
         <Col xs={12} md={6}>
           <Card>
-            <Statistic title="Still active" value={active} valueStyle={{ color: '#4f46e5' }} />
+            <Statistic title="Still active" value={active} valueStyle={{ color: palette.accent }} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
