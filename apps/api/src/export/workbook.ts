@@ -7,15 +7,23 @@
  * Plain lists, no analysis. The workbook keeps one worksheet per year — that is how the
  * app organises applications everywhere else, and it keeps any one sheet short enough to
  * read — but there is no summary or breakdown sheet.
+ *
+ * **Why the buffered writer, not `stream.xlsx.WorkbookWriter`.** The streaming writer goes
+ * through `archiver`, which on this dependency tree writes some entries into the zip's
+ * central directory with `crc = 0` and `uncompressed size = 0`. Readers that trust the
+ * central directory — Python's zipfile, and therefore Excel-adjacent tooling — then read
+ * those entries as empty and reject the file, even though the compressed bytes are
+ * actually intact. `Workbook.xlsx.writeBuffer()` uses a different packing path and
+ * produces a correct archive. The cost is holding the workbook in memory, which for a
+ * personal tracker is a few hundred kilobytes at worst.
  */
 
 import ExcelJS from 'exceljs';
-import type { Writable } from 'node:stream';
 import { toCsvLines } from '@jobtrack/shared';
 import { EXPORT_COLUMNS } from './columns.js';
 import type { ExportRow } from './rows.js';
 
-/** Line-by-line so a large export streams instead of being built in memory first. */
+/** Line-by-line so a large CSV export streams instead of being built in memory first. */
 export function* csvLines(rows: readonly ExportRow[]): Generator<string> {
   yield* toCsvLines(rows, EXPORT_COLUMNS, { bom: true });
 }
@@ -26,14 +34,11 @@ const HEADER_FILL: ExcelJS.Fill = {
   fgColor: { argb: 'FF1F2937' },
 };
 
-export async function writeWorkbook(
-  rows: readonly ExportRow[],
-  output: Writable,
-): Promise<void> {
-  const workbook = new ExcelJS.stream.xlsx.WorkbookWriter({
-    stream: output,
-    useStyles: true,
-  });
+const WRAPPED = { vertical: 'top', wrapText: true } as const;
+
+/** Build the .xlsx as a buffer, ready to send. */
+export async function buildWorkbook(rows: readonly ExportRow[]): Promise<Buffer> {
+  const workbook = new ExcelJS.Workbook();
   workbook.creator = 'JobTrack';
   workbook.created = new Date();
 
@@ -42,6 +47,11 @@ export async function writeWorkbook(
     const list = byYear.get(row.periodYear) ?? [];
     list.push(row);
     byYear.set(row.periodYear, list);
+  }
+
+  if (byYear.size === 0) {
+    // An empty export still needs a readable sheet with its headers in place.
+    addSheet(workbook, 'Applications');
   }
 
   // Newest year first, matching the order the app shows them in.
@@ -56,49 +66,34 @@ export async function writeWorkbook(
       const added = sheet.addRow(EXPORT_COLUMNS.map((column) => column.value(row)));
       // Notes can run to several paragraphs; without this the row is one line tall and
       // everything after the first newline is invisible.
-      added.alignment = { vertical: 'top', wrapText: true };
-      added.commit();
+      added.alignment = { ...WRAPPED };
     }
 
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
       to: { row: yearRows.length + 1, column: EXPORT_COLUMNS.length },
     };
-    sheet.commit();
   }
 
-  if (byYear.size === 0) {
-    // An empty export still needs a readable sheet with its headers in place.
-    addSheet(workbook, 'Applications').commit();
-  }
-
-  await workbook.commit();
+  const buffer = await workbook.xlsx.writeBuffer();
+  return Buffer.from(buffer);
 }
 
-/**
- * A worksheet with the shared columns, a frozen styled header and an autofilter.
- *
- * The header comes from `columns` rather than `addRow`: in the streaming writer a
- * committed row can no longer be fetched, so styling it afterwards throws.
- */
-function addSheet(
-  workbook: ExcelJS.stream.xlsx.WorkbookWriter,
-  name: string,
-): ExcelJS.Worksheet {
+/** A worksheet with the shared columns and a frozen, styled header. */
+function addSheet(workbook: ExcelJS.Workbook, name: string): ExcelJS.Worksheet {
   const sheet = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
 
   sheet.columns = EXPORT_COLUMNS.map((column) => ({
     header: column.header,
     key: column.header,
     width: column.width,
-    ...(column.wrap ? { style: { alignment: { vertical: 'top', wrapText: true } } } : {}),
+    ...(column.wrap ? { style: { alignment: { ...WRAPPED } } } : {}),
   }));
 
   const header = sheet.getRow(1);
   header.font = { bold: true, color: { argb: 'FFFFFFFF' } };
   header.fill = HEADER_FILL;
   header.alignment = { vertical: 'middle' };
-  header.commit();
 
   return sheet;
 }

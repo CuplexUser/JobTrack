@@ -12,7 +12,7 @@ import { exportQuerySchema, monthName } from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
 import { findAllMatching, listApplications } from '../services/applications.service.js';
 import { exportFilename } from '../export/columns.js';
-import { csvLines, writeWorkbook } from '../export/workbook.js';
+import { buildWorkbook, csvLines } from '../export/workbook.js';
 import { withNotes } from '../export/rows.js';
 
 export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
@@ -62,15 +62,10 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
       )
       .header('Content-Disposition', `attachment; filename="${exportFilename('xlsx', scope)}"`);
 
-    const stream = new PassThrough();
-    // Kicked off without awaiting so the reply can be returned and piped immediately; a
-    // failure mid-workbook destroys the stream, which surfaces as a truncated download
-    // rather than a hung request.
-    void writeWorkbook(rows, stream).catch((error) => {
-      app.log.error({ err: error }, 'workbook generation failed');
-      stream.destroy(error as Error);
-    });
-    return reply.send(stream);
+    // Sent as a buffer rather than piped: the workbook is small enough that holding it in
+    // memory costs nothing, and Content-Length lets the browser show real download
+    // progress instead of an open-ended spinner.
+    return reply.send(await buildWorkbook(rows));
   });
 }
 

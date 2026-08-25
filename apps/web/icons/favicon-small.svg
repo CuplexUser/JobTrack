@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="JobTrack">
+  <title>JobTrack</title>
+
+  <!--
+    The 16 and 20px variant of the mark. Source artwork only — never served directly;
+    apps/web/scripts/make-icons.mjs rasterises it into the small entries of favicon.ico.
+
+    Downsampling the full three-node mark to 16px merges the nodes into a diagonal smudge
+    and loses the ring in the terminal node entirely. So the small size is drawn rather
+    than derived: the middle waypoint is dropped, the remaining two are enlarged and pushed
+    apart, the stroke is thickened, and the ring becomes a solid dot. Same idea — a path
+    climbing to a goal — at the level of detail 256 pixels can actually hold.
+  -->
+
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6366f1" />
+      <stop offset="1" stop-color="#4338ca" />
+    </linearGradient>
+  </defs>
+
+  <rect width="32" height="32" rx="7.5" fill="url(#tile)" />
+
+  <path
+    d="M10 22 L22 10"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="3.5"
+    stroke-linecap="round"
+    opacity="0.5"
+  />
+
+  <circle cx="10" cy="22" r="3.5" fill="#ffffff" opacity="0.72" />
+  <circle cx="22" cy="10" r="5.5" fill="#ffffff" />
+</svg>

@@ -13,7 +13,7 @@
     "@fastify/cors": "^11.3.0",
     "@huggingface/transformers": "^4.2.0",
     "@jobtrack/shared": "*",
-    "exceljs": "^4.4.0",
+    "exceljs": "^3.4.0",
     "fastify": "^5.12.1",
     "minisearch": "^7.2.0",
     "repolayer": "^1.0.1",

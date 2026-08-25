@@ -4,8 +4,13 @@
   "private": true,
   "description": "Personal job application tracker with hybrid semantic search and duplicate detection",
   "type": "module",
-  "engines": { "node": ">=24.0.0" },
-  "workspaces": ["packages/*", "apps/*"],
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
   "scripts": {
     "predev": "npm run build --workspace=@jobtrack/shared",
     "dev": "run-p dev:shared dev:api dev:web",
@@ -20,7 +25,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --build --force",
-    "clean": "rimraf packages/*/dist apps/*/dist \"**/*.tsbuildinfo\""
+    "clean": "rimraf --glob \"packages/*/dist\" \"apps/*/dist\" \"packages/*/*.tsbuildinfo\" \"apps/*/*.tsbuildinfo\" \"*.tsbuildinfo\" \"coverage\" \"packages/*/coverage\" \"apps/*/coverage\" \"node_modules/.vite\""
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
@@ -28,5 +33,10 @@
     "rimraf": "^6.0.1",
     "typescript": "7.0.2",
     "vitest": "^4.1.11"
+  },
+  "overrides": {
+    "sharp": "^0.35.3",
+    "adm-zip": "^0.6.0",
+    "uuid": "^11.1.1"
   }
 }

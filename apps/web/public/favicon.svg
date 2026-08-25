@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="JobTrack">
+  <title>JobTrack</title>
+
+  <!--
+    A track of waypoints climbing toward a goal.
+
+    "Track" is both what the app does and the shape of the mark: three stages on a path,
+    each more prominent than the last, ending in a highlighted node. It reads as progress
+    through a pipeline without resorting to a briefcase, a checkmark, or a bar chart —
+    the last of which would misrepresent an app that is deliberately a list, not a report.
+
+    Geometry is tuned for 16px: a 3px stroke on a 32 grid is ~9% of the width, which
+    survives downsampling, and the terminal node is nearly twice the radius of the first
+    so the direction of travel stays legible when the detail collapses.
+  -->
+
+  <defs>
+    <linearGradient id="tile" x1="0" y1="0" x2="32" y2="32" gradientUnits="userSpaceOnUse">
+      <!-- Indigo 500 → 700, straddling the #4f46e5 primary used in the app theme. -->
+      <stop offset="0" stop-color="#6366f1" />
+      <stop offset="1" stop-color="#4338ca" />
+    </linearGradient>
+  </defs>
+
+  <rect width="32" height="32" rx="7.5" fill="url(#tile)" />
+
+  <!-- The path already travelled, held back so the nodes carry the emphasis. -->
+  <path
+    d="M8 23 L14.5 16.5 L23.5 9.5"
+    fill="none"
+    stroke="#ffffff"
+    stroke-width="3"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.45"
+  />
+
+  <!-- Earlier stages: present, but clearly behind. -->
+  <circle cx="8" cy="23" r="3" fill="#ffffff" opacity="0.6" />
+  <circle cx="14.5" cy="16.5" r="3" fill="#ffffff" opacity="0.8" />
+
+  <!-- The current stage: solid, ringed, and the only fully opaque element. -->
+  <circle cx="23.5" cy="9.5" r="4.5" fill="#ffffff" />
+  <circle cx="23.5" cy="9.5" r="1.75" fill="#4338ca" />
+</svg>

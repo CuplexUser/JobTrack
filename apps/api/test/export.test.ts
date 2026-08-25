@@ -1,14 +1,14 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { PassThrough } from 'node:stream';
 import ExcelJS from 'exceljs';
 import type { RepoBundle } from '../src/db/repos.js';
 import { createApplication, findAllMatching } from '../src/services/applications.service.js';
 import { createNote } from '../src/services/notes.service.js';
 import { applicationFilterSchema } from '@jobtrack/shared';
-import { csvLines, writeWorkbook } from '../src/export/workbook.js';
+import { buildWorkbook, csvLines } from '../src/export/workbook.js';
 import { exportFilename, EXPORT_COLUMNS } from '../src/export/columns.js';
 import { withNotes, type ExportRow } from '../src/export/rows.js';
 import { applicationInput, createMemoryRepos } from './support/repos.js';
+import { entriesMissingMetadata, readZipCentralDirectory } from './support/zip.js';
 
 let repos: RepoBundle;
 
@@ -142,33 +142,47 @@ describe('exportFilename', () => {
 });
 
 describe('XLSX export', () => {
-  async function buildWorkbook(data?: ExportRow[]): Promise<ExcelJS.Workbook> {
-    const stream = new PassThrough();
-    const chunks: Buffer[] = [];
-    stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-    const finished = new Promise<void>((resolve) => stream.on('end', () => resolve()));
-
-    await writeWorkbook(data ?? (await rows()), stream);
-    await finished;
-
+  /**
+   * Read the workbook back through a *fresh* ExcelJS.Workbook rather than asserting on the
+   * object that wrote it, so the assertions cover what actually lands in the file.
+   */
+  async function read(data?: ExportRow[]): Promise<ExcelJS.Workbook> {
+    const buffer = await buildWorkbook(data ?? (await rows()));
     const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(Buffer.concat(chunks));
+    await workbook.xlsx.load(buffer);
     return workbook;
   }
 
+  it('records a real crc and size for every entry in the central directory', async () => {
+    // The regression this pins: the streaming writer left crc and uncompressed size at
+    // zero for several entries, which strict readers treat as empty files. exceljs itself
+    // read those archives fine, so only a check at this level catches it.
+    const buffer = await buildWorkbook(await rows());
+    expect(entriesMissingMetadata(buffer)).toEqual([]);
+  });
+
+  it('is a well-formed archive containing the expected parts', async () => {
+    const buffer = await buildWorkbook(await rows());
+    const names = readZipCentralDirectory(buffer).map((e) => e.name);
+
+    expect(names).toContain('[Content_Types].xml');
+    expect(names).toContain('xl/workbook.xml');
+    expect(names.some((n) => n.startsWith('xl/worksheets/sheet'))).toBe(true);
+  });
+
   it('has no summary or statistics sheet', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     expect(workbook.worksheets.map((w) => w.name)).toEqual(['2026', '2025']);
   });
 
   it('writes one worksheet per year, newest first', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     expect(workbook.getWorksheet('2026')!.rowCount - 1).toBe(1);
     expect(workbook.getWorksheet('2025')!.rowCount - 1).toBe(1);
   });
 
   it('lays each row out as position, company, date, status, notes', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     const row = workbook.getWorksheet('2026')!.getRow(2);
 
     expect(row.getCell(1).value).toBe('Backend Engineer');
@@ -179,26 +193,26 @@ describe('XLSX export', () => {
   });
 
   it('leaves the notes cell blank when there are none', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     const row = workbook.getWorksheet('2025')!.getRow(2);
     expect(row.getCell(5).value ?? '').toBe('');
   });
 
   it('wraps the notes column so multi-line notes are visible', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     const row = workbook.getWorksheet('2026')!.getRow(2);
     expect(row.alignment).toMatchObject({ wrapText: true, vertical: 'top' });
   });
 
   it('freezes the header row and adds an autofilter', async () => {
-    const workbook = await buildWorkbook();
+    const workbook = await read();
     const sheet = workbook.getWorksheet('2026')!;
     expect(sheet.views[0]).toMatchObject({ state: 'frozen', ySplit: 1 });
     expect(sheet.autoFilter).toBeTruthy();
   });
 
   it('produces a valid workbook with headers even when nothing matches', async () => {
-    const workbook = await buildWorkbook([]);
+    const workbook = await read([]);
     const sheet = workbook.getWorksheet('Applications')!;
     expect(sheet).toBeTruthy();
     expect(sheet.getRow(1).getCell(1).value).toBe('Position');

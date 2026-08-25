@@ -3,6 +3,20 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+    <!--
+      SVG first: modern browsers prefer it and render the mark crisply at any size.
+      The .ico is the fallback for older browsers and the Windows taskbar, and carries
+      16/32/48px renders so nothing has to downsample a large bitmap badly.
+    -->
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="icon" href="/favicon.ico" sizes="16x16 32x32 48x48" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+
+    <!-- Tints the browser chrome on mobile to match the mark. -->
+    <meta name="theme-color" content="#4f46e5" />
+
+    <meta name="description" content="Track job applications, spot the ones you have already applied for, and search them by meaning." />
     <title>JobTrack</title>
   </head>
   <body>
