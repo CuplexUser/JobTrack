@@ -3,9 +3,11 @@ import { PassThrough } from 'node:stream';
 import ExcelJS from 'exceljs';
 import type { RepoBundle } from '../src/db/repos.js';
 import { createApplication, findAllMatching } from '../src/services/applications.service.js';
+import { createNote } from '../src/services/notes.service.js';
 import { applicationFilterSchema } from '@jobtrack/shared';
 import { csvLines, writeWorkbook } from '../src/export/workbook.js';
 import { exportFilename, EXPORT_COLUMNS } from '../src/export/columns.js';
+import { withNotes, type ExportRow } from '../src/export/rows.js';
 import { applicationInput, createMemoryRepos } from './support/repos.js';
 
 let repos: RepoBundle;
@@ -14,44 +16,121 @@ beforeEach(async () => {
   repos = createMemoryRepos();
   await createApplication(
     repos,
-    applicationInput({ appliedOn: '2026-03-12', tags: ['ai', 'remote-ok'], status: 'interview' }),
+    applicationInput({
+      jobTitle: 'Backend Engineer',
+      appliedOn: '2026-03-12',
+      status: 'interview',
+      notes: 'Take-home went well.',
+    }),
   );
   await createApplication(
     repos,
-    applicationInput({ companyName: 'Klarna', jobTitle: 'Platform, Engineer', appliedOn: '2025-11-05' }),
+    applicationInput({
+      companyName: 'Klarna',
+      jobTitle: 'Platform, Engineer',
+      appliedOn: '2025-11-05',
+      status: 'rejected',
+    }),
   );
 });
 
-async function rows() {
-  return findAllMatching(repos, applicationFilterSchema.parse({}));
+async function rows(): Promise<ExportRow[]> {
+  return withNotes(repos, await findAllMatching(repos, applicationFilterSchema.parse({})));
 }
 
+describe('export columns', () => {
+  it('is exactly the list the export is meant to be', () => {
+    expect(EXPORT_COLUMNS.map((c) => c.header)).toEqual([
+      'Position',
+      'Company',
+      'Date',
+      'Status',
+      'Notes',
+    ]);
+  });
+});
+
+describe('withNotes', () => {
+  it('attaches the note text, not a count', async () => {
+    const exported = await rows();
+    const backend = exported.find((r) => r.jobTitle === 'Backend Engineer')!;
+    expect(backend.notesText).toBe('Take-home went well.');
+  });
+
+  it('leaves the notes cell empty when there are none', async () => {
+    const exported = await rows();
+    const klarna = exported.find((r) => r.company.name === 'Klarna')!;
+    expect(klarna.notesText).toBe('');
+  });
+
+  it('joins several notes into one cell', async () => {
+    const target = (await repos.applications.findOne({ where: { jobTitle: 'Backend Engineer' } }))!;
+    await createNote(repos, {
+      title: 'Second thoughts',
+      body: 'Salary band was lower than advertised.',
+      targetType: 'application',
+      targetId: target.id,
+      pinned: false,
+    });
+
+    const exported = await rows();
+    const backend = exported.find((r) => r.jobTitle === 'Backend Engineer')!;
+    expect(backend.notesText).toContain('Take-home went well.');
+    expect(backend.notesText).toContain('Salary band was lower');
+    expect(backend.notesText).toContain('\n\n');
+  });
+
+  it('handles an empty export without touching the database', async () => {
+    // Guards the same rule the hydrate layer follows: cost must not grow with the export.
+    const exported = await withNotes(repos, []);
+    expect(exported).toEqual([]);
+  });
+});
+
 describe('CSV export', () => {
-  it('starts with a BOM and a header row', async () => {
+  it('starts with a BOM and the five headers', async () => {
     const csv = [...csvLines(await rows())].join('');
     expect(csv.charCodeAt(0)).toBe(0xfeff);
-    expect(csv.split('\r\n')[0]).toContain('Applied On,Year,Month,Company,Job Title');
+    expect(csv.split('\r\n')[0]).toBe('﻿Position,Company,Date,Status,Notes');
   });
 
   it('has one line per application plus the header', async () => {
     const csv = [...csvLines(await rows())].join('');
-    const lines = csv.trimEnd().split('\r\n');
-    expect(lines).toHaveLength(3);
+    // The notes cell has no newline in this fixture, so line count is meaningful here.
+    expect(csv.trimEnd().split('\r\n')).toHaveLength(3);
   });
 
-  it('quotes a job title containing a comma so columns do not shift', async () => {
+  it('writes the status as a readable label, not the stored value', async () => {
+    const csv = [...csvLines(await rows())].join('');
+    expect(csv).toContain(',Interview,');
+    expect(csv).toContain(',Rejected,');
+    expect(csv).not.toContain(',interview,');
+  });
+
+  it('quotes a position containing a comma so columns do not shift', async () => {
     const csv = [...csvLines(await rows())].join('');
     expect(csv).toContain('"Platform, Engineer"');
   });
 
-  it('joins tags into one quoted cell', async () => {
+  it('quotes multi-paragraph notes so they stay in one cell', async () => {
+    const target = (await repos.applications.findOne({ where: { jobTitle: 'Backend Engineer' } }))!;
+    await createNote(repos, {
+      title: 'More',
+      body: 'Second note.',
+      targetType: 'application',
+      targetId: target.id,
+      pinned: false,
+    });
+
     const csv = [...csvLines(await rows())].join('');
-    expect(csv).toContain('"ai, remote-ok"');
+    expect(csv).toContain('"Take-home went well.\n\nSecond note."');
   });
 
-  it('renders the month by name, matching the sidebar', async () => {
-    const csv = [...csvLines(await rows())].join('');
-    expect(csv).toContain(',2026,March,');
+  it('no longer carries the analytical columns', async () => {
+    const header = [...csvLines(await rows())].join('').split('\r\n')[0]!;
+    for (const dropped of ['Year', 'Month', 'Work Mode', 'Salary Min', 'Source', 'Job URL']) {
+      expect(header).not.toContain(dropped);
+    }
   });
 });
 
@@ -63,13 +142,13 @@ describe('exportFilename', () => {
 });
 
 describe('XLSX export', () => {
-  async function buildWorkbook(): Promise<ExcelJS.Workbook> {
+  async function buildWorkbook(data?: ExportRow[]): Promise<ExcelJS.Workbook> {
     const stream = new PassThrough();
     const chunks: Buffer[] = [];
     stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-
     const finished = new Promise<void>((resolve) => stream.on('end', () => resolve()));
-    await writeWorkbook(await rows(), stream);
+
+    await writeWorkbook(data ?? (await rows()), stream);
     await finished;
 
     const workbook = new ExcelJS.Workbook();
@@ -77,15 +156,38 @@ describe('XLSX export', () => {
     return workbook;
   }
 
-  it('writes one worksheet per year, newest first, plus a summary', async () => {
+  it('has no summary or statistics sheet', async () => {
     const workbook = await buildWorkbook();
-    expect(workbook.worksheets.map((w) => w.name)).toEqual(['Summary', '2026', '2025']);
+    expect(workbook.worksheets.map((w) => w.name)).toEqual(['2026', '2025']);
   });
 
-  it('puts each application on its own year sheet', async () => {
+  it('writes one worksheet per year, newest first', async () => {
     const workbook = await buildWorkbook();
     expect(workbook.getWorksheet('2026')!.rowCount - 1).toBe(1);
     expect(workbook.getWorksheet('2025')!.rowCount - 1).toBe(1);
+  });
+
+  it('lays each row out as position, company, date, status, notes', async () => {
+    const workbook = await buildWorkbook();
+    const row = workbook.getWorksheet('2026')!.getRow(2);
+
+    expect(row.getCell(1).value).toBe('Backend Engineer');
+    expect(row.getCell(2).value).toBe('Spotify');
+    expect(row.getCell(3).value).toBe('2026-03-12');
+    expect(row.getCell(4).value).toBe('Interview');
+    expect(row.getCell(5).value).toBe('Take-home went well.');
+  });
+
+  it('leaves the notes cell blank when there are none', async () => {
+    const workbook = await buildWorkbook();
+    const row = workbook.getWorksheet('2025')!.getRow(2);
+    expect(row.getCell(5).value ?? '').toBe('');
+  });
+
+  it('wraps the notes column so multi-line notes are visible', async () => {
+    const workbook = await buildWorkbook();
+    const row = workbook.getWorksheet('2026')!.getRow(2);
+    expect(row.alignment).toMatchObject({ wrapText: true, vertical: 'top' });
   });
 
   it('freezes the header row and adds an autofilter', async () => {
@@ -95,29 +197,10 @@ describe('XLSX export', () => {
     expect(sheet.autoFilter).toBeTruthy();
   });
 
-  it('totals the summary to the number of applications exported', async () => {
-    const workbook = await buildWorkbook();
-    const summary = workbook.getWorksheet('Summary')!;
-    const lastRow = summary.getRow(summary.rowCount);
-
-    expect(lastRow.getCell(1).value).toBe('All periods');
-    // Final column is the grand total.
-    expect(lastRow.getCell(EXPORT_COLUMNS.length).value).toBeDefined();
-    const total = lastRow.values as unknown[];
-    expect(total[total.length - 1]).toBe(2);
-  });
-
-  it('produces a valid workbook even with nothing to export', async () => {
-    const stream = new PassThrough();
-    const chunks: Buffer[] = [];
-    stream.on('data', (chunk: Buffer) => chunks.push(chunk));
-    const finished = new Promise<void>((resolve) => stream.on('end', () => resolve()));
-
-    await writeWorkbook([], stream);
-    await finished;
-
-    const workbook = new ExcelJS.Workbook();
-    await workbook.xlsx.load(Buffer.concat(chunks));
-    expect(workbook.worksheets.map((w) => w.name)).toContain('Applications');
+  it('produces a valid workbook with headers even when nothing matches', async () => {
+    const workbook = await buildWorkbook([]);
+    const sheet = workbook.getWorksheet('Applications')!;
+    expect(sheet).toBeTruthy();
+    expect(sheet.getRow(1).getCell(1).value).toBe('Position');
   });
 });

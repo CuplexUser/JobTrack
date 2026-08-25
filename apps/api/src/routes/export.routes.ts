@@ -13,6 +13,7 @@ import type { Deps } from '../deps.js';
 import { findAllMatching, listApplications } from '../services/applications.service.js';
 import { exportFilename } from '../export/columns.js';
 import { csvLines, writeWorkbook } from '../export/workbook.js';
+import { withNotes } from '../export/rows.js';
 
 export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
   const { repos, search } = deps;
@@ -21,7 +22,7 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
     const query = exportQuerySchema.parse(request.query);
 
     // A search query restricts the export the same way it restricts the table.
-    let rows;
+    let matched;
     if (query.q) {
       const outcome = await search.search(query.q, { limit: 500, types: ['application'] });
       const result = await listApplications(
@@ -29,10 +30,13 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
         { ...query, limit: 200 },
         { orderedIds: outcome.hits.map((hit) => hit.entityId) },
       );
-      rows = result.items;
+      matched = result.items;
     } else {
-      rows = await findAllMatching(repos, query);
+      matched = await findAllMatching(repos, query);
     }
+
+    // The list view carries only a note count; an export carries the note text.
+    const rows = await withNotes(repos, matched);
 
     const scope = describeScope(query);
 
