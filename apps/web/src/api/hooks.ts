@@ -22,6 +22,8 @@ export const keys = {
   dashboard: () => ['dashboard'] as const,
   duplicates: (params: unknown) => ['duplicates', params] as const,
   search: (q: string) => ['search', q] as const,
+  openings: (params: unknown) => ['openings', params] as const,
+  opening: (id: string) => ['opening', id] as const,
 };
 
 /** Everything an application write can invalidate. */
@@ -175,6 +177,56 @@ export function useDeleteNote() {
     onSuccess: () => {
       void client.invalidateQueries({ queryKey: ['notes'] });
       void client.invalidateQueries({ queryKey: ['application'] });
+    },
+  });
+}
+
+export function useOpenings(params: Record<string, unknown> = {}) {
+  return useQuery({ queryKey: keys.openings(params), queryFn: () => api.listOpenings(params) });
+}
+
+function invalidateOpenings(client: QueryClient): void {
+  void client.invalidateQueries({ queryKey: ['openings'] });
+  void client.invalidateQueries({ queryKey: ['opening'] });
+}
+
+export function useCreateOpening() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.createOpening(body),
+    onSuccess: () => invalidateOpenings(client),
+  });
+}
+
+export function useUpdateOpening() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: unknown }) => api.updateOpening(id, body),
+    onSuccess: () => invalidateOpenings(client),
+  });
+}
+
+export function useDeleteOpening() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteOpening(id),
+    onSuccess: () => invalidateOpenings(client),
+  });
+}
+
+/** Converting an opening also creates an application, so it invalidates both scopes. */
+export function useConvertOpening() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id: string; body: unknown }) => api.convertOpening(id, body),
+    onSuccess: () => {
+      invalidateOpenings(client);
+      void client.invalidateQueries({ queryKey: ['applications'] });
+      void client.invalidateQueries({ queryKey: ['application'] });
+      void client.invalidateQueries({ queryKey: ['periods'] });
+      void client.invalidateQueries({ queryKey: ['dashboard'] });
+      void client.invalidateQueries({ queryKey: ['companies'] });
+      void client.invalidateQueries({ queryKey: ['search'] });
     },
   });
 }

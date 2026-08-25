@@ -124,7 +124,9 @@ export async function hydrateApplications(
   });
 }
 
-function missingCompany(id: string): Company {
+/** Placeholder for a company row that has gone missing — used wherever losing the whole
+ * record would be worse than showing one with an unknown employer. */
+export function missingCompany(id: string): Company {
   const now = new Date(0).toISOString();
   return {
     id,

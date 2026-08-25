@@ -12,6 +12,7 @@ import type { Config, DriverName } from '../config.js';
 import {
   applicationSchema,
   companySchema,
+  jobOpeningSchema,
   noteSchema,
   searchVectorSchema,
   statusEventSchema,
@@ -19,6 +20,7 @@ import {
   tagSchema,
   type ApplicationRow,
   type CompanyRow,
+  type JobOpeningRow,
   type NoteRow,
   type SearchVectorRow,
   type StatusEventRow,
@@ -34,6 +36,7 @@ export interface Repos {
   notes: Repo<NoteRow>;
   statusEvents: Repo<StatusEventRow>;
   searchVectors: Repo<SearchVectorRow>;
+  jobOpenings: Repo<JobOpeningRow>;
 }
 
 export interface RepoBundle extends Repos {
@@ -84,6 +87,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
   const notes = await createRepo<NoteRow>({ ...common, table: 'notes', schema: noteSchema });
   const statusEvents = await createRepo<StatusEventRow>({ ...common, table: 'status_events', schema: statusEventSchema });
   const searchVectors = await createRepo<SearchVectorRow>({ ...common, table: 'search_vectors', schema: searchVectorSchema });
+  const jobOpenings = await createRepo<JobOpeningRow>({ ...common, table: 'job_openings', schema: jobOpeningSchema });
 
   return {
     companies,
@@ -93,6 +97,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
     notes,
     statusEvents,
     searchVectors,
+    jobOpenings,
     async close() {
       // Closing every repo is correct even when they share a pool: repolayer closes a pool
       // it created once, and leaves one that was passed in alone.
@@ -104,6 +109,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
         notes.close(),
         statusEvents.close(),
         searchVectors.close(),
+        jobOpenings.close(),
       ]);
     },
   };
@@ -128,5 +134,6 @@ export function scopedRepos(repos: Repos, ctx: TxContext | undefined): Repos {
     notes: repos.notes.with(ctx),
     statusEvents: repos.statusEvents.with(ctx),
     searchVectors: repos.searchVectors.with(ctx),
+    jobOpenings: repos.jobOpenings.with(ctx),
   };
 }

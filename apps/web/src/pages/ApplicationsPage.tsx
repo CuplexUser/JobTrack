@@ -32,6 +32,7 @@ import {
   PlusOutlined,
   SearchOutlined,
   ThunderboltOutlined,
+  UploadOutlined,
 } from '@ant-design/icons';
 import {
   APPLICATION_STATUSES,
@@ -46,11 +47,13 @@ import { api } from '../api/client.js';
 import { PeriodTree } from '../components/PeriodTree.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
+import { ImportModal } from '../components/ImportModal.js';
 
 export function ApplicationsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [importOpen, setImportOpen] = useState(false);
 
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
@@ -215,6 +218,9 @@ export function ApplicationsPage() {
               >
                 <Button icon={<DownloadOutlined />}>Export</Button>
               </Dropdown>
+              <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
+                Import
+              </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
                 New application
               </Button>
@@ -340,6 +346,7 @@ export function ApplicationsPage() {
       </Col>
 
       <ApplicationDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
+      <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
     </Row>
   );
 }

@@ -177,3 +177,31 @@ export interface JobApplicationDetail extends JobApplicationView {
   statusEvents: StatusEvent[];
   notes: Note[];
 }
+
+/**
+ * A saved opportunity, kept for later: "found this, don't have time to apply right now, or
+ * don't have everything I need yet." Converting one creates a real `JobApplication` and
+ * marks the opening `archived`, with `convertedApplicationId` pointing at what it became.
+ */
+export interface JobOpening {
+  id: string;
+  companyId: string;
+  jobTitle: string;
+  jobUrl: string | null;
+  location: string | null;
+  workMode: WorkMode;
+  sourceName: string | null;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
+  notes: string | null;
+  savedOn: string;
+  archived: boolean;
+  convertedApplicationId: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface JobOpeningView extends JobOpening {
+  company: Company;
+}

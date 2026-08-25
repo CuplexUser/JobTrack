@@ -17,6 +17,7 @@ import {
   type ApplicationStatus,
   type Company,
   type JobApplication,
+  type JobOpening,
   type Note,
   type NoteTarget,
   type StatusEvent,
@@ -28,6 +29,7 @@ import {
 import type {
   ApplicationRow,
   CompanyRow,
+  JobOpeningRow,
   NoteRow,
   StatusEventRow,
   TagRow,
@@ -107,6 +109,27 @@ export function toNote(row: NoteRow): Note {
     targetType: toNoteTarget(row.targetType),
     targetId: row.targetId,
     pinned: row.pinned,
+    createdAt: iso(row.createdAt),
+    updatedAt: iso(row.updatedAt),
+  };
+}
+
+export function toOpening(row: JobOpeningRow): JobOpening {
+  return {
+    id: row.id,
+    companyId: row.companyId,
+    jobTitle: row.jobTitle,
+    jobUrl: row.jobUrl,
+    location: row.location,
+    workMode: toWorkMode(row.workMode),
+    sourceName: row.sourceName,
+    salaryMin: row.salaryMin,
+    salaryMax: row.salaryMax,
+    salaryCurrency: row.salaryCurrency,
+    notes: row.notes,
+    savedOn: dateOnly(row.savedOn),
+    archived: row.archived,
+    convertedApplicationId: row.convertedApplicationId,
     createdAt: iso(row.createdAt),
     updatedAt: iso(row.updatedAt),
   };

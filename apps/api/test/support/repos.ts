@@ -16,6 +16,7 @@ import type { RepoBundle } from '../../src/db/repos.js';
 import {
   applicationSchema,
   companySchema,
+  jobOpeningSchema,
   noteSchema,
   searchVectorSchema,
   statusEventSchema,
@@ -44,6 +45,7 @@ export function createMemoryRepos(): RepoBundle {
     notes: new MemoryRepo({ ...common, table: 'notes', schema: noteSchema }),
     statusEvents: new MemoryRepo({ ...common, table: 'status_events', schema: statusEventSchema }),
     searchVectors: new MemoryRepo({ ...common, table: 'search_vectors', schema: searchVectorSchema }),
+    jobOpenings: new MemoryRepo({ ...common, table: 'job_openings', schema: jobOpeningSchema }),
   } as unknown as RepoBundle;
 
   return { ...repos, close: async () => {} };
@@ -73,6 +75,23 @@ export function applicationInput(over: Record<string, unknown> = {}) {
     salaryCurrency: null,
     followUpOn: null,
     tags: [] as string[],
+    notes: null,
+    ...over,
+  };
+}
+
+/** The defaults every opening test starts from. */
+export function openingInput(over: Record<string, unknown> = {}) {
+  return {
+    companyName: 'Spotify',
+    jobTitle: 'Backend Engineer',
+    jobUrl: null,
+    location: 'Stockholm',
+    workMode: 'hybrid',
+    sourceName: 'LinkedIn',
+    salaryMin: null,
+    salaryMax: null,
+    salaryCurrency: null,
     notes: null,
     ...over,
   };

@@ -4,6 +4,22 @@
   "private": true,
   "type": "module",
   "main": "./src/index.ts",
+  "exports": {
+    "./config": "./src/config.ts",
+    "./deps": "./src/deps.ts",
+    "./db/repos": "./src/db/repos.ts",
+    "./db/mappers": "./src/db/mappers.ts",
+    "./db/hydrate": "./src/db/hydrate.ts",
+    "./services/applications": "./src/services/applications.service.ts",
+    "./services/companies": "./src/services/companies.service.ts",
+    "./services/notes": "./src/services/notes.service.ts",
+    "./services/tags": "./src/services/tags.service.ts",
+    "./services/duplicates": "./src/services/duplicates.service.ts",
+    "./services/dashboard": "./src/services/dashboard.service.ts",
+    "./services/openings": "./src/services/openings.service.ts",
+    "./search": "./src/search/index.ts",
+    "./search/embedder": "./src/search/embedder.ts"
+  },
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",
     "start": "tsx src/index.ts",

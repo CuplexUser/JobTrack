@@ -119,6 +119,32 @@ export const searchVectorSchema = defineSchema({
   ...timestampFields,
 });
 
+/**
+ * A saved opportunity — "found this, don't have time to apply right now". Deliberately
+ * thinner than `applicationSchema`: no status pipeline, no tags, no linked notes, just
+ * enough to remember the posting until it becomes a real application.
+ *
+ * `convertedApplicationId` is set once, by `convertOpening`, and never cleared — it is the
+ * trace of what this opening became, not a piece of state anything else edits.
+ */
+export const jobOpeningSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  companyId: { type: 'string', column: 'company_id' },
+  jobTitle: { type: 'string', column: 'job_title' },
+  jobUrl: { type: 'string', nullable: true, column: 'job_url' },
+  location: { type: 'string', nullable: true },
+  workMode: { type: 'string', column: 'work_mode' },
+  sourceName: { type: 'string', nullable: true, column: 'source_name' },
+  salaryMin: { type: 'integer', nullable: true, column: 'salary_min' },
+  salaryMax: { type: 'integer', nullable: true, column: 'salary_max' },
+  salaryCurrency: { type: 'string', nullable: true, column: 'salary_currency' },
+  notes: { type: 'string', nullable: true },
+  savedOn: { type: 'date', column: 'saved_on' },
+  archived: { type: 'boolean' },
+  convertedApplicationId: { type: 'string', nullable: true, column: 'converted_application_id' },
+  ...timestampFields,
+});
+
 export type CompanyRow = Infer<typeof companySchema>;
 export type ApplicationRow = Infer<typeof applicationSchema>;
 export type TagRow = Infer<typeof tagSchema>;
@@ -126,3 +152,4 @@ export type TagLinkRow = Infer<typeof tagLinkSchema>;
 export type NoteRow = Infer<typeof noteSchema>;
 export type StatusEventRow = Infer<typeof statusEventSchema>;
 export type SearchVectorRow = Infer<typeof searchVectorSchema>;
+export type JobOpeningRow = Infer<typeof jobOpeningSchema>;

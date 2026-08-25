@@ -216,6 +216,64 @@ export const createTagSchema = z.object({
   scope: tagScopeSchema.default('both'),
 });
 
+/**
+ * A saved opportunity. Deliberately a smaller surface than `createApplicationSchema` — no
+ * status, no follow-up, no tags — because an opening is a placeholder, not a tracked process
+ * yet.
+ */
+export const createJobOpeningSchema = z
+  .object({
+    companyName: z.string().trim().min(1, 'Company is required').max(200),
+    jobTitle: z.string().trim().min(1, 'Job title is required').max(200),
+    jobUrl: optionalTrimmed(2000),
+    location: optionalTrimmed(200),
+    workMode: workModeSchema.default('unspecified'),
+    sourceName: optionalTrimmed(120),
+    salaryMin: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullish()
+      .transform((v) => v ?? null),
+    salaryMax: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullish()
+      .transform((v) => v ?? null),
+    salaryCurrency: optionalTrimmed(8),
+    notes: optionalTrimmed(20000),
+    savedOn: dateOnly.optional(),
+  })
+  .refine((v) => v.salaryMin === null || v.salaryMax === null || v.salaryMin <= v.salaryMax, {
+    message: 'Minimum salary cannot exceed the maximum',
+    path: ['salaryMin'],
+  });
+
+export const patchJobOpeningSchema = z
+  .object({
+    companyName: z.string().trim().min(1).max(200).optional(),
+    jobTitle: z.string().trim().min(1).max(200).optional(),
+    jobUrl: optionalTrimmed(2000).optional(),
+    location: optionalTrimmed(200).optional(),
+    workMode: workModeSchema.optional(),
+    sourceName: optionalTrimmed(120).optional(),
+    salaryMin: z.number().int().nonnegative().nullish(),
+    salaryMax: z.number().int().nonnegative().nullish(),
+    salaryCurrency: optionalTrimmed(8).optional(),
+    notes: optionalTrimmed(20000).optional(),
+    savedOn: dateOnly.optional(),
+    archived: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+
+/** Converting a saved opening into a real application — only what a draft cannot supply. */
+export const convertJobOpeningSchema = z.object({
+  appliedOn: dateOnly.optional(),
+  status: statusSchema.optional(),
+  tags: tagList.optional(),
+});
+
 export type CreateApplicationInput = z.input<typeof createApplicationSchema>;
 export type PatchApplicationInput = z.input<typeof patchApplicationSchema>;
 export type CreateCompanyInput = z.input<typeof createCompanySchema>;

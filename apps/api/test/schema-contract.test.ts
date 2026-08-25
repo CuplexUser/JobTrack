@@ -6,9 +6,16 @@
  */
 
 import { describe, expectTypeOf, it, expect } from 'vitest';
-import type { ApplicationRow, CompanyRow, NoteRow, StatusEventRow, TagRow } from '../src/db/schema.js';
-import type { JobApplication, Company, Note, StatusEvent, Tag } from '@jobtrack/shared';
-import { toApplication, toCompany, toNote, toStatus, toTag, toWorkMode } from '../src/db/mappers.js';
+import type {
+  ApplicationRow,
+  CompanyRow,
+  JobOpeningRow,
+  NoteRow,
+  StatusEventRow,
+  TagRow,
+} from '../src/db/schema.js';
+import type { JobApplication, JobOpening, Company, Note, StatusEvent, Tag } from '@jobtrack/shared';
+import { toApplication, toCompany, toNote, toOpening, toStatus, toTag, toWorkMode } from '../src/db/mappers.js';
 
 describe('row and wire types line up', () => {
   it('every wire field has a row field behind it', () => {
@@ -18,6 +25,7 @@ describe('row and wire types line up', () => {
     expectTypeOf<keyof Company>().toExtend<keyof CompanyRow>();
     expectTypeOf<keyof Tag>().toExtend<keyof TagRow>();
     expectTypeOf<keyof Note>().toExtend<keyof NoteRow>();
+    expectTypeOf<keyof JobOpening>().toExtend<keyof JobOpeningRow | 'savedOn'>();
   });
 
   it('mappers produce the wire shapes', () => {
@@ -25,6 +33,7 @@ describe('row and wire types line up', () => {
     expectTypeOf(toCompany).returns.toEqualTypeOf<Company>();
     expectTypeOf(toTag).returns.toEqualTypeOf<Tag>();
     expectTypeOf(toNote).returns.toEqualTypeOf<Note>();
+    expectTypeOf(toOpening).returns.toEqualTypeOf<JobOpening>();
   });
 
   it('status event maps comment_text onto the clean wire name', () => {

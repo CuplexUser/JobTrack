@@ -16,7 +16,9 @@ import { tagRoutes } from './routes/tags.routes.js';
 import { noteRoutes } from './routes/notes.routes.js';
 import { searchRoutes } from './routes/search.routes.js';
 import { exportRoutes } from './routes/export.routes.js';
+import { importRoutes } from './routes/import.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
+import { openingRoutes } from './routes/openings.routes.js';
 
 export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): Promise<FastifyInstance> {
   const app = Fastify({
@@ -28,6 +30,15 @@ export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): 
 
   await app.register(cors, { origin: true });
 
+  // Every other route posts JSON, which Fastify parses by default. Import posts a raw file
+  // instead — read as a Buffer rather than sniffed, so the route sees exactly the bytes the
+  // browser sent regardless of what content type it decided the file was.
+  app.addContentTypeParser(
+    ['text/csv', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'],
+    { parseAs: 'buffer' },
+    (_request, payload, done) => done(null, payload),
+  );
+
   registerErrorHandler(app);
 
   await app.register(async (instance) => applicationRoutes(instance, deps));
@@ -36,7 +47,9 @@ export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): 
   await app.register(async (instance) => noteRoutes(instance, deps));
   await app.register(async (instance) => searchRoutes(instance, deps));
   await app.register(async (instance) => exportRoutes(instance, deps));
+  await app.register(async (instance) => importRoutes(instance, deps));
   await app.register(async (instance) => dashboardRoutes(instance, deps));
+  await app.register(async (instance) => openingRoutes(instance, deps));
 
   return app;
 }

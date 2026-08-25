@@ -7,6 +7,7 @@ import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Typography, type MenuProps } from 'antd';
 import {
   BgColorsOutlined,
+  BulbOutlined,
   CheckOutlined,
   DashboardOutlined,
   FileTextOutlined,
@@ -19,6 +20,7 @@ import { ApplicationDetailPage } from './pages/ApplicationDetailPage.js';
 import { CompaniesPage } from './pages/CompaniesPage.js';
 import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
 import { NotesPage } from './pages/NotesPage.js';
+import { OpeningsPage } from './pages/OpeningsPage.js';
 import { buildAntdTheme, palette } from './theme.js';
 
 const THEME_KEY = 'jobtrack.theme';
@@ -26,6 +28,7 @@ const THEME_KEY = 'jobtrack.theme';
 const NAV_ITEMS = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: <Link to="/dashboard">Dashboard</Link> },
   { key: '/applications', icon: <ProfileOutlined />, label: <Link to="/applications">Applications</Link> },
+  { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">Openings</Link> },
   { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">Companies</Link> },
   { key: '/notes', icon: <FileTextOutlined />, label: <Link to="/notes">Notes</Link> },
 ];
@@ -119,6 +122,7 @@ export function App() {
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
               <Route path="/applications/:id" element={<ApplicationDetailPage />} />
+              <Route path="/openings" element={<OpeningsPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/companies/:id" element={<CompanyDetailPage />} />
               <Route path="/notes" element={<NotesPage />} />

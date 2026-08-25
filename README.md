@@ -60,9 +60,15 @@ normalizing between them would mean inventing a conversion that is wrong in ways
 see. The semantic half has a similarity floor, because vector search has no concept of "no
 match" and will otherwise return the whole table ranked by accident.
 
+**Job openings.** A lighter-weight record for a role you found but are not ready to apply
+to yet — no status, no tags, just enough to find it again. "Convert" turns one into a real,
+tracked application on demand, using the same company-resolution and creation path the New
+Application form uses; the opening itself is kept (marked archived), not deleted, so there is
+still a record of what it became.
+
 **Everything else.** Applications divided by year and month, full status pipeline with a
 dated history, companies as first-class records, a free-form tag vocabulary attachable to
-both companies and applications, notes that link to either, and CSV/Excel export.
+both companies and applications, notes that link to either, and CSV/Excel export and import.
 
 ---
 
@@ -71,6 +77,7 @@ both companies and applications, notes that link to either, and CSV/Excel export
 ```
 apps/web/          React 19 + Vite + Ant Design 6      :5173
 apps/api/          Fastify + repolayer + search        :3001
+apps/mcp/          MCP server (stdio) over the same repos
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
 ```
@@ -130,6 +137,7 @@ That portability costs something, and the design works around it deliberately:
 | `npm run typecheck` | `tsc --build` across the project references |
 | `npm run build` | production web bundle |
 | `npm run seed` | sample data (`-- --force` to add to a non-empty database) |
+| `npm run mcp` | start the MCP server (stdio) — see [MCP server](#mcp-server) |
 | `npm run clean` | remove build output and caches |
 | `npm run icons --workspace=@jobtrack/web` | regenerate favicon.ico / apple-touch-icon from the SVG sources |
 
@@ -174,6 +182,76 @@ shift columns and `Malmö` survives a double-click into Excel.
 > the workbook. `writeBuffer()` uses a different packing path and is correct. The tests now
 > assert on the central directory directly (`test/support/zip.ts`) rather than round-tripping
 > through the library that wrote the file, since that tolerance is what let the bug through.
+
+---
+
+## Import
+
+CSV and `.xlsx`, in the same 5-column shape Export produces — Position, Company, Date,
+Status, Notes, matched by header name rather than position. The obvious source is the app's
+own Export output, so a filtered export round-trips back in; a hand-built spreadsheet in the
+same shape works too.
+
+Two steps, both hitting `POST /api/import?format=csv|xlsx&mode=preview|commit`, and neither
+holds server-side upload state — the browser just posts the same file twice:
+
+1. **Preview** parses and validates every row against the exact zod schema the New
+   Application form uses, then runs each one through the same duplicate check the form runs
+   while you type. A row whose verdict is `exact` — the same rule
+   [`shouldBlockSave`](packages/shared/src/duplicates.ts) uses everywhere else — is marked
+   a duplicate and will be skipped; everything else is `new`. Two identical rows *within*
+   the same file are caught too, even though neither is in the database yet.
+2. **Commit** re-runs that classification and creates every `new` row through the same
+   `createApplication` call the API and the web form use — company resolution, the opening
+   status event, the linked note, all included. Duplicates are skipped, not overwritten; a
+   row that fails to parse is reported and does not stop the rest of the batch.
+
+The one thing that does not round-trip exactly: Export merges every note on an application
+into one `Notes` cell, so Import creates that cell back as a single new note rather than
+reconstructing the original set.
+
+---
+
+## MCP server
+
+`apps/mcp` is a standalone [Model Context Protocol](https://modelcontextprotocol.io) server
+(stdio transport) so an MCP client — Claude Desktop, Claude Code — can read and write
+JobTrack data directly: "log that I applied to Spotify today", "what's still awaiting a
+reply", "save this posting for later".
+
+It talks to the database **directly**, not through the REST API: it calls
+`createRepos(config)` and the exact same `services/*.service.ts` functions the routes call
+(exposed to it via a small `exports` map in `apps/api/package.json`), so it works whether or
+not `npm run dev` is running. The same SQLite connection settings apply, including the
+`busyTimeoutMs` that makes two processes touching the file at once safe.
+
+Tools cover create/update/status-change for applications, companies, notes, tags and job
+openings, plus every read (list/get/search/dashboard) — deliberately **no delete tools**, so
+an MCP client cannot destroy data, only add to or edit it.
+
+```bash
+npm run mcp   # runs it directly, for manual testing (e.g. with @modelcontextprotocol/inspector)
+```
+
+Point an MCP client at it with a config like:
+
+```json
+{
+  "mcpServers": {
+    "jobtrack": {
+      "command": "npx",
+      "args": ["tsx", "apps/mcp/src/index.ts"],
+      "cwd": "/path/to/JobTrack"
+    }
+  }
+}
+```
+
+> **One caveat worth knowing.** If the API dev server is also running, each process keeps
+> its own in-memory search index. A write made through MCP calls *that process's own*
+> `search.markStale()` — the web app's search results only pick it up once its own index is
+> separately invalidated (a later write there, or a restart). Every other read — lists,
+> detail pages, the dashboard — hits SQLite directly and is unaffected.
 
 ---
 

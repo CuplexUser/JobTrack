@@ -7,11 +7,13 @@
  */
 
 import type {
+  ApplicationStatus,
   Company,
   CompanyWithStats,
   DuplicateCheck,
   JobApplicationDetail,
   JobApplicationView,
+  JobOpeningView,
   Note,
   NoteWithTarget,
   StatusEvent,
@@ -118,6 +120,33 @@ export interface DashboardResponse {
   recentActivity: (StatusEvent & { jobTitle: string; companyName: string })[];
 }
 
+export interface ImportPreviewRow {
+  rowNumber: number;
+  sheet: string | null;
+  verdict: 'new' | 'duplicate' | 'error';
+  jobTitle: string;
+  companyName: string;
+  appliedOn: string;
+  status: ApplicationStatus | null;
+  errors: string[];
+}
+
+export interface ImportPreviewResponse {
+  mode: 'preview';
+  fileErrors: string[];
+  totals: { new: number; duplicate: number; error: number };
+  rows: ImportPreviewRow[];
+}
+
+export interface ImportCommitResponse {
+  mode: 'commit';
+  fileErrors: string[];
+  created: number;
+  skipped: number;
+  failed: number;
+  errors: { rowNumber: number; message: string }[];
+}
+
 export interface SearchResponse {
   results: {
     type: 'application' | 'company' | 'note';
@@ -128,6 +157,41 @@ export interface SearchResponse {
   }[];
   semanticReady: boolean;
   query: string;
+}
+
+const IMPORT_CONTENT_TYPE: Record<'csv' | 'xlsx', string> = {
+  csv: 'text/csv',
+  xlsx: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+};
+
+/**
+ * Import posts the raw file, not JSON, so it cannot go through `request()` above — there is
+ * no body to `JSON.stringify`, and the content type has to be the file's own rather than
+ * `application/json`.
+ */
+async function importRequest<T>(
+  file: File,
+  format: 'csv' | 'xlsx',
+  mode: 'preview' | 'commit',
+): Promise<T> {
+  const response = await fetch(`/api/import${toQuery({ format, mode })}`, {
+    method: 'POST',
+    headers: { 'Content-Type': IMPORT_CONTENT_TYPE[format] },
+    body: file,
+  });
+
+  const text = await response.text();
+  const body = text ? JSON.parse(text) : null;
+
+  if (!response.ok) {
+    throw new ApiError(
+      response.status,
+      body?.error ?? 'unknown',
+      body?.message ?? response.statusText,
+      body?.details,
+    );
+  }
+  return body as T;
 }
 
 export const api = {
@@ -197,4 +261,29 @@ export const api = {
   /** Exports are a plain navigation, so the browser handles the download itself. */
   exportUrl: (filter: Record<string, unknown>, format: 'csv' | 'xlsx') =>
     `/api/export${toQuery({ ...filter, format })}`,
+
+  previewImport: (file: File, format: 'csv' | 'xlsx') =>
+    importRequest<ImportPreviewResponse>(file, format, 'preview'),
+
+  commitImport: (file: File, format: 'csv' | 'xlsx') =>
+    importRequest<ImportCommitResponse>(file, format, 'commit'),
+
+  listOpenings: (params: Record<string, unknown> = {}) =>
+    request<{ openings: JobOpeningView[] }>(`/api/openings${toQuery(params)}`),
+
+  getOpening: (id: string) => request<JobOpeningView>(`/api/openings/${id}`),
+
+  createOpening: (body: unknown) =>
+    request<JobOpeningView>('/api/openings', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateOpening: (id: string, body: unknown) =>
+    request<JobOpeningView>(`/api/openings/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteOpening: (id: string) => request<void>(`/api/openings/${id}`, { method: 'DELETE' }),
+
+  convertOpening: (id: string, body: unknown) =>
+    request<JobApplicationView>(`/api/openings/${id}/convert`, {
+      method: 'POST',
+      body: JSON.stringify(body),
+    }),
 };
