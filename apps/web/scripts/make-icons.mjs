@@ -1,5 +1,5 @@
 /**
- * Rasterise the favicon source artwork into the fallback formats.
+ * Rasterize the favicon source artwork into the fallback formats.
  *
  *   npm run icons --workspace=@jobtrack/web
  *
@@ -55,7 +55,7 @@ function buildIco(images) {
     directory.writeUInt8(size >= 256 ? 0 : size, at + 1); // height
     directory.writeUInt8(0, at + 2); // palette size
     directory.writeUInt8(0, at + 3); // reserved
-    directory.writeUInt16LE(1, at + 4); // colour planes
+    directory.writeUInt16LE(1, at + 4); // color planes
     directory.writeUInt16LE(32, at + 6); // bits per pixel
     directory.writeUInt32LE(data.length, at + 8);
     directory.writeUInt32LE(offset, at + 12);

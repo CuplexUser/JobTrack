@@ -28,7 +28,7 @@ import { FakeEmbedder } from '../../src/search/embedder.js';
 export function createMemoryRepos(): RepoBundle {
   const store = new MemoryStore();
   // Matches src/db/repos.ts exactly. The shorthand `timestamps: true` is deliberately not
-  // used: MemoryRepo does not honour it, which would make every hydrated row here carry
+  // used: MemoryRepo does not honor it, which would make every hydrated row here carry
   // null timestamps that production never sees.
   const common = {
     store,

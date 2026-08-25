@@ -5,7 +5,7 @@
  * application at that company, optionally score the typed title against them semantically,
  * and hand all of it to the pure `evaluateDuplicates` in the shared package.
  *
- * The split matters. Everything judgemental — thresholds, ranking, what counts as exact —
+ * The split matters. Everything judgmental — thresholds, ranking, what counts as exact —
  * is pure and unit-tested. This module only fetches.
  */
 

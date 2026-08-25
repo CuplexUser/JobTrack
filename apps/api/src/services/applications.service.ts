@@ -1,5 +1,5 @@
 /**
- * Applications — the centre of the app.
+ * Applications — the center of the app.
  *
  * Two invariants live here and nowhere else:
  *

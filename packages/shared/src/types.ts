@@ -49,7 +49,7 @@ export function nextStatus(status: ApplicationStatus): ApplicationStatus | null 
   return STATUS_PROGRESSION[i + 1] ?? null;
 }
 
-/** Presentation colours, kept next to the vocabulary so the UI never invents its own. */
+/** Presentation colors, kept next to the vocabulary so the UI never invents its own. */
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   applied: 'blue',
   screening: 'cyan',

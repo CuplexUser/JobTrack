@@ -28,7 +28,7 @@ describe('reciprocalRankFusion', () => {
     expect(b.ranks).toEqual({ lexical: 1, semantic: 0 });
   });
 
-  it('honours a retriever weight', () => {
+  it('honors a retriever weight', () => {
     const weighted = reciprocalRankFusion({
       lexical: { ids: ['a'], weight: 0.1 },
       semantic: { ids: ['b'], weight: 10 },

@@ -217,7 +217,7 @@ describe('listApplications', () => {
     expect(result.items.map((i) => i.company.name)).toEqual(['Anthropic', 'Klarna', 'Spotify']);
   });
 
-  it('honours a search ranking over the database ordering', async () => {
+  it('honors a search ranking over the database ordering', async () => {
     const all = await listApplications(repos, filter());
     const reversed = all.items.map((i) => i.id).reverse();
 

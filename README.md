@@ -148,7 +148,7 @@ One suite (`sqlite-integration.test.ts`) runs against a real temporary SQLite fi
 a fake cannot prove that `ensureTable()` emits DDL a real engine accepts or that a `Date`
 survives storage unchanged.
 
-> **One caveat worth knowing.** repolayer's `timestamps: true` shorthand is honoured by the
+> **One caveat worth knowing.** repolayer's `timestamps: true` shorthand is honored by the
 > SQLite adapter but leaves both fields `null` on `MemoryRepo`. Both this app and its test
 > support use the explicit `{ createdAt, updatedAt }` form, which behaves identically on
 > both. Worth a conformance case upstream.
@@ -162,7 +162,7 @@ is exactly what you were looking at, including an active search.
 
 Five columns: **Position, Company, Date, Status, Notes**. A list, not a report; there is no
 summary or statistics sheet. The workbook keeps one worksheet per year, matching how the app
-organises applications everywhere else.
+organizes applications everywhere else.
 
 CSV is written by hand against RFC 4180 with a UTF-8 BOM, so titles containing commas do not
 shift columns and `Malmö` survives a double-click into Excel.

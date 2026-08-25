@@ -26,7 +26,7 @@ export async function companyRoutes(app: FastifyInstance, deps: Deps): Promise<v
   });
 
   /**
-   * Autocomplete for the company field. The first line of duplicate defence: offering
+   * Autocomplete for the company field. The first line of duplicate defense: offering
    * "Spotify" while someone types "spot" is what stops a second spelling being created.
    */
   app.get('/api/companies/suggest', async (request) => {

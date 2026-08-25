@@ -3,7 +3,7 @@
 
   <!--
     The 16 and 20px variant of the mark. Source artwork only — never served directly;
-    apps/web/scripts/make-icons.mjs rasterises it into the small entries of favicon.ico.
+    apps/web/scripts/make-icons.mjs rasterizes it into the small entries of favicon.ico.
 
     Downsampling the full three-node mark to 16px merges the nodes into a diagonal smudge
     and loses the ring in the terminal node entirely. So the small size is drawn rather

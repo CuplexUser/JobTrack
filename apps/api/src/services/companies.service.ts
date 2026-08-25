@@ -192,7 +192,7 @@ async function requireCompany(repos: Repos, id: string): Promise<CompanyRow> {
 /**
  * Company name suggestions for the autocomplete, ranked so exact prefixes come first.
  *
- * This is the first line of duplicate defence: offering "Spotify" while someone types
+ * This is the first line of duplicate defense: offering "Spotify" while someone types
  * "spot" is what stops a second spelling being created in the first place.
  */
 export async function suggestCompanies(

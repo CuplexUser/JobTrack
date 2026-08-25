@@ -75,7 +75,7 @@ describe('SearchIndex', () => {
     expect(outcome.hits.every((h) => h.type === 'company')).toBe(true);
   });
 
-  it('honours the result limit', async () => {
+  it('honors the result limit', async () => {
     const search = new SearchIndex({ repos, embedder: new FakeEmbedder() });
     await search.start();
     await search.whenSemanticReady();

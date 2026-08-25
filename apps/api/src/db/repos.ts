@@ -65,7 +65,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
   const connection = connectionFor(config);
 
   // The explicit timestamp field names rather than `timestamps: true`: the SQLite adapter
-  // honours the shorthand, but MemoryRepo leaves both fields null under it, so tests would
+  // honors the shorthand, but MemoryRepo leaves both fields null under it, so tests would
   // diverge from production on something neither would obviously report.
   const common = {
     driver,

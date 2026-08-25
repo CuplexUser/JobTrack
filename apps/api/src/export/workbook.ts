@@ -5,7 +5,7 @@
  * true: the route hands them the exact same result the table would have shown.
  *
  * Plain lists, no analysis. The workbook keeps one worksheet per year — that is how the
- * app organises applications everywhere else, and it keeps any one sheet short enough to
+ * app organizes applications everywhere else, and it keeps any one sheet short enough to
  * read — but there is no summary or breakdown sheet.
  *
  * **Why the buffered writer, not `stream.xlsx.WorkbookWriter`.** The streaming writer goes

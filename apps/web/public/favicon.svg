@@ -24,7 +24,7 @@
 
   <rect width="32" height="32" rx="7.5" fill="url(#tile)" />
 
-  <!-- The path already travelled, held back so the nodes carry the emphasis. -->
+  <!-- The path already traveled, held back so the nodes carry the emphasis. -->
   <path
     d="M8 23 L14.5 16.5 L23.5 9.5"
     fill="none"
