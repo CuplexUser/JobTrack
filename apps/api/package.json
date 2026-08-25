@@ -5,6 +5,7 @@
   "type": "module",
   "main": "./src/index.ts",
   "exports": {
+    "./app": "./src/app.ts",
     "./config": "./src/config.ts",
     "./deps": "./src/deps.ts",
     "./db/repos": "./src/db/repos.ts",

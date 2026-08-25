@@ -162,6 +162,7 @@ means something has to bring the process back up:
 | `npm run build` | production web bundle |
 | `npm run seed` | sample data (`-- --force` to add to a non-empty database) |
 | `npm run mcp` | start the MCP server (stdio) — see [MCP server](#mcp-server) |
+| `npm run tray` | run the API + web UI as one process, with a Windows tray icon — see [Tray app](#tray-app) |
 | `npm run clean` | remove build output and caches |
 | `npm run icons --workspace=@jobtrack/web` | regenerate favicon.ico / apple-touch-icon from the SVG sources |
 
@@ -276,6 +277,34 @@ Point an MCP client at it with a config like:
 > `search.markStale()` — the web app's search results only pick it up once its own index is
 > separately invalidated (a later write there, or a restart). Every other read — lists,
 > detail pages, the dashboard — hits SQLite directly and is unaffected.
+
+---
+
+## Tray app
+
+`apps/tray` runs the API and the built web UI as one background process, with a Windows
+tray icon for the rest — no terminal window, no separate `npm run dev`. It composes the same
+`buildApp` the API server itself uses (`apps/api/src/app.ts`) with `@fastify/static` serving
+`apps/web/dist`, so one process answers both `/api/*` and the SPA.
+
+```bash
+npm run build   # apps/web/dist must exist — the tray serves it, it doesn't build it
+npm run tray
+```
+
+The tray menu has four items:
+
+- **Open JobTrack** — opens the UI in your default browser.
+- **Autostart with Windows** — toggles a per-user Registry Run key
+  (`HKCU\Software\Microsoft\Windows\CurrentVersion\Run`), no admin rights needed.
+- **Open App Settings** — opens `.env` in Notepad, seeding it from `.env.example` first if
+  it doesn't exist yet.
+- **Quit** — stops the server and the tray icon together.
+
+Windows only for now — elsewhere, `npm run tray` still runs the combined server, just
+without a tray icon (Ctrl+C to stop). It also expects Node.js already installed on the
+machine; see `ROADMAP.md` for the plan to publish this as a standalone
+`npm install -g jobtrack` package.
 
 ---
 

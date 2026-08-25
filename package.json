@@ -22,6 +22,8 @@
     "preseed": "npm run build --workspace=@jobtrack/shared",
     "seed": "npm run seed --workspace=@jobtrack/api",
     "mcp": "npm run start --workspace=@jobtrack/mcp",
+    "pretray": "npm run build --workspace=@jobtrack/shared",
+    "tray": "npm run start --workspace=@jobtrack/tray",
     "pretest": "npm run build --workspace=@jobtrack/shared",
     "test": "vitest run",
     "test:watch": "vitest",
