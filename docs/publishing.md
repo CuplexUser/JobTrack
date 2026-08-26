@@ -77,6 +77,11 @@ Notes from doing this the first time:
   root) — npm renders whatever `README.md` is in the published tarball's root, and a missing
   one means a blank npm page. `packages/shared`, `apps/api`, `apps/mcp`, and `apps/tray` each
   carry one.
+- **Same for `LICENSE` and the `license` field.** A root-level `LICENSE` file doesn't reach
+  a package's tarball on its own, and without a `license` field in that package's
+  `package.json`, its npm page shows "License: none" even though the project is MIT. Each of
+  the four packages carries its own copy of `LICENSE` (in its `files` list) plus
+  `"license": "MIT"`.
 - **Versions are immutable.** Once `1.0.0` is published, you can't overwrite it — fixing
   anything metadata-only (a typo'd README, a missing `repository` field) still means bumping
   the version and republishing, even though nothing code-level changed.

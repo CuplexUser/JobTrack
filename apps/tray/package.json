@@ -1,7 +1,8 @@
 {
   "name": "jobtrack",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "type": "module",
+  "license": "MIT",
   "description": "Runs the JobTrack API + web UI as one background process with a Windows tray icon",
   "repository": {
     "type": "git",
@@ -16,7 +17,8 @@
   "files": [
     "bin",
     "src",
-    "vendor"
+    "vendor",
+    "LICENSE"
   ],
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/cli.ts",

@@ -1,7 +1,8 @@
 {
   "name": "@jobtrack/api",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CuplexUser/JobTrack.git",
@@ -10,7 +11,8 @@
   "homepage": "https://github.com/CuplexUser/JobTrack#readme",
   "main": "./src/index.ts",
   "files": [
-    "src"
+    "src",
+    "LICENSE"
   ],
   "exports": {
     "./app": "./src/app.ts",

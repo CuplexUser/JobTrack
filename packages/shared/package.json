@@ -1,7 +1,8 @@
 {
   "name": "@jobtrack/shared",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "type": "module",
+  "license": "MIT",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/CuplexUser/JobTrack.git",
@@ -16,7 +17,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist"],
+  "files": ["dist", "LICENSE"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
