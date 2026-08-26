@@ -41,14 +41,13 @@ Once the app is tray-managed per item 1, the tray process itself becomes that
 supervisor, so it's worth revisiting: explore an in-process hot-swap that avoids
 the restart/supervisor dependency entirely.
 
-## 4. Split docs into a `/docs` folder
+## 4. Split docs into a `/docs` folder — 🚧 started
 
-All documentation currently lives in a single `README.md` (~340 lines), including
-a full "MCP server" section for `apps/mcp`, which has no docs of its own. Slim the
-root README down to an overview, quick start, and links, and move the
+`docs/publishing.md` now holds the npm-publishing walkthrough (moved out of the
+Tray app section). Still to move out of the root `README.md` (~350 lines): the
 storage/Postgres, import/export, MCP server, backup & restore, and
-dependency-override sections into files under a new `docs/` folder for easier
-navigation.
+dependency-override sections, once the root README is slimmed to an overview,
+quick start, and links.
 
 ## 5. CI pipeline
 

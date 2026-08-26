@@ -80,8 +80,10 @@ backup/restore (see "Switching databases" and "Backup & restore" below).
 apps/web/          React 19 + Vite + Ant Design 6      :5173
 apps/api/          Fastify + repolayer + search        :3001
 apps/mcp/          MCP server (stdio) over the same repos
+apps/tray/         background process + Windows tray icon, publishable as `jobtrack`
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
+docs/              longer reference docs (npm publishing, ...)
 ```
 
 npm workspaces — one `npm install` at the root covers everything.
@@ -272,6 +274,15 @@ Point an MCP client at it with a config like:
 }
 ```
 
+> **Using the globally-installed `jobtrack` tray app too? Set `JOBTRACK_HOME`.** MCP's
+> `loadConfig()` call has no env override above, so — same as `npm run dev`/`npm run tray` —
+> it falls back to this repo's own `data/jobtrack.db`. The globally-installed CLI
+> (`npm install -g jobtrack`) is a separate process that sets its own `JOBTRACK_HOME` to a
+> per-user directory (`%APPDATA%\jobtrack` on Windows) before it ever calls `loadConfig()` —
+> see [`docs/publishing.md`](docs/publishing.md). Point MCP at the *same* database as that
+> installed app by adding `"env": { "JOBTRACK_HOME": "<that per-user path>" }` to the config
+> above; leave it out to keep MCP on this repo's own dev/seed database instead.
+
 > **One caveat worth knowing.** If the API dev server is also running, each process keeps
 > its own in-memory search index. A write made through MCP calls *that process's own*
 > `search.markStale()` — the web app's search results only pick it up once its own index is
@@ -307,30 +318,13 @@ machine.
 
 ### Publishing it as `npm install -g jobtrack`
 
-`apps/tray` (package name `jobtrack`) is set up to be published standalone, not just run from
-a clone of this repo:
+`apps/tray` (package name `jobtrack`), `@jobtrack/api`, and `@jobtrack/shared` are set up to
+be published standalone, not just run from a clone of this repo — see
+[`docs/publishing.md`](docs/publishing.md) for how the packaging works and the exact
+`npm publish` steps.
 
-- `@jobtrack/api` and `@jobtrack/shared` are real (non-private) packages with proper `^x.y.z`
-  dependencies between them — `jobtrack` doesn't rely on the workspace-only `*` protocol for
-  either, so `npm install -g jobtrack` can resolve them from the registry once they're
-  published there too.
-- `apps/tray/scripts/stage-assets.mjs` runs automatically as a `prepack` step (`npm pack` /
-  `npm publish`): it builds the web UI and copies it, plus `.env.example`, into
-  `apps/tray/vendor/` (gitignored — regenerated, never hand-edited), which the package's
-  `files` list includes. `src/assets.ts` prefers that bundled copy at runtime and only falls
-  back to the sibling `apps/web/dist`/root `.env.example` for local development.
-- There's no monorepo once this runs from `node_modules`, so `apps/api/src/config.ts`'s
-  `resolveAppDataDir()` points the database, model cache, and active-DB-target pointer at
-  `JOBTRACK_HOME` instead of the repo root when that env var is set. `bin/jobtrack.js` — the
-  actual `jobtrack` command, as opposed to `npm run tray`'s `tsx src/cli.ts` — sets a sensible
-  per-user default (`%APPDATA%\jobtrack` on Windows) whenever it isn't already set.
-
-To verify all of this without actually publishing: `npm pack` in `packages/shared`, `apps/api`,
-and `apps/tray` (in that order), then `npm install` the three `.tgz` files as dependencies in
-a scratch project outside this repo — that's a true standalone install, not a workspace
-symlink. Actually publishing (`npm publish` from each of those three directories, in the same
-order, after `npm login`) is a separate, manual, one-way step outside the scope of anything
-run here.
+> **Using a globally-installed `jobtrack` alongside the MCP server?** They use different
+> databases by default — see the [MCP server](#mcp-server) section's callout.
 
 ---
 
