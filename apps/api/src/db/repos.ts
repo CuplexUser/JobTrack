@@ -1,31 +1,27 @@
 /**
- * The one module that knows which database engine is underneath.
+ * The `Repos` contract every service is written against.
  *
- * Everything else in the API takes a `Repos` and cannot tell SQLite from Postgres — which
- * is the entire reason for building on repolayer. The type of `Repos` is deliberately
- * expressed in terms of `Repo<T>`, so a service written against it can be handed the
- * in-memory fake in tests with no ceremony at all (see test/support/repos.ts).
+ * Deliberately expressed in terms of `Repo<T>` rather than any one driver, which is what
+ * lets a service be handed the in-memory fake in tests — or in the client-side demo build —
+ * with no ceremony at all. The multi-driver factory that builds a real `Repos` bundle lives
+ * in `create-repos.ts`, not here: that file imports `repolayer`'s `createRepo`, which
+ * dynamically imports each driver (SQLite, Postgres, MySQL) in turn, and none of that
+ * belongs in a browser bundle. `repolayer`'s own types (`Repo`, `TxContext`) are used only
+ * as types below, so nothing in this file pulls that machinery in either — see
+ * `db/memory-repos.ts` and `apps/web/src/api/demo-client.ts` for where that separation pays
+ * off.
  */
 
-import { createRepo, type Repo, type TxContext } from 'repolayer';
-import type { Config, DriverName } from '../config.js';
-import {
-  applicationSchema,
-  companySchema,
-  jobOpeningSchema,
-  noteSchema,
-  searchVectorSchema,
-  statusEventSchema,
-  tagLinkSchema,
-  tagSchema,
-  type ApplicationRow,
-  type CompanyRow,
-  type JobOpeningRow,
-  type NoteRow,
-  type SearchVectorRow,
-  type StatusEventRow,
-  type TagLinkRow,
-  type TagRow,
+import type { Repo, TxContext } from 'repolayer';
+import type {
+  ApplicationRow,
+  CompanyRow,
+  JobOpeningRow,
+  NoteRow,
+  SearchVectorRow,
+  StatusEventRow,
+  TagLinkRow,
+  TagRow,
 } from './schema.js';
 
 export interface Repos {
@@ -41,78 +37,6 @@ export interface Repos {
 
 export interface RepoBundle extends Repos {
   close(): Promise<void>;
-}
-
-/**
- * repolayer takes connection settings per driver. Repos pointed at the same SQLite file
- * share one connection automatically, which is what makes `repo.with(ctx)` work across
- * tables — a transaction that spans companies and applications is not optional here, since
- * creating an application may create its company in the same breath.
- */
-function connectionFor(config: Config): Record<string, unknown> {
-  switch (config.driver) {
-    case 'sqlite':
-      return { file: config.databaseFile, busyTimeoutMs: 5000 };
-    case 'postgres':
-    case 'mysql': {
-      if (!config.databaseUrl) {
-        throw new Error(`DATABASE_URL is required when DB_DRIVER=${config.driver}`);
-      }
-      return { connectionString: config.databaseUrl, max: 10 };
-    }
-  }
-}
-
-export async function createRepos(config: Config): Promise<RepoBundle> {
-  const driver = config.driver as DriverName;
-  const connection = connectionFor(config);
-
-  // The explicit timestamp field names rather than `timestamps: true`: the SQLite adapter
-  // honors the shorthand, but MemoryRepo leaves both fields null under it, so tests would
-  // diverge from production on something neither would obviously report.
-  const common = {
-    driver,
-    connection,
-    ids: 'uuid',
-    timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
-    ensureTable: true,
-  } as const;
-
-  // Built sequentially rather than with Promise.all: on SQLite these share one connection
-  // and one writer, and racing seven CREATE TABLE statements through it buys nothing.
-  const companies = await createRepo<CompanyRow>({ ...common, table: 'companies', schema: companySchema });
-  const applications = await createRepo<ApplicationRow>({ ...common, table: 'job_applications', schema: applicationSchema });
-  const tags = await createRepo<TagRow>({ ...common, table: 'tags', schema: tagSchema });
-  const tagLinks = await createRepo<TagLinkRow>({ ...common, table: 'tag_links', schema: tagLinkSchema });
-  const notes = await createRepo<NoteRow>({ ...common, table: 'notes', schema: noteSchema });
-  const statusEvents = await createRepo<StatusEventRow>({ ...common, table: 'status_events', schema: statusEventSchema });
-  const searchVectors = await createRepo<SearchVectorRow>({ ...common, table: 'search_vectors', schema: searchVectorSchema });
-  const jobOpenings = await createRepo<JobOpeningRow>({ ...common, table: 'job_openings', schema: jobOpeningSchema });
-
-  return {
-    companies,
-    applications,
-    tags,
-    tagLinks,
-    notes,
-    statusEvents,
-    searchVectors,
-    jobOpenings,
-    async close() {
-      // Closing every repo is correct even when they share a pool: repolayer closes a pool
-      // it created once, and leaves one that was passed in alone.
-      await Promise.allSettled([
-        companies.close(),
-        applications.close(),
-        tags.close(),
-        tagLinks.close(),
-        notes.close(),
-        statusEvents.close(),
-        searchVectors.close(),
-        jobOpenings.close(),
-      ]);
-    },
-  };
 }
 
 /**

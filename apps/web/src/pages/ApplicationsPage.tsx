@@ -45,11 +45,28 @@ import {
   type JobApplicationView,
 } from '@jobtrack/shared';
 import { useApplications, usePeriods, useTags } from '../api/hooks.js';
-import { api } from '../api/client.js';
+import { api } from '../api/index.js';
+import { demoExportCsv } from '../api/demo-client.js';
 import { PeriodTree } from '../components/PeriodTree.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { ImportModal } from '../components/ImportModal.js';
+
+/**
+ * XLSX export needs `exceljs`, which does not belong in a browser bundle, and the CSV path
+ * needs to build the file client-side instead of navigating to a server route — see
+ * `demoExportCsv` in `demo-client.ts`.
+ */
+const DEMO = import.meta.env.VITE_DEMO === 'true';
+
+function downloadBlob(filename: string, blob: Blob): void {
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.click();
+  URL.revokeObjectURL(url);
+}
 
 export function ApplicationsPage() {
   const navigate = useNavigate();
@@ -231,11 +248,17 @@ export function ApplicationsPage() {
             <Space>
               <Dropdown
                 menu={{
-                  items: [
-                    { key: 'csv', label: 'Export as CSV' },
-                    { key: 'xlsx', label: 'Export as Excel (.xlsx)' },
-                  ],
+                  items: DEMO
+                    ? [{ key: 'csv', label: 'Export as CSV' }]
+                    : [
+                        { key: 'csv', label: 'Export as CSV' },
+                        { key: 'xlsx', label: 'Export as Excel (.xlsx)' },
+                      ],
                   onClick: ({ key }) => {
+                    if (DEMO) {
+                      void demoExportCsv(filter).then(({ filename, blob }) => downloadBlob(filename, blob));
+                      return;
+                    }
                     // A plain navigation, so the browser handles the download itself.
                     window.location.href = api.exportUrl(filter, key as 'csv' | 'xlsx');
                   },

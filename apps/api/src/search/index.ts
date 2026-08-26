@@ -17,7 +17,6 @@
  * stored `textHash` decides.
  */
 
-import { createHash } from 'node:crypto';
 import MiniSearch, { type Options } from 'minisearch';
 import {
   cosineSimilarity,
@@ -460,8 +459,23 @@ export class SearchIndex {
   }
 }
 
+/**
+ * A change-detection fingerprint for `text`, not a security hash — this only decides
+ * whether a document's embedding needs recomputing, so a fast, dependency-free non-crypto
+ * hash is the right tool. Two FNV-1a passes with different seeds, concatenated, keep the
+ * collision risk low enough for that job without pulling in `node:crypto` (this module has
+ * no Node built-ins left, which is what lets it run in a browser build too).
+ */
 function hashText(text: string): string {
-  return createHash('sha256').update(text).digest('hex').slice(0, 32);
+  const pass = (seed: number): string => {
+    let hash = seed;
+    for (let i = 0; i < text.length; i += 1) {
+      hash ^= text.charCodeAt(i);
+      hash = Math.imul(hash, 0x01000193);
+    }
+    return (hash >>> 0).toString(16).padStart(8, '0');
+  };
+  return pass(0x811c9dc5) + pass(0x9e3779b9);
 }
 
 /** Exported for the seed script, which reports what it indexed. */

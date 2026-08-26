@@ -23,7 +23,14 @@ import {
   type UploadProps,
 } from 'antd';
 import { DatabaseOutlined, ExperimentOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
-import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/client.js';
+import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/index.js';
+
+/**
+ * `.jtbak` backup export/restore needs `node:zlib`, which does not belong in a browser
+ * bundle — see `demo-client.ts`'s `previewBackup`/`commitBackup`. The card is hidden here
+ * rather than left to fail on click.
+ */
+const DEMO = import.meta.env.VITE_DEMO === 'true';
 import { useClearDatabase, useDataStatus, useDbTargets, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
 
 const TABLE_LABELS: Record<string, string> = {
@@ -365,7 +372,7 @@ export function SettingsPage() {
         Settings
       </Typography.Title>
       <DatabaseCard />
-      <BackupCard />
+      {!DEMO && <BackupCard />}
       <DataCard />
     </Space>
   );

@@ -7,10 +7,11 @@
  */
 
 import { loadConfig } from './config.js';
-import { createRepos } from './db/repos.js';
+import { createRepos } from './db/create-repos.js';
 import { buildApp } from './app.js';
 import { SearchIndex } from './search/index.js';
-import { DisabledEmbedder, TransformersEmbedder, type Embedder } from './search/embedder.js';
+import { DisabledEmbedder, type Embedder } from './search/embedder.js';
+import { TransformersEmbedder } from './search/transformers-embedder.js';
 
 const config = loadConfig();
 const repos = await createRepos(config);

@@ -8,7 +8,7 @@
  */
 
 import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
-import { api } from './client.js';
+import { api } from './index.js';
 
 export const keys = {
   applications: (filter: unknown) => ['applications', filter] as const,

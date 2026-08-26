@@ -1,55 +1,16 @@
 /**
  * A complete `Repos` bundle backed by `MemoryRepo`.
  *
- * This is the payoff for building on repolayer: the services take a `Repos` and cannot
- * tell the difference, so the entire service layer is testable with no database, no
- * fixture files and no cleanup. `MemoryRepo` is trustworthy for this because it passes the
- * same conformance suite as the SQLite adapter — filters, null ordering, unique
- * constraints, transactions and keyset paging all behave the way a real engine behaves.
- *
- * One `MemoryStore` is shared by every repo, which is what lets `repo.with(ctx)` span
- * tables the way it does over a real connection.
+ * The factory itself lives in `src/db/memory-repos.ts` now — it's also the demo build's
+ * data layer, not just the test suite's — and is re-exported here so existing test imports
+ * keep working unchanged.
  */
 
-import { MemoryRepo, MemoryStore } from 'repolayer/memory';
-import type { RepoBundle } from '../../src/db/repos.js';
-import {
-  applicationSchema,
-  companySchema,
-  jobOpeningSchema,
-  noteSchema,
-  searchVectorSchema,
-  statusEventSchema,
-  tagLinkSchema,
-  tagSchema,
-} from '../../src/db/schema.js';
 import { SearchIndex } from '../../src/search/index.js';
 import { FakeEmbedder } from '../../src/search/embedder.js';
+import type { RepoBundle } from '../../src/db/repos.js';
 
-export function createMemoryRepos(): RepoBundle {
-  const store = new MemoryStore();
-  // Matches src/db/repos.ts exactly. The shorthand `timestamps: true` is deliberately not
-  // used: MemoryRepo does not honor it, which would make every hydrated row here carry
-  // null timestamps that production never sees.
-  const common = {
-    store,
-    ids: 'uuid',
-    timestamps: { createdAt: 'createdAt', updatedAt: 'updatedAt' },
-  } as const;
-
-  const repos = {
-    companies: new MemoryRepo({ ...common, table: 'companies', schema: companySchema }),
-    applications: new MemoryRepo({ ...common, table: 'job_applications', schema: applicationSchema }),
-    tags: new MemoryRepo({ ...common, table: 'tags', schema: tagSchema }),
-    tagLinks: new MemoryRepo({ ...common, table: 'tag_links', schema: tagLinkSchema }),
-    notes: new MemoryRepo({ ...common, table: 'notes', schema: noteSchema }),
-    statusEvents: new MemoryRepo({ ...common, table: 'status_events', schema: statusEventSchema }),
-    searchVectors: new MemoryRepo({ ...common, table: 'search_vectors', schema: searchVectorSchema }),
-    jobOpenings: new MemoryRepo({ ...common, table: 'job_openings', schema: jobOpeningSchema }),
-  } as unknown as RepoBundle;
-
-  return { ...repos, close: async () => {} };
-}
+export { createMemoryRepos } from '../../src/db/memory-repos.js';
 
 /**
  * A search index over the in-memory repos using the deterministic fake embedder, so tests

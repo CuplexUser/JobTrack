@@ -15,7 +15,7 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
-import { api, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from '../api/client.js';
+import { api, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from '../api/index.js';
 
 const VERDICT_COLOR: Record<ImportPreviewRow['verdict'], string> = {
   new: 'green',

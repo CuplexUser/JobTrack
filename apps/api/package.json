@@ -19,6 +19,9 @@
     "./config": "./src/config.ts",
     "./deps": "./src/deps.ts",
     "./db/repos": "./src/db/repos.ts",
+    "./db/create-repos": "./src/db/create-repos.ts",
+    "./db/schema": "./src/db/schema.ts",
+    "./db/memory-repos": "./src/db/memory-repos.ts",
     "./db/mappers": "./src/db/mappers.ts",
     "./db/hydrate": "./src/db/hydrate.ts",
     "./services/applications": "./src/services/applications.service.ts",
@@ -29,7 +32,14 @@
     "./services/dashboard": "./src/services/dashboard.service.ts",
     "./services/openings": "./src/services/openings.service.ts",
     "./search": "./src/search/index.ts",
-    "./search/embedder": "./src/search/embedder.ts"
+    "./search/embedder": "./src/search/embedder.ts",
+    "./search/transformers-embedder": "./src/search/transformers-embedder.ts",
+    "./backup/snapshot": "./src/backup/snapshot.ts",
+    "./backup/seed": "./src/backup/seed.ts",
+    "./import/csv": "./src/import/csv.ts",
+    "./import/columns": "./src/import/columns.ts",
+    "./export/rows": "./src/export/rows.ts",
+    "./export/columns": "./src/export/columns.ts"
   },
   "scripts": {
     "dev": "tsx watch --clear-screen=false src/index.ts",

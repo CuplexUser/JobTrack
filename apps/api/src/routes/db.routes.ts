@@ -17,7 +17,7 @@
 import type { FastifyInstance } from 'fastify';
 import { switchDbTargetSchema } from '@jobtrack/shared';
 import type { Config } from '../config.js';
-import { createRepos } from '../db/repos.js';
+import { createRepos } from '../db/create-repos.js';
 import { loadDbTargets, writeActiveTargetName } from '../db/targets.js';
 import type { Deps } from '../deps.js';
 import { badRequest } from '../lib/errors.js';

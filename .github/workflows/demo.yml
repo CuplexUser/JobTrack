@@ -1,0 +1,54 @@
+name: Deploy demo to GitHub Pages
+
+# The demo is fully static and client-side — apps/web/src/api/demo-client.ts runs the real
+# @jobtrack/api services against repolayer/memory, persisted to each visitor's own
+# localStorage. There is no server here to build or deploy, just the Vite build.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build --workspace=@jobtrack/shared
+
+      - run: npm run build:demo --workspace=@jobtrack/web
+        env:
+          # This deploys to a GitHub *project* page (https://<user>.github.io/JobTrack/),
+          # not a custom domain or a <user>.github.io root repo — drop this line if that
+          # ever changes, since a root/custom-domain deploy wants base: '/' instead.
+          GITHUB_PAGES_BASE: /JobTrack/
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/web/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

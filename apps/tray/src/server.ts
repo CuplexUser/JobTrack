@@ -9,9 +9,11 @@ import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '@jobtrack/api/app';
 import { loadConfig, type Config } from '@jobtrack/api/config';
-import { createRepos, type RepoBundle } from '@jobtrack/api/db/repos';
+import { createRepos } from '@jobtrack/api/db/create-repos';
+import type { RepoBundle } from '@jobtrack/api/db/repos';
 import { SearchIndex } from '@jobtrack/api/search';
-import { DisabledEmbedder, TransformersEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
+import { DisabledEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
+import { TransformersEmbedder } from '@jobtrack/api/search/transformers-embedder';
 import { resolveWebDist } from './assets.js';
 
 export interface RunningServer {

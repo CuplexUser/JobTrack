@@ -253,7 +253,12 @@ async function backupRequest<T>(file: File, mode: 'preview' | 'commit'): Promise
   return body as T;
 }
 
-export const api = {
+/**
+ * The real, `fetch`-backed implementation. In demo builds (`VITE_DEMO=true`) `./index.js`
+ * swaps this out for `demo-client.js`'s in-browser implementation instead — see that file
+ * for why, and `demo-client.ts` for the substitute.
+ */
+export const httpApi = {
   listApplications: (filter: Record<string, unknown>) =>
     request<ApplicationListResponse>(`/api/applications${toQuery(filter)}`),
 

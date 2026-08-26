@@ -12,7 +12,8 @@ import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { loadConfig } from '../src/config.js';
-import { createRepos, type RepoBundle } from '../src/db/repos.js';
+import { createRepos } from '../src/db/create-repos.js';
+import type { RepoBundle } from '../src/db/repos.js';
 import {
   computePeriods,
   createApplication,

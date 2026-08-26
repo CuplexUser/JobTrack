@@ -3,6 +3,10 @@ import react from '@vitejs/plugin-react';
 
 export default defineConfig({
   plugins: [react()],
+  // Set by the GitHub Pages workflow for a project page served from a subpath
+  // (`https://<user>.github.io/<repo>/`); unset (root `/`) for local builds, previews, and
+  // a Vercel/user-page deployment, which are served from their own domain root.
+  base: process.env.GITHUB_PAGES_BASE ?? '/',
   server: {
     port: 5173,
     // Same-origin in development, so the browser never deals with CORS and the API can

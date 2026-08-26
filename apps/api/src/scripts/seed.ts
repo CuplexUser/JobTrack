@@ -4,7 +4,7 @@
  */
 
 import { loadConfig } from '../config.js';
-import { createRepos } from '../db/repos.js';
+import { createRepos } from '../db/create-repos.js';
 import { seedDemoData } from '../backup/seed.js';
 
 async function main(): Promise<void> {
