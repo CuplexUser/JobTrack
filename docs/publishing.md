@@ -3,7 +3,8 @@
 `apps/tray` (package name `jobtrack`) and `apps/mcp` (`@jobtrack/mcp`) are both set up to be
 published standalone, not just run from a clone of this repo — `npm install -g jobtrack` gets
 you the full API + web UI + tray icon, and `npm install -g @jobtrack/mcp` gets you an MCP
-server, neither needing a monorepo in sight.
+server, neither needing a monorepo in sight. `publish-all.ps1` at the repo root automates
+publishing all four packages — see [Publishing for real](#publishing-for-real) below.
 
 ## How it's wired for this
 
@@ -34,6 +35,22 @@ that's a true standalone install, not a workspace symlink.
 
 ## Publishing for real
 
+`publish-all.ps1`, at the repo root, does the four `npm publish` calls below in order for
+you — it prints each package's `name@version`, refuses to run if `npm whoami` shows you're
+not logged in, asks for a typed `yes` before touching the registry (since a published version
+can never be overwritten), and stops immediately if any step fails rather than continuing on
+to a package whose dependency didn't actually publish:
+
+```powershell
+npm login   # once, if not already
+.\publish-all.ps1
+```
+
+Pass `-DryRun` to run `npm pack --dry-run` for all four instead — lists what each tarball
+would contain without publishing anything, and skips the confirmation prompt.
+
+Equivalent by hand (e.g. on macOS/Linux, where the script doesn't apply):
+
 ```bash
 npm login   # once, if not already
 
@@ -43,8 +60,8 @@ cd ../mcp          && npm publish --access public
 cd ../tray         && npm publish --access public   # runs prepack -> stage-assets.mjs
 ```
 
-Order matters: `apps/api` depends on `@jobtrack/shared`; `apps/mcp` and `apps/tray` both
-depend on `@jobtrack/api`.
+Order matters either way: `apps/api` depends on `@jobtrack/shared`; `apps/mcp` and
+`apps/tray` both depend on `@jobtrack/api`.
 
 Notes from doing this the first time:
 
