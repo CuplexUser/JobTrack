@@ -3,16 +3,24 @@
 A living list of directions for JobTrack — not commitments or dates, just the
 things worth doing next in rough priority order.
 
-## 1. Background tray app via npm global install — ✅ implemented locally
+## 1. Background tray app via npm global install — ✅ implemented and publish-ready
 
-`apps/tray` now runs the API and the built web UI as one process, with a Windows
-tray icon (open UI / toggle autostart / open settings / quit) — see the README's
-[Tray app](README.md#tray-app) section for how to run it. What's left before this
-matches the original vision:
+`apps/tray` (package name `jobtrack`) runs the API and the built web UI as one
+process, with a Windows tray icon (open UI / toggle autostart / open settings /
+quit) — see the README's [Tray app](README.md#tray-app) section, including
+"Publishing it as `npm install -g jobtrack`". `@jobtrack/api`/`@jobtrack/shared`
+are real versioned dependencies (not workspace-only `*`), the web UI + a
+`.env.example` template get vendored into the package at pack time, and
+`JOBTRACK_HOME` gives the installed CLI a real per-user data directory instead of
+assuming a monorepo layout on disk. Verified with a standalone install (three
+packed tarballs, installed as dependencies outside this repo) — full API + web UI
++ tray icon, no monorepo in sight.
 
-- Actually publish it to the npm registry as `npm install -g jobtrack`. Today it's
-  a workspace package (`@jobtrack/tray`) runnable via `npm run tray` from a clone
-  of this repo, not a standalone global install.
+What's left before this matches the original vision:
+
+- Actually run `npm publish` for `@jobtrack/shared`, `@jobtrack/api`, then
+  `jobtrack`, in that order, from a real npm account. Nothing here does that
+  automatically — it's a manual, one-way step.
 - Trade-off still stands as documented: this needs Node.js already on the
   machine, since it runs the TypeScript sources via `tsx` rather than a compiled,
   dependency-free binary.

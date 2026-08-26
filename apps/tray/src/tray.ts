@@ -6,7 +6,7 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
-import { repoRoot } from '@jobtrack/api/config';
+import { resolveWebDist } from './assets.js';
 
 // `systray` is CommonJS and sets an `__esModule: true` flag on its own exports while also
 // assigning `exports.default`. Node's native ESM/CJS interop does not honor that flag the way
@@ -17,9 +17,6 @@ import { repoRoot } from '@jobtrack/api/config';
 // consumption always would.
 type SysTrayCtor = typeof import('systray').default;
 const SysTray = createRequire(import.meta.url)('systray').default as SysTrayCtor;
-
-// Reuses the web app's own favicon rather than shipping a second copy of the icon artwork.
-const iconPath = resolve(repoRoot, 'apps/web/public/favicon.ico');
 
 const ITEM = { OPEN: 0, AUTOSTART: 1, SETTINGS: 2, QUIT: 3 } as const;
 
@@ -32,7 +29,11 @@ export interface TrayHandlers {
 }
 
 export function createTray(handlers: TrayHandlers): InstanceType<SysTrayCtor> {
-  const icon = readFileSync(iconPath).toString('base64');
+  const webDist = resolveWebDist();
+  if (!webDist) {
+    throw new Error('No built web UI found — run "npm run build" before starting the tray.');
+  }
+  const icon = readFileSync(resolve(webDist, 'favicon.ico')).toString('base64');
 
   const systray = new SysTray({
     menu: {

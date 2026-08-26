@@ -5,15 +5,14 @@
  * `buildApp` every other entry point (API server, tests) uses — the JSON API itself is
  * unchanged, including its 404 behavior for `/api/*`.
  */
-import { existsSync } from 'node:fs';
-import { resolve } from 'node:path';
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '@jobtrack/api/app';
-import { loadConfig, repoRoot, type Config } from '@jobtrack/api/config';
+import { loadConfig, type Config } from '@jobtrack/api/config';
 import { createRepos, type RepoBundle } from '@jobtrack/api/db/repos';
 import { SearchIndex } from '@jobtrack/api/search';
 import { DisabledEmbedder, TransformersEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
+import { resolveWebDist } from './assets.js';
 
 export interface RunningServer {
   app: FastifyInstance;
@@ -44,8 +43,8 @@ export async function startServer(): Promise<RunningServer> {
 
   const app = await buildApp({ repos, search, config }, { logger: true });
 
-  const webDist = resolve(repoRoot, 'apps/web/dist');
-  if (existsSync(webDist)) {
+  const webDist = resolveWebDist();
+  if (webDist) {
     await app.register(fastifyStatic, { root: webDist });
     // React Router routes (e.g. /applications, /companies/:id) are only real files at
     // `/`; anything else that isn't an API call falls back to index.html so client-side
@@ -57,7 +56,7 @@ export async function startServer(): Promise<RunningServer> {
       return reply.status(404).send({ error: 'not_found', message: 'Not found' });
     });
   } else {
-    console.warn(`[tray] ${webDist} not found — run "npm run build" to serve the web UI. API-only for now.`);
+    console.warn('[tray] no built web UI found — run "npm run build" to serve it. API-only for now.');
   }
 
   await search.start();

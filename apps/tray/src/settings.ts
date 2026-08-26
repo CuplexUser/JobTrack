@@ -5,14 +5,15 @@
  */
 import { copyFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { repoRoot } from '@jobtrack/api/config';
+import { resolveAppDataDir } from '@jobtrack/api/config';
+import { resolveEnvExample } from './assets.js';
 import { openInEditor } from './os.js';
 
 export function openSettingsFile(): void {
-  const envPath = resolve(repoRoot, '.env');
-  const examplePath = resolve(repoRoot, '.env.example');
+  const envPath = resolve(resolveAppDataDir(), '.env');
+  const examplePath = resolveEnvExample();
 
-  if (!existsSync(envPath) && existsSync(examplePath)) {
+  if (!existsSync(envPath) && examplePath) {
     copyFileSync(examplePath, envPath);
   }
 

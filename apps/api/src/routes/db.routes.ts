@@ -16,7 +16,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import { switchDbTargetSchema } from '@jobtrack/shared';
-import { repoRoot, type Config } from '../config.js';
+import type { Config } from '../config.js';
 import { createRepos } from '../db/repos.js';
 import { loadDbTargets, writeActiveTargetName } from '../db/targets.js';
 import type { Deps } from '../deps.js';
@@ -55,7 +55,7 @@ export async function dbRoutes(app: FastifyInstance, deps: Deps): Promise<void> 
     });
     await probe.close();
 
-    writeActiveTargetName(repoRoot, targetName);
+    writeActiveTargetName(deps.config.dataDir, targetName);
 
     // Let the response flush before the process exits.
     setTimeout(() => process.exit(0), 100).unref();

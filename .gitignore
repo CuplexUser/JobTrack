@@ -2,6 +2,11 @@ node_modules/
 dist/
 coverage/
 *.tsbuildinfo
+*.tgz
+
+# Staged for `npm publish`/`npm pack` by apps/tray/scripts/stage-assets.mjs — regenerated,
+# never hand-edited.
+apps/tray/vendor/
 
 # Database — local data, never committed
 data/*.db

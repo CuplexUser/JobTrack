@@ -1,8 +1,13 @@
 {
   "name": "@jobtrack/shared",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.0.1",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuplexUser/JobTrack.git",
+    "directory": "packages/shared"
+  },
+  "homepage": "https://github.com/CuplexUser/JobTrack#readme",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
@@ -14,7 +19,8 @@
   "files": ["dist"],
   "scripts": {
     "build": "tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput"
+    "dev": "tsc -p tsconfig.json --watch --preserveWatchOutput",
+    "prepublishOnly": "npm run build"
   },
   "dependencies": {
     "zod": "^4.4.3"

@@ -1,9 +1,17 @@
 {
   "name": "@jobtrack/api",
-  "version": "1.0.0",
-  "private": true,
+  "version": "1.0.1",
   "type": "module",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuplexUser/JobTrack.git",
+    "directory": "apps/api"
+  },
+  "homepage": "https://github.com/CuplexUser/JobTrack#readme",
   "main": "./src/index.ts",
+  "files": [
+    "src"
+  ],
   "exports": {
     "./app": "./src/app.ts",
     "./config": "./src/config.ts",
@@ -29,7 +37,7 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@huggingface/transformers": "^4.2.0",
-    "@jobtrack/shared": "*",
+    "@jobtrack/shared": "^1.0.0",
     "exceljs": "^3.4.0",
     "fastify": "^5.12.1",
     "minisearch": "^7.2.0",
