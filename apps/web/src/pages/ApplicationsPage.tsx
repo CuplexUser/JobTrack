@@ -13,6 +13,7 @@ import {
   Button,
   Card,
   Col,
+  DatePicker,
   Dropdown,
   Empty,
   Flex,
@@ -25,6 +26,7 @@ import {
   Tooltip,
   Typography,
 } from 'antd';
+import dayjs, { type Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import {
   DownloadOutlined,
@@ -58,7 +60,7 @@ export function ApplicationsPage() {
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
     const entries: Record<string, unknown> = {};
-    for (const key of ['q', 'source', 'sort', 'direction', 'cursor'] as const) {
+    for (const key of ['q', 'source', 'sort', 'direction', 'cursor', 'from', 'to'] as const) {
       const value = params.get(key);
       if (value) entries[key] = value;
     }
@@ -159,6 +161,29 @@ export function ApplicationsPage() {
     },
   ];
 
+  const fromParam = params.get('from');
+  const toParam = params.get('to');
+  const dateRangeValue: [Dayjs, Dayjs] | null =
+    fromParam && toParam ? [dayjs(fromParam), dayjs(toParam)] : null;
+
+  const today = dayjs();
+  const dateRangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
+    { label: 'Today', value: [today, today] },
+    { label: 'Yesterday', value: [today.subtract(1, 'day'), today.subtract(1, 'day')] },
+    { label: 'This week', value: [today.startOf('week'), today.endOf('week')] },
+    { label: 'This month', value: [today.startOf('month'), today.endOf('month')] },
+    { label: 'Last 7 days', value: [today.subtract(6, 'day'), today] },
+    { label: 'Last 30 days', value: [today.subtract(29, 'day'), today] },
+  ];
+
+  function handleDateRangeChange(dates: [Dayjs | null, Dayjs | null] | null): void {
+    if (!dates || !dates[0] || !dates[1]) {
+      patchFilter({ from: '', to: '' });
+      return;
+    }
+    patchFilter({ from: dates[0].format('YYYY-MM-DD'), to: dates[1].format('YYYY-MM-DD') });
+  }
+
   const year = params.get('year') ? Number(params.get('year')) : undefined;
   const month = params.get('month') ? Number(params.get('month')) : undefined;
 
@@ -245,6 +270,13 @@ export function ApplicationsPage() {
               />
 
               <Flex gap={8} wrap>
+                <DatePicker.RangePicker
+                  allowClear
+                  value={dateRangeValue}
+                  presets={dateRangePresets}
+                  format="YYYY-MM-DD"
+                  onChange={(dates) => handleDateRangeChange(dates as [Dayjs | null, Dayjs | null] | null)}
+                />
                 <Select
                   mode="multiple"
                   allowClear

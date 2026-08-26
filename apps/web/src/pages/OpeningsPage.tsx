@@ -20,10 +20,11 @@ import {
   Select,
   Space,
   Table,
+  Tooltip,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { PlusOutlined, SwapOutlined } from '@ant-design/icons';
+import { LinkOutlined, PlusOutlined, SwapOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   APPLICATION_STATUSES,
@@ -93,9 +94,20 @@ export function OpeningsPage() {
     {
       title: '',
       key: 'actions',
-      width: 220,
+      width: 260,
       render: (_, row) => (
         <Space onClick={(event) => event.stopPropagation()}>
+          {row.jobUrl && (
+            <Tooltip title="Open job posting">
+              <Button
+                size="small"
+                icon={<LinkOutlined />}
+                href={row.jobUrl}
+                target="_blank"
+                rel="noreferrer"
+              />
+            </Tooltip>
+          )}
           <Button size="small" icon={<SwapOutlined />} onClick={() => openConvert(row)}>
             Convert
           </Button>

@@ -26,7 +26,13 @@ import {
   Tag,
   Typography,
 } from 'antd';
-import { DeleteOutlined, EditOutlined, PlusOutlined, PushpinFilled } from '@ant-design/icons';
+import {
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  PushpinFilled,
+  SearchOutlined,
+} from '@ant-design/icons';
 import type { NoteTarget, NoteWithTarget } from '@jobtrack/shared';
 import { useApplications, useCompanies, useDeleteNote, useNotes, useSaveNote } from '../api/hooks.js';
 
@@ -35,13 +41,24 @@ type Scope = 'all' | NoteTarget;
 export function NotesPage() {
   const { message } = AntApp.useApp();
   const [scope, setScope] = useState<Scope>('all');
+  const [query, setQuery] = useState('');
   const [editing, setEditing] = useState<NoteWithTarget | null>(null);
   const [creating, setCreating] = useState(false);
 
   const { data, isLoading } = useNotes(scope === 'all' ? {} : { targetType: scope });
   const remove = useDeleteNote();
 
-  const notes = data?.notes ?? [];
+  const allNotes = data?.notes ?? [];
+  const notes = useMemo(() => {
+    const needle = query.trim().toLowerCase();
+    if (!needle) return allNotes;
+    return allNotes.filter(
+      (note) =>
+        note.title.toLowerCase().includes(needle) ||
+        note.body.toLowerCase().includes(needle) ||
+        (note.targetLabel?.toLowerCase().includes(needle) ?? false),
+    );
+  }, [allNotes, query]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -66,9 +83,20 @@ export function NotesPage() {
         </Space>
       </Flex>
 
+      <Input
+        allowClear
+        prefix={<SearchOutlined />}
+        placeholder="Search notes by title, body, or what they're attached to"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
+
       <Card size="small" loading={isLoading}>
         {notes.length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notes here yet" />
+          <Empty
+            image={Empty.PRESENTED_IMAGE_SIMPLE}
+            description={query ? `Nothing matched “${query}”` : 'No notes here yet'}
+          />
         ) : (
           <List
             dataSource={notes}
