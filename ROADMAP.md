@@ -3,24 +3,25 @@
 A living list of directions for JobTrack — not commitments or dates, just the
 things worth doing next in rough priority order.
 
-## 1. Background tray app via npm global install — ✅ implemented and publish-ready
+## 1. Background tray app via npm global install — ✅ published
 
 `apps/tray` (package name `jobtrack`) runs the API and the built web UI as one
 process, with a Windows tray icon (open UI / toggle autostart / open settings /
-quit) — see the README's [Tray app](README.md#tray-app) section, including
-"Publishing it as `npm install -g jobtrack`". `@jobtrack/api`/`@jobtrack/shared`
-are real versioned dependencies (not workspace-only `*`), the web UI + a
-`.env.example` template get vendored into the package at pack time, and
-`JOBTRACK_HOME` gives the installed CLI a real per-user data directory instead of
-assuming a monorepo layout on disk. Verified with a standalone install (three
-packed tarballs, installed as dependencies outside this repo) — full API + web UI
-+ tray icon, no monorepo in sight.
+quit) — see the README's [Tray app](README.md#tray-app) section. `@jobtrack/shared`,
+`@jobtrack/api`, and `jobtrack` are all live on the npm registry now (see
+[`docs/publishing.md`](docs/publishing.md) for the packaging approach and republish
+steps). `JOBTRACK_HOME` gives the installed CLI a real per-user data directory
+instead of assuming a monorepo layout on disk.
+
+`apps/mcp` (`@jobtrack/mcp`) followed the same approach — a `bin/jobtrack-mcp.js`
+entry point that defaults to the *same* `JOBTRACK_HOME` as the tray app, so
+installing both shares one database automatically. Packaging is done; still needs
+an actual `npm publish` from a real npm account (manual, one-way, same as the other
+three were).
 
 What's left before this matches the original vision:
 
-- Actually run `npm publish` for `@jobtrack/shared`, `@jobtrack/api`, then
-  `jobtrack`, in that order, from a real npm account. Nothing here does that
-  automatically — it's a manual, one-way step.
+- Publish `@jobtrack/mcp` (see `docs/publishing.md`).
 - Trade-off still stands as documented: this needs Node.js already on the
   machine, since it runs the TypeScript sources via `tsx` rather than a compiled,
   dependency-free binary.

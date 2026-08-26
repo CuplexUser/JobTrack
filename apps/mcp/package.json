@@ -1,20 +1,33 @@
 {
   "name": "@jobtrack/mcp",
   "version": "1.0.0",
-  "private": true,
   "type": "module",
+  "description": "MCP server (stdio) for JobTrack — read and write job applications from an MCP client",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/CuplexUser/JobTrack.git",
+    "directory": "apps/mcp"
+  },
+  "homepage": "https://github.com/CuplexUser/JobTrack#readme",
   "main": "./src/index.ts",
+  "bin": {
+    "jobtrack-mcp": "./bin/jobtrack-mcp.js"
+  },
+  "files": [
+    "bin",
+    "src"
+  ],
   "scripts": {
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "@jobtrack/api": "*",
-    "@jobtrack/shared": "*",
+    "@jobtrack/api": "^1.0.0",
+    "@jobtrack/shared": "^1.0.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
+    "tsx": "^4.23.12",
     "zod": "^4.4.3"
   },
   "devDependencies": {
-    "@types/node": "^24.10.1",
-    "tsx": "^4.23.12"
+    "@types/node": "^24.10.1"
   }
 }

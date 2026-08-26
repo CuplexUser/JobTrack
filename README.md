@@ -79,7 +79,7 @@ backup/restore (see "Switching databases" and "Backup & restore" below).
 ```
 apps/web/          React 19 + Vite + Ant Design 6      :5173
 apps/api/          Fastify + repolayer + search        :3001
-apps/mcp/          MCP server (stdio) over the same repos
+apps/mcp/          MCP server (stdio) over the same repos, publishable as `@jobtrack/mcp`
 apps/tray/         background process + Windows tray icon, publishable as `jobtrack`
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
@@ -260,7 +260,31 @@ an MCP client cannot destroy data, only add to or edit it.
 npm run mcp   # runs it directly, for manual testing (e.g. with @modelcontextprotocol/inspector)
 ```
 
-Point an MCP client at it with a config like:
+`apps/mcp` is also published standalone as [`@jobtrack/mcp`](https://www.npmjs.com/package/@jobtrack/mcp)
+— see [`docs/publishing.md`](docs/publishing.md). That's the easiest way to point an MCP
+client at it:
+
+```bash
+npm install -g @jobtrack/mcp
+```
+
+```json
+{
+  "mcpServers": {
+    "jobtrack": {
+      "command": "jobtrack-mcp"
+    }
+  }
+}
+```
+
+`bin/jobtrack-mcp.js` defaults `JOBTRACK_HOME` to the same per-user directory
+(`%APPDATA%\jobtrack` on Windows) that the globally-installed `jobtrack` tray app defaults
+to — install both and they share one database with no extra configuration.
+
+Running from a repo clone instead (`npx tsx apps/mcp/src/index.ts`, as below) skips that
+default — it falls back to this repo's own `data/jobtrack.db`, same as `npm run dev`, unless
+you set `JOBTRACK_HOME` yourself:
 
 ```json
 {
@@ -268,20 +292,12 @@ Point an MCP client at it with a config like:
     "jobtrack": {
       "command": "npx",
       "args": ["tsx", "apps/mcp/src/index.ts"],
-      "cwd": "/path/to/JobTrack"
+      "cwd": "/path/to/JobTrack",
+      "env": { "JOBTRACK_HOME": "<per-user path, to share data with an installed jobtrack>" }
     }
   }
 }
 ```
-
-> **Using the globally-installed `jobtrack` tray app too? Set `JOBTRACK_HOME`.** MCP's
-> `loadConfig()` call has no env override above, so — same as `npm run dev`/`npm run tray` —
-> it falls back to this repo's own `data/jobtrack.db`. The globally-installed CLI
-> (`npm install -g jobtrack`) is a separate process that sets its own `JOBTRACK_HOME` to a
-> per-user directory (`%APPDATA%\jobtrack` on Windows) before it ever calls `loadConfig()` —
-> see [`docs/publishing.md`](docs/publishing.md). Point MCP at the *same* database as that
-> installed app by adding `"env": { "JOBTRACK_HOME": "<that per-user path>" }` to the config
-> above; leave it out to keep MCP on this repo's own dev/seed database instead.
 
 > **One caveat worth knowing.** If the API dev server is also running, each process keeps
 > its own in-memory search index. A write made through MCP calls *that process's own*
@@ -318,13 +334,10 @@ machine.
 
 ### Publishing it as `npm install -g jobtrack`
 
-`apps/tray` (package name `jobtrack`), `@jobtrack/api`, and `@jobtrack/shared` are set up to
-be published standalone, not just run from a clone of this repo — see
-[`docs/publishing.md`](docs/publishing.md) for how the packaging works and the exact
-`npm publish` steps.
-
-> **Using a globally-installed `jobtrack` alongside the MCP server?** They use different
-> databases by default — see the [MCP server](#mcp-server) section's callout.
+`apps/tray` (package name `jobtrack`), `apps/mcp` (`@jobtrack/mcp`), `@jobtrack/api`, and
+`@jobtrack/shared` are all set up to be published standalone, not just run from a clone of
+this repo — see [`docs/publishing.md`](docs/publishing.md) for how the packaging works and
+the exact `npm publish` steps.
 
 ---
 
