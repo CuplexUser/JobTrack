@@ -14,10 +14,14 @@ Single user, runs on your machine, data in a local SQLite file.
 ```bash
 npm install
 npm run seed      # 40 sample applications across 2024-2026 (skip for an empty database)
-npm run dev       # API on :3001, web on :5173
+npm run dev       # API on :3002, web on :5173
 ```
 
 Open <http://localhost:5173>.
+
+`npm run dev` binds the API to :3002, not the API's usual :3001 default (see
+"Configuration" below) — that keeps it from colliding with a `tray` build already running
+on this machine, so both can be up at the same time.
 
 The first search after startup is keyword-only for about a minute while the embedding model
 downloads (~25 MB, once per machine). The UI says so while it happens, and everything else

@@ -15,7 +15,7 @@
     "predev": "npm run build --workspace=@jobtrack/shared",
     "dev": "run-p dev:shared dev:api dev:web",
     "dev:shared": "npm run dev --workspace=@jobtrack/shared",
-    "dev:api": "npm run dev --workspace=@jobtrack/api",
+    "dev:api": "cross-env PORT=3002 npm run dev --workspace=@jobtrack/api",
     "dev:web": "npm run dev --workspace=@jobtrack/web",
     "prebuild": "npm run build --workspace=@jobtrack/shared",
     "build": "npm run build --workspace=@jobtrack/web",
@@ -32,6 +32,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
+    "cross-env": "^10.1.0",
     "npm-run-all2": "^8.0.4",
     "rimraf": "^6.0.1",
     "typescript": "7.0.2",
