@@ -6,6 +6,7 @@ import { hydrateApplications } from '@jobtrack/api/db/hydrate';
 import { toCompany, toNote } from '@jobtrack/api/db/mappers';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { jsonResult } from '../helpers.js';
+import { applicationSummary } from '../views.js';
 
 export function registerSearchTool(server: McpServer, deps: Deps): void {
   const { repos, search } = deps;
@@ -40,7 +41,9 @@ export function registerSearchTool(server: McpServer, deps: Deps): void {
           : Promise.resolve([]),
       ]);
 
-      const applications = new Map((await hydrateApplications(repos, applicationRows)).map((a) => [a.id, a]));
+      const applications = new Map(
+        (await hydrateApplications(repos, applicationRows)).map((a) => [a.id, applicationSummary(a)]),
+      );
       const companies = new Map(companyRows.map((c) => [c.id, toCompany(c)]));
       const notes = new Map(noteRows.map((n) => [n.id, toNote(n)]));
 

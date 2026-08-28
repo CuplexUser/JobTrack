@@ -25,6 +25,7 @@ import {
 import { checkDuplicates } from '@jobtrack/api/services/duplicates';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
+import { applicationSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
 
@@ -35,7 +36,7 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'list_applications',
     {
       description:
-        'List job applications with the same filters the web app supports: status, work mode, tags, company, date range, archived, follow-up due, and a free-text `q` that runs the hybrid (lexical + semantic) search.',
+        'List job applications with the same filters the web app supports: status, work mode, tags, company, date range, archived, follow-up due, and a free-text `q` that runs the hybrid (lexical + semantic) search. Rows come back summarized — call get_application for one record in full, including its status history and notes.',
       inputSchema: applicationFilterSchema,
     },
     async (filter) => {
@@ -44,7 +45,8 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
         const outcome = await search.search(filter.q, { limit: 200, types: ['application'] });
         orderedIds = outcome.hits.map((hit) => hit.entityId);
       }
-      return jsonResult(await listApplications(repos, filter, { orderedIds }));
+      const page = await listApplications(repos, filter, { orderedIds });
+      return jsonResult({ ...page, items: page.items.map(applicationSummary) });
     },
   );
 

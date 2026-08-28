@@ -7,6 +7,7 @@ import { createCompany, getCompanyWithTags, listCompanies, updateCompany } from 
 import { listApplications } from '@jobtrack/api/services/applications';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
+import { applicationSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
 
@@ -29,7 +30,8 @@ export function registerCompanyTools(server: McpServer, deps: Deps): void {
   server.registerTool(
     'get_company',
     {
-      description: "Get one company by id, with its tags and its full application history.",
+      description:
+        "Get one company by id, with its tags and its full application history (summarized — get_application has the detail for any one of them).",
       inputSchema: idOnly,
     },
     async ({ id }) => {
@@ -37,7 +39,7 @@ export function registerCompanyTools(server: McpServer, deps: Deps): void {
       if (!company) return errorResult(`No company with id ${id}`);
       const filter = applicationFilterSchema.parse({ companyId: id, limit: 200, archived: 'all' });
       const applications = await listApplications(repos, filter);
-      return jsonResult({ company, applications: applications.items });
+      return jsonResult({ company, applications: applications.items.map(applicationSummary) });
     },
   );
 

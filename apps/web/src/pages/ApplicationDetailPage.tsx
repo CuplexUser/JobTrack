@@ -26,16 +26,30 @@ import {
   Timeline,
   Typography,
 } from 'antd';
-import { ArrowLeftOutlined, DeleteOutlined, EditOutlined, LinkOutlined } from '@ant-design/icons';
+import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  LinkOutlined,
+  PlusOutlined,
+  PushpinFilled,
+} from '@ant-design/icons';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
   WORK_MODE_LABELS,
   nextStatus,
+  type Note,
 } from '@jobtrack/shared';
-import { useApplication, useChangeStatus, useDeleteApplication } from '../api/hooks.js';
+import {
+  useApplication,
+  useChangeStatus,
+  useDeleteApplication,
+  useDeleteNote,
+} from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
+import { NoteModal } from '../components/NoteModal.js';
 
 export function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -44,7 +58,10 @@ export function ApplicationDetailPage() {
   const { data, isLoading } = useApplication(id);
   const changeStatus = useChangeStatus();
   const remove = useDeleteApplication();
+  const removeNote = useDeleteNote();
   const [editing, setEditing] = useState(false);
+  const [noteEditing, setNoteEditing] = useState<Note | null>(null);
+  const [addingNote, setAddingNote] = useState(false);
 
   if (isLoading || !data) return <Skeleton active paragraph={{ rows: 10 }} />;
 
@@ -186,7 +203,14 @@ export function ApplicationDetailPage() {
               )}
             </Card>
 
-            <Card title={`Notes (${data.notes.length})`}>
+            <Card
+              title={`Notes (${data.notes.length})`}
+              extra={
+                <Button size="small" icon={<PlusOutlined />} onClick={() => setAddingNote(true)}>
+                  Add note
+                </Button>
+              }
+            >
               {data.notes.length === 0 ? (
                 <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notes yet" />
               ) : (
@@ -194,9 +218,35 @@ export function ApplicationDetailPage() {
                   size="small"
                   dataSource={data.notes}
                   renderItem={(note) => (
-                    <List.Item>
+                    <List.Item
+                      actions={[
+                        <Button
+                          key="edit"
+                          type="text"
+                          icon={<EditOutlined />}
+                          onClick={() => setNoteEditing(note)}
+                        />,
+                        <Popconfirm
+                          key="delete"
+                          title="Delete this note?"
+                          okText="Delete"
+                          okButtonProps={{ danger: true }}
+                          onConfirm={async () => {
+                            await removeNote.mutateAsync(note.id);
+                            message.success('Note deleted');
+                          }}
+                        >
+                          <Button type="text" danger icon={<DeleteOutlined />} />
+                        </Popconfirm>,
+                      ]}
+                    >
                       <List.Item.Meta
-                        title={note.title}
+                        title={
+                          <Space size={8}>
+                            {note.pinned && <PushpinFilled style={{ color: '#faad14' }} />}
+                            <Typography.Text strong>{note.title}</Typography.Text>
+                          </Space>
+                        }
                         description={
                           <Typography.Paragraph
                             style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}
@@ -216,6 +266,16 @@ export function ApplicationDetailPage() {
       </Row>
 
       <ApplicationDrawer open={editing} onClose={() => setEditing(false)} application={data} />
+
+      <NoteModal
+        open={addingNote || noteEditing !== null}
+        note={noteEditing}
+        target={{ type: 'application', id: data.id, label: data.jobTitle }}
+        onClose={() => {
+          setAddingNote(false);
+          setNoteEditing(null);
+        }}
+      />
     </Space>
   );
 }

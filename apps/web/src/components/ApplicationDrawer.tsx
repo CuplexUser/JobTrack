@@ -86,12 +86,26 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
   const debouncedCompany = useDebounced(companyName, 300);
   const debouncedTitle = useDebounced(jobTitle, 300);
 
+  /**
+   * Editing is not applying.
+   *
+   * The panel exists to stop you *before* you fill in a form you have already filled in
+   * once, so on a record that already exists it has nothing to say until the company or
+   * the title actually changes. Without this, opening Edit on one of a genuine pair of
+   * duplicates greets you with a red "you have already applied for this exact role" about
+   * the very record you are looking at — correct, useless, and alarming.
+   */
+  const unchangedEdit =
+    isEdit &&
+    companyName.trim() === (application?.company.name ?? '').trim() &&
+    jobTitle.trim() === (application?.jobTitle ?? '').trim();
+
   const { data: suggestions } = useCompanySuggestions(debouncedCompany);
   const { data: duplicateCheck, isFetching: checking } = useDuplicateCheck({
     company: debouncedCompany,
     title: debouncedTitle,
     ...(application ? { excludeId: application.id } : {}),
-    enabled: open,
+    enabled: open && !unchangedEdit,
   });
 
   useEffect(() => {
@@ -238,7 +252,7 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
       }
     >
       {/* Above the fields on purpose: the warning has to arrive before the effort does. */}
-      <DuplicateAlert check={duplicateCheck} loading={checking} />
+      {!unchangedEdit && <DuplicateAlert check={duplicateCheck} loading={checking} />}
 
       <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">
         <Row gutter={16}>
