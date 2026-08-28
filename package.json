@@ -28,7 +28,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --build --force",
-    "clean": "rimraf --glob \"packages/*/dist\" \"apps/*/dist\" \"packages/*/*.tsbuildinfo\" \"apps/*/*.tsbuildinfo\" \"*.tsbuildinfo\" \"coverage\" \"packages/*/coverage\" \"apps/*/coverage\" \"node_modules/.vite\""
+    "clean": "rimraf --glob \"packages/*/dist\" \"apps/*/dist\" \"packages/*/*.tsbuildinfo\" \"apps/*/*.tsbuildinfo\" \"*.tsbuildinfo\" \"coverage\" \"packages/*/coverage\" \"apps/*/coverage\" \"node_modules/.vite\" \"apps/tray/vendor\""
   },
   "devDependencies": {
     "@types/node": "^24.10.1",

@@ -5,6 +5,11 @@
  * and falls back to the sibling location in this monorepo, for local development before that
  * staging step has ever run.
  *
+ * That preference has a sharp edge in a checkout: publishing leaves `vendor/` behind, and it
+ * then shadows `apps/web/dist` for every later `npm run tray` — so a rebuilt UI appears not
+ * to take effect. `npm run clean` deletes it; reach for that when the tray serves a UI older
+ * than the source.
+ *
  * Distinct from `resolveAppDataDir` in `@jobtrack/api/config`: that's where *user* data lives
  * (the database, the model cache); this is where the package's own *shipped* assets live.
  */
