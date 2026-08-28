@@ -22,7 +22,13 @@ import {
   Upload,
   type UploadProps,
 } from 'antd';
-import { DatabaseOutlined, ExperimentOutlined, InboxOutlined, ReloadOutlined } from '@ant-design/icons';
+import {
+  DatabaseOutlined,
+  ExperimentOutlined,
+  InboxOutlined,
+  InfoCircleOutlined,
+  ReloadOutlined,
+} from '@ant-design/icons';
 import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/index.js';
 
 /**
@@ -31,7 +37,7 @@ import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../a
  * rather than left to fail on click.
  */
 const DEMO = import.meta.env.VITE_DEMO === 'true';
-import { useClearDatabase, useDataStatus, useDbTargets, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
+import { useClearDatabase, useDataStatus, useDbTargets, useMeta, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
 
 const TABLE_LABELS: Record<string, string> = {
   companies: 'Companies',
@@ -365,6 +371,37 @@ function DataCard() {
   );
 }
 
+/**
+ * Which build is running. Worth a card of its own rather than a line in the footer: this is
+ * what a bug report has to quote, so it needs to be findable and selectable, not just a tray
+ * tooltip that can't be copied.
+ *
+ * Package name and version are shown together because which package is serving genuinely
+ * varies — `npm run dev` answers as `@jobtrack/api`, an installed tray as `jobtrack` — and
+ * those version numbers move independently. A bare number invites reading it as the wrong
+ * package's.
+ */
+function AboutCard() {
+  const { data, isLoading } = useMeta();
+  const build = data ? `${data.name} ${data.version}` : '';
+
+  return (
+    <Card title="About" loading={isLoading}>
+      <Descriptions size="small" column={1} bordered>
+        <Descriptions.Item label="Running">
+          <Space>
+            <InfoCircleOutlined />
+            <Typography.Text copyable={{ text: build }}>
+              <code>{data?.name}</code> {data?.version}
+            </Typography.Text>
+          </Space>
+        </Descriptions.Item>
+        <Descriptions.Item label="Database driver">{data?.driver}</Descriptions.Item>
+      </Descriptions>
+    </Card>
+  );
+}
+
 export function SettingsPage() {
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -374,6 +411,7 @@ export function SettingsPage() {
       <DatabaseCard />
       {!DEMO && <BackupCard />}
       <DataCard />
+      <AboutCard />
     </Space>
   );
 }

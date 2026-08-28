@@ -26,6 +26,7 @@ export const keys = {
   opening: (id: string) => ['opening', id] as const,
   dbTargets: () => ['db-targets'] as const,
   dataStatus: () => ['data-status'] as const,
+  meta: () => ['meta'] as const,
 };
 
 /** Everything an application write can invalidate. */
@@ -264,4 +265,12 @@ export function useSeedDatabase() {
     mutationFn: () => api.seedDatabase(),
     onSuccess: () => void client.invalidateQueries(),
   });
+}
+
+/**
+ * Version and driver are fixed for the life of the server process, so this never needs
+ * refetching — and when a database switch restarts that process, the page reloads anyway.
+ */
+export function useMeta() {
+  return useQuery({ queryKey: keys.meta(), queryFn: () => api.getMeta(), staleTime: Infinity });
 }

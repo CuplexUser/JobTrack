@@ -21,8 +21,20 @@ import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { openingRoutes } from './routes/openings.routes.js';
 import { backupRoutes } from './routes/backup.routes.js';
 import { dbRoutes } from './routes/db.routes.js';
+import { metaRoutes } from './routes/meta.routes.js';
+import { API_PACKAGE, type PackageIdentity } from './version.js';
 
-export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): Promise<FastifyInstance> {
+export interface BuildAppOptions {
+  logger?: boolean;
+  /**
+   * Which package `GET /api/meta` reports as the running build. Defaults to this one —
+   * correct when `index.ts` is the entry point — but the tray overrides it with its own,
+   * since `jobtrack` is what a user installs and runs.
+   */
+  app?: PackageIdentity;
+}
+
+export async function buildApp(deps: Deps, options: BuildAppOptions = {}): Promise<FastifyInstance> {
   const app = Fastify({
     // Per-request access logs are noise for a single-user local app, so the level is
     // raised rather than using the deprecated `disableRequestLogging` flag. Warnings and
@@ -59,6 +71,7 @@ export async function buildApp(deps: Deps, options: { logger?: boolean } = {}): 
   await app.register(async (instance) => openingRoutes(instance, deps));
   await app.register(async (instance) => backupRoutes(instance, deps));
   await app.register(async (instance) => dbRoutes(instance, deps));
+  await app.register(async (instance) => metaRoutes(instance, deps, options.app ?? API_PACKAGE));
 
   return app;
 }

@@ -10,11 +10,12 @@ import { createTray } from './tray.js';
 import { isAutostartEnabled, enableAutostart, disableAutostart } from './autostart.js';
 import { openSettingsFile } from './settings.js';
 import { openUrl } from './os.js';
+import { APP_VERSION } from './version.js';
 
 const { app, config, repos, search } = await startServer();
 
 const url = `http://${config.host === '0.0.0.0' ? '127.0.0.1' : config.host}:${config.port}`;
-console.log(`JobTrack running at ${url} (driver: ${config.driver})`);
+console.log(`JobTrack v${APP_VERSION} running at ${url} (driver: ${config.driver})`);
 
 let shuttingDown = false;
 async function shutdown(): Promise<void> {

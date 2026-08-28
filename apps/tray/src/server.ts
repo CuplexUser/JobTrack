@@ -15,6 +15,7 @@ import { SearchIndex } from '@jobtrack/api/search';
 import { DisabledEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
 import { TransformersEmbedder } from '@jobtrack/api/search/transformers-embedder';
 import { resolveWebDist } from './assets.js';
+import { APP_PACKAGE } from './version.js';
 
 export interface RunningServer {
   app: FastifyInstance;
@@ -43,7 +44,9 @@ export async function startServer(): Promise<RunningServer> {
     log: (message, error) => console.warn(`[search] ${message}`, error ?? ''),
   });
 
-  const app = await buildApp({ repos, search, config }, { logger: true });
+  // `app` so /api/meta — and the web UI's About card — report the `jobtrack` package the
+  // user installed, rather than the @jobtrack/api version underneath it.
+  const app = await buildApp({ repos, search, config }, { logger: true, app: APP_PACKAGE });
 
   const webDist = resolveWebDist();
   if (webDist) {

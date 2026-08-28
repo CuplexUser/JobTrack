@@ -152,6 +152,17 @@ export interface DbTargetsResponse {
   active: string;
 }
 
+/**
+ * `name` matters as much as `version` here: a dev server reports `@jobtrack/api` and its own
+ * version, while the tray reports `jobtrack` and the version you installed. The numbers
+ * differ legitimately, so the UI never shows one without the other.
+ */
+export interface MetaResponse {
+  name: string;
+  version: string;
+  driver: string;
+}
+
 export interface BackupPreviewResponse {
   mode: 'preview';
   exportedAt: string;
@@ -371,4 +382,6 @@ export const httpApi = {
   clearDatabase: () => request<ClearDatabaseResponse>('/api/backup/clear', { method: 'POST' }),
 
   seedDatabase: () => request<SeedDatabaseResponse>('/api/backup/seed', { method: 'POST' }),
+
+  getMeta: () => request<MetaResponse>('/api/meta'),
 };

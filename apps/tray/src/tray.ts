@@ -7,6 +7,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { resolve } from 'node:path';
 import { resolveWebDist } from './assets.js';
+import { APP_VERSION } from './version.js';
 
 // `systray` is CommonJS and sets an `__esModule: true` flag on its own exports while also
 // assigning `exports.default`. Node's native ESM/CJS interop does not honor that flag the way
@@ -18,7 +19,11 @@ import { resolveWebDist } from './assets.js';
 type SysTrayCtor = typeof import('systray').default;
 const SysTray = createRequire(import.meta.url)('systray').default as SysTrayCtor;
 
-const ITEM = { OPEN: 0, AUTOSTART: 1, SETTINGS: 2, QUIT: 3 } as const;
+/**
+ * Positions in the `items` array below — `systray` identifies a clicked item by its index,
+ * so these must be kept in step with that array's order.
+ */
+const ITEM = { VERSION: 0, OPEN: 1, AUTOSTART: 2, SETTINGS: 3, QUIT: 4 } as const;
 
 export interface TrayHandlers {
   autostartEnabled: boolean;
@@ -39,8 +44,16 @@ export function createTray(handlers: TrayHandlers): InstanceType<SysTrayCtor> {
     menu: {
       icon,
       title: 'JobTrack',
-      tooltip: 'JobTrack is running',
+      tooltip: `JobTrack v${APP_VERSION} is running`,
       items: [
+        // Disabled on purpose: a label, not an action. It heads the menu so the version is
+        // the first thing visible on right-click, without having to hover for the tooltip.
+        {
+          title: `JobTrack v${APP_VERSION}`,
+          tooltip: 'The installed version of the jobtrack package',
+          checked: false,
+          enabled: false,
+        },
         { title: 'Open JobTrack', tooltip: 'Open the web UI', checked: false, enabled: true },
         {
           title: 'Autostart with Windows',

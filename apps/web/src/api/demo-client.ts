@@ -682,4 +682,11 @@ export const demoApi: typeof httpApi = {
       await persist(repos);
       return result;
     }),
+
+  /**
+   * There is no installed package and no server process to report a version for — this is a
+   * static bundle running entirely in the visitor's tab. Says so rather than inventing a
+   * number; `SettingsPage`'s About card renders the driver as the in-memory store it is.
+   */
+  getMeta: () => guarded(async () => ({ name: 'jobtrack', version: 'demo', driver: 'memory' })),
 };
