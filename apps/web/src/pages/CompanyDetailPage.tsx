@@ -5,13 +5,16 @@
  * which is what makes the pattern visible.
  */
 
+import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
+  App as AntApp,
+  Button,
   Card,
   Col,
   Empty,
-  Flex,
   List,
+  Popconfirm,
   Row,
   Select,
   Skeleton,
@@ -21,20 +24,30 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { ArrowLeftOutlined } from '@ant-design/icons';
-import { Button } from 'antd';
-import type { JobApplicationView } from '@jobtrack/shared';
-import { useCompany, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
+import {
+  ArrowLeftOutlined,
+  DeleteOutlined,
+  EditOutlined,
+  PlusOutlined,
+  PushpinFilled,
+} from '@ant-design/icons';
+import type { JobApplicationView, Note } from '@jobtrack/shared';
+import { useCompany, useDeleteNote, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
+import { NoteModal } from '../components/NoteModal.js';
 import { palette } from '../theme.js';
 
 export function CompanyDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const { message } = AntApp.useApp();
   const { data, isLoading } = useCompany(id);
   const { data: noteData } = useNotes(id ? { targetType: 'company', targetId: id } : {});
   const { data: tagData } = useTags();
   const updateCompany = useUpdateCompany();
+  const removeNote = useDeleteNote();
+  const [noteEditing, setNoteEditing] = useState<Note | null>(null);
+  const [addingNote, setAddingNote] = useState(false);
 
   if (isLoading || !data) return <Skeleton active paragraph={{ rows: 8 }} />;
 
@@ -124,16 +137,49 @@ export function CompanyDetailPage() {
         />
       </Card>
 
-      <Card title={`Notes about ${company.name}`}>
+      <Card
+        title={`Notes about ${company.name}`}
+        extra={
+          <Button size="small" icon={<PlusOutlined />} onClick={() => setAddingNote(true)}>
+            Add note
+          </Button>
+        }
+      >
         {(noteData?.notes ?? []).length === 0 ? (
           <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notes about this company" />
         ) : (
           <List
             dataSource={noteData?.notes ?? []}
             renderItem={(note) => (
-              <List.Item>
+              <List.Item
+                actions={[
+                  <Button
+                    key="edit"
+                    type="text"
+                    icon={<EditOutlined />}
+                    onClick={() => setNoteEditing(note)}
+                  />,
+                  <Popconfirm
+                    key="delete"
+                    title="Delete this note?"
+                    okText="Delete"
+                    okButtonProps={{ danger: true }}
+                    onConfirm={async () => {
+                      await removeNote.mutateAsync(note.id);
+                      message.success('Note deleted');
+                    }}
+                  >
+                    <Button type="text" danger icon={<DeleteOutlined />} />
+                  </Popconfirm>,
+                ]}
+              >
                 <List.Item.Meta
-                  title={note.title}
+                  title={
+                    <Space size={8}>
+                      {note.pinned && <PushpinFilled style={{ color: '#faad14' }} />}
+                      <Typography.Text strong>{note.title}</Typography.Text>
+                    </Space>
+                  }
                   description={
                     <Typography.Paragraph style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}>
                       {note.body}
@@ -145,6 +191,16 @@ export function CompanyDetailPage() {
           />
         )}
       </Card>
+
+      <NoteModal
+        open={addingNote || noteEditing !== null}
+        note={noteEditing}
+        target={{ type: 'company', id: company.id, label: company.name }}
+        onClose={() => {
+          setAddingNote(false);
+          setNoteEditing(null);
+        }}
+      />
     </Space>
   );
 }
