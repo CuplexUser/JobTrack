@@ -1,6 +1,6 @@
 {
   "name": "jobtrack",
-  "version": "1.0.3",
+  "version": "1.0.4",
   "type": "module",
   "license": "MIT",
   "description": "Runs the JobTrack API + web UI as one background process with a Windows tray icon",
