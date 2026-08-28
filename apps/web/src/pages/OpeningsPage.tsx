@@ -3,10 +3,14 @@
  * show up. The one action that matters here is Convert: it hands the opening's fields to
  * the same `createApplication` path the New Application form uses, then archives the
  * opening rather than deleting it.
+ *
+ * The Active/Archived switch surfaces openings that have been archived — either converted
+ * into an application, or archived by hand (from here or the MCP tools). Archived openings
+ * can be restored or deleted for good.
  */
 
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import {
   App as AntApp,
   Button,
@@ -17,14 +21,16 @@ import {
   Form,
   Modal,
   Popconfirm,
+  Segmented,
   Select,
   Space,
   Table,
+  Tag,
   Tooltip,
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { LinkOutlined, PlusOutlined, SwapOutlined } from '@ant-design/icons';
+import { LinkOutlined, PlusOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   APPLICATION_STATUSES,
@@ -32,7 +38,13 @@ import {
   WORK_MODE_LABELS,
   type JobOpeningView,
 } from '@jobtrack/shared';
-import { useConvertOpening, useDeleteOpening, useOpenings, useTags } from '../api/hooks.js';
+import {
+  useConvertOpening,
+  useDeleteOpening,
+  useOpenings,
+  useTags,
+  useUpdateOpening,
+} from '../api/hooks.js';
 import { OpeningDrawer } from '../components/OpeningDrawer.js';
 
 interface ConvertFormValues {
@@ -41,13 +53,24 @@ interface ConvertFormValues {
   tags: string[];
 }
 
+type OpeningsView = 'active' | 'archived';
+
 export function OpeningsPage() {
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
-  const { data, isLoading } = useOpenings();
+
+  const [view, setView] = useState<OpeningsView>('active');
+  // `archived=true` returns active *and* archived, so the archived view still filters locally.
+  const { data, isLoading } = useOpenings(view === 'archived' ? { archived: true } : {});
   const { data: tagData } = useTags();
   const deleteOpening = useDeleteOpening();
   const convertOpening = useConvertOpening();
+  const updateOpening = useUpdateOpening();
+
+  const rows = useMemo(() => {
+    const all = data?.openings ?? [];
+    return view === 'archived' ? all.filter((o) => o.archived) : all;
+  }, [data, view]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<JobOpeningView | undefined>(undefined);
@@ -78,7 +101,16 @@ export function OpeningsPage() {
     }
   }
 
-  const columns: ColumnsType<JobOpeningView> = [
+  async function handleRestore(row: JobOpeningView): Promise<void> {
+    try {
+      await updateOpening.mutateAsync({ id: row.id, body: { archived: false } });
+      message.success('Opening restored');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'Could not restore');
+    }
+  }
+
+  const baseColumns: ColumnsType<JobOpeningView> = [
     { title: 'Company', dataIndex: ['company', 'name'] },
     { title: 'Job title', dataIndex: 'jobTitle' },
     { title: 'Found on', dataIndex: 'savedOn', width: 120 },
@@ -91,23 +123,44 @@ export function OpeningsPage() {
         ),
     },
     { title: 'Source', dataIndex: 'sourceName', render: (v: string | null) => v ?? '—' },
+  ];
+
+  const jobUrlButton = (row: JobOpeningView) =>
+    row.jobUrl && (
+      <Tooltip title="Open job posting">
+        <Button
+          size="small"
+          icon={<LinkOutlined />}
+          href={row.jobUrl}
+          target="_blank"
+          rel="noreferrer"
+        />
+      </Tooltip>
+    );
+
+  const deleteButton = (row: JobOpeningView) => (
+    <Popconfirm
+      title="Delete this opening?"
+      description="This removes it for good and cannot be undone."
+      onConfirm={() => deleteOpening.mutate(row.id)}
+      okText="Delete"
+      okButtonProps={{ danger: true }}
+    >
+      <Button size="small" danger>
+        Delete
+      </Button>
+    </Popconfirm>
+  );
+
+  const activeColumns: ColumnsType<JobOpeningView> = [
+    ...baseColumns,
     {
       title: '',
       key: 'actions',
       width: 260,
       render: (_, row) => (
         <Space onClick={(event) => event.stopPropagation()}>
-          {row.jobUrl && (
-            <Tooltip title="Open job posting">
-              <Button
-                size="small"
-                icon={<LinkOutlined />}
-                href={row.jobUrl}
-                target="_blank"
-                rel="noreferrer"
-              />
-            </Tooltip>
-          )}
+          {jobUrlButton(row)}
           <Button size="small" icon={<SwapOutlined />} onClick={() => openConvert(row)}>
             Convert
           </Button>
@@ -120,16 +173,43 @@ export function OpeningsPage() {
           >
             Edit
           </Button>
-          <Popconfirm
-            title="Delete this opening?"
-            onConfirm={() => deleteOpening.mutate(row.id)}
-            okText="Delete"
-            okButtonProps={{ danger: true }}
+          {deleteButton(row)}
+        </Space>
+      ),
+    },
+  ];
+
+  const archivedColumns: ColumnsType<JobOpeningView> = [
+    ...baseColumns,
+    {
+      title: 'Archived because',
+      key: 'reason',
+      width: 160,
+      render: (_, row) =>
+        row.convertedApplicationId ? (
+          <Link to={`/applications/${row.convertedApplicationId}`}>
+            <Tag color="blue">Converted</Tag>
+          </Link>
+        ) : (
+          <Tag>Archived by hand</Tag>
+        ),
+    },
+    {
+      title: '',
+      key: 'actions',
+      width: 220,
+      render: (_, row) => (
+        <Space onClick={(event) => event.stopPropagation()}>
+          {jobUrlButton(row)}
+          <Button
+            size="small"
+            icon={<RollbackOutlined />}
+            loading={updateOpening.isPending}
+            onClick={() => handleRestore(row)}
           >
-            <Button size="small" danger>
-              Delete
-            </Button>
-          </Popconfirm>
+            Restore
+          </Button>
+          {deleteButton(row)}
         </Space>
       ),
     },
@@ -143,7 +223,9 @@ export function OpeningsPage() {
             Job openings
           </Typography.Title>
           <Typography.Text type="secondary">
-            Saved for later — convert one to a real application when you're ready to apply.
+            {view === 'active'
+              ? "Saved for later — convert one to a real application when you're ready to apply."
+              : 'Openings that were converted into an application or archived by hand.'}
           </Typography.Text>
         </Space>
         <Button
@@ -158,18 +240,31 @@ export function OpeningsPage() {
         </Button>
       </Flex>
 
+      <Segmented<OpeningsView>
+        value={view}
+        onChange={setView}
+        options={[
+          { label: 'Active', value: 'active' },
+          { label: 'Archived', value: 'archived' },
+        ]}
+      />
+
       <Card size="small">
         <Table<JobOpeningView>
           rowKey="id"
-          columns={columns}
-          dataSource={data?.openings ?? []}
+          columns={view === 'archived' ? archivedColumns : activeColumns}
+          dataSource={rows}
           loading={isLoading}
           pagination={false}
           locale={{
             emptyText: (
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
-                description="Nothing saved yet — use “Save opening for later” for a role you're not ready to apply to."
+                description={
+                  view === 'active'
+                    ? "Nothing saved yet — use “Save opening for later” for a role you're not ready to apply to."
+                    : 'No archived openings.'
+                }
               />
             ),
           }}
