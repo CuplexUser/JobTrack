@@ -1,6 +1,6 @@
 {
   "name": "jobtrack",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "type": "module",
   "license": "MIT",
   "description": "Runs the JobTrack API + web UI as one background process with a Windows tray icon",
@@ -27,7 +27,7 @@
   },
   "dependencies": {
     "@fastify/static": "^10.1.3",
-    "@jobtrack/api": "^1.0.0",
+    "@jobtrack/api": "^1.0.3",
     "fastify": "^5.12.1",
     "systray": "^1.0.5",
     "tsx": "^4.23.12"

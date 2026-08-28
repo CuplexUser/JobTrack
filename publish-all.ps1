@@ -71,6 +71,17 @@ if (-not $DryRun) {
 
 foreach ($pkg in $packages) {
     Write-Host "==> $($pkg.Name)@$($pkg.Version)" -ForegroundColor Cyan
+
+    # A published version can never be overwritten, so publishing one that's already on the
+    # registry just fails with a 403 and aborts the rest of the run. Skip it instead: an
+    # unchanged package legitimately keeps its version while its siblings move ahead.
+    $published = npm view "$($pkg.Name)@$($pkg.Version)" version 2>$null
+    if ($published) {
+        Write-Host "    Already on the registry — skipping." -ForegroundColor Yellow
+        Write-Host ''
+        continue
+    }
+
     Push-Location $pkg.Dir
     try {
         if ($DryRun) {
