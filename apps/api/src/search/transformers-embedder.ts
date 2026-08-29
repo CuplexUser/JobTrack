@@ -50,7 +50,16 @@ export class TransformersEmbedder implements Embedder {
       // an offline run afterwards works without any network at all.
       transformers.env.cacheDir = this.#cacheDir;
 
-      const extractor = await transformers.pipeline('feature-extraction', this.model);
+      // enableCpuMemArena: false is what keeps this process at ~220 MB instead of ~2 GB.
+      // onnxruntime's CPU arena reserves for the largest tensor shape it has ever seen and
+      // never gives it back, and the largest here is a full batch at the model's 512-token
+      // limit — measured at 1.9 GB resident, held for the life of the process long after the
+      // embedding pass finished. Without the arena each inference allocates and frees, which
+      // cost ~30% on a one-time background pass and is a trade worth making for a tray app
+      // that sits idle all day.
+      const extractor = await transformers.pipeline('feature-extraction', this.model, {
+        session_options: { enableCpuMemArena: false },
+      });
       this.#extractor = extractor as never;
 
       // Probe once to learn the width rather than hard-coding 384 for a model the user
