@@ -1,0 +1,91 @@
+name: Publish to npm
+
+# Replaces publish-all.ps1's run-from-a-laptop step. Two things this gets that the script
+# can't (ROADMAP.md item 7):
+#
+#   - Provenance. `--provenance` on a workflow with `id-token: write` attaches a signed
+#     Sigstore attestation binding each tarball to this exact workflow run and commit SHA,
+#     which npm renders as a "Built and signed on GitHub Actions" link back to the source.
+#   - Gates. scripts/check-publishable.mjs fails the build when a package's contents changed
+#     without a version bump, instead of quietly skipping it the way the script does.
+#
+# Authentication is npm trusted publishing (OIDC) — no NPM_TOKEN secret. Each package needs
+# a trusted publisher configured at npmjs.com naming this repo and *this filename*
+# (publish.yml); renaming this file breaks publishing until those are updated. See
+# docs/publishing.md.
+#
+# The checkout is always clean, which is the third gate: apps/tray's prepack rebuilds
+# vendor/ from source every time, so a stale local vendor/ can never be inherited into a
+# release.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Pack and run every gate, but do not touch the registry'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # required for OIDC — both trusted publishing and provenance
+
+# Publishing is irreversible; never run two at once.
+concurrency:
+  group: publish
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest # trusted publishing does not work on self-hosted runners
+    steps:
+      # Full history, not the default depth-1: check-publishable.mjs finds the commit that
+      # set each package's version and asks whether its bundled sources moved since.
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Deliberately no `registry-url:` here. It looks like the obvious thing to set, but it
+      # makes setup-node write `//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}` into an
+      # .npmrc — and with no token secret (the whole point of trusted publishing) that
+      # expands to an empty value. npm reads it as "auth is already configured", never starts
+      # the OIDC exchange, and publishing fails with ENEEDAUTH. npmjs.org is the default
+      # registry anyway.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      # Trusted publishing needs npm 11.5.1 or newer; don't rely on whatever the Node
+      # image happens to bundle.
+      - name: Use an npm that supports OIDC
+        run: |
+          npm install -g "npm@^11.5.1"
+          npm --version
+
+      - run: npm ci
+
+      # The same checks CI runs on every push. Inlined rather than reused via
+      # `workflow_call`, because trusted publishing validates the *calling* workflow's
+      # filename and a reusable workflow makes that mismatch.
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Test
+        run: npm test
+
+      # @jobtrack/shared ships dist/, which only its `prepublishOnly` builds — and that
+      # doesn't run for the `npm pack` the gate below does. Build it up front so the packed
+      # tarball is complete.
+      - name: Build @jobtrack/shared
+        run: npm run build --workspace=@jobtrack/shared
+
+      - name: Decide what to publish
+        run: node scripts/check-publishable.mjs --plan publish-plan.json
+
+      - name: Publish (dry run)
+        if: ${{ inputs.dry_run }}
+        run: node scripts/publish-planned.mjs publish-plan.json --dry-run
+
+      - name: Publish
+        if: ${{ !inputs.dry_run }}
+        run: node scripts/publish-planned.mjs publish-plan.json

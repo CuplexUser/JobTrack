@@ -3,8 +3,9 @@
 `apps/tray` (package name `jobtrack`) and `apps/mcp` (`@jobtrack/mcp`) are both set up to be
 published standalone, not just run from a clone of this repo — `npm install -g jobtrack` gets
 you the full API + web UI + tray icon, and `npm install -g @jobtrack/mcp` gets you an MCP
-server, neither needing a monorepo in sight. `publish-all.ps1` at the repo root automates
-publishing all four packages — see [Publishing for real](#publishing-for-real) below.
+server, neither needing a monorepo in sight. Releases go out from GitHub Actions — see
+[Publishing from GitHub Actions](#publishing-from-github-actions) below, or
+[Publishing by hand](#publishing-by-hand) for the `publish-all.ps1` route it replaced.
 
 ## How it's wired for this
 
@@ -33,13 +34,89 @@ publishing all four packages — see [Publishing for real](#publishing-for-real)
 `npm install` the four `.tgz` files as dependencies in a scratch project outside this repo —
 that's a true standalone install, not a workspace symlink.
 
-## Publishing for real
+## Publishing from GitHub Actions
 
-`publish-all.ps1`, at the repo root, does the four `npm publish` calls below in order for
-you — it prints each package's `name@version`, refuses to run if `npm whoami` shows you're
-not logged in, asks for a typed `yes` before touching the registry (since a published version
-can never be overwritten), and stops immediately if any step fails rather than continuing on
-to a package whose dependency didn't actually publish:
+This is the way to publish. `.github/workflows/publish.yml` runs the same four `npm publish`
+calls from a clean checkout, authenticated by npm trusted publishing (OIDC) rather than a
+stored token, with `--provenance` so each tarball carries a signed attestation binding it to
+the workflow run and commit that produced it — npm shows that as a "Built and signed on
+GitHub Actions" link back to the source.
+
+Run it from the repo's **Actions → Publish to npm → Run workflow**. It defaults to a dry run
+(every gate and `npm pack`, nothing sent to the registry); untick `dry_run` to publish for
+real. There's no typed `yes` the way `publish-all.ps1` has one — defaulting to a dry run is
+what makes a real publish a deliberate choice. Add required reviewers by putting the
+`publish` job in a GitHub environment if you want a second pair of eyes on top.
+
+### One-time setup: a trusted publisher per package
+
+Trusted publishing is configured **per package on npmjs.com**, not in this repo, and all four
+need it. For each of `@jobtrack/shared`, `@jobtrack/api`, `@jobtrack/mcp` and `jobtrack`, go
+to the package's **Settings → Trusted Publisher**, choose GitHub Actions, and fill in:
+
+| Field | Value |
+| --- | --- |
+| Organization or user | `CuplexUser` |
+| Repository | `JobTrack` |
+| Workflow filename | `publish.yml` |
+| Environment | *(leave blank unless you added one)* |
+
+Two things to know. The workflow **filename** is part of the trust rule, so renaming
+`publish.yml` breaks publishing until all four configurations are updated — and the workflow
+can't call a reusable workflow to publish, because npm validates the calling workflow's name.
+And trusted publishing only works on GitHub-hosted runners; a self-hosted runner can't
+produce a token npm will accept.
+
+Both trusted publishing and provenance require the repo and the packages to be public.
+
+### The gates
+
+`scripts/check-publishable.mjs` runs before anything is published and decides, per package:
+publish it (the version isn't on the registry), skip it (the version is there and its tarball
+matches this checkout), or **fail the build** (the version is there but the contents differ —
+someone changed the sources without bumping the version).
+
+That last case is the one worth having. It's the failure that shipped `@jobtrack/api`'s
+post-refactor sources under an already-published version number, leaving npm serving the old
+tarball while the installed CLI failed on an import that didn't exist yet. `publish-all.ps1`
+skips that package silently; CI stops with a list of the differing files.
+
+Run it locally any time — it only reads from the registry:
+
+```powershell
+npm run build --workspace=@jobtrack/shared   # it ships dist/, which `npm pack` won't build
+node scripts/check-publishable.mjs
+```
+
+It compares the published tarball against a freshly packed one rather than comparing version
+numbers, so it sees drift a version check can't. Line endings are normalized before hashing:
+this repo is developed on Windows with `core.autocrlf=true`, so tarballs packed there carry
+CRLF where a Linux CI checkout has LF, and without that every text file in every package
+would read as changed.
+
+`apps/tray`'s `vendor/` is the one tree left out of that comparison. It's a build artifact
+rebuilt on every pack, so diffing it would test whether the build is byte-reproducible across
+machines rather than whether anyone edited the sources. But leaving it unchecked is what let
+`jobtrack@1.0.6` ship a web UI two commits stale, so it's gated a different way: the tray
+declares the sources it bundles but doesn't own (`apps/web`, the root `.env.example`) and the
+check asks git whether any of them changed *after the commit that set the current version*.
+If they did, the build fails until the tray is bumped. That's why the workflow checks out
+with `fetch-depth: 0` — the default shallow clone has no history to ask.
+
+Differences under `vendor/` are still printed when they show up, as a note rather than a
+failure.
+
+## Publishing by hand
+
+`publish-all.ps1`, at the repo root, still works and is handy for a local dry run — but it
+authenticates as you rather than as the workflow, so nothing it publishes gets provenance,
+and it skips an already-published version instead of checking whether its contents changed.
+
+It does the four `npm publish` calls below in order for you — it prints each package's
+`name@version`, refuses to run if `npm whoami` shows you're not logged in, asks for a typed
+`yes` before touching the registry (since a published version can never be overwritten), and
+stops immediately if any step fails rather than continuing on to a package whose dependency
+didn't actually publish:
 
 ```powershell
 npm login   # once, if not already

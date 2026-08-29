@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/mcp",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "type": "module",
   "license": "MIT",
   "description": "MCP server (stdio) for JobTrack — read and write job applications from an MCP client",

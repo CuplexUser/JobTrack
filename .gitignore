@@ -8,6 +8,9 @@ coverage/
 # never hand-edited.
 apps/tray/vendor/
 
+# Written by scripts/check-publishable.mjs --plan, read by the publish workflow.
+publish-plan.json
+
 # Database — local data, never committed
 data/*.db
 data/*.db-shm

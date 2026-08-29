@@ -1,0 +1,41 @@
+name: CI
+
+# Typecheck plus the full vitest suite (apps/api, apps/web and packages/shared), so
+# regressions are caught before merge rather than at publish time.
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+# A newer push to the same branch makes an in-flight run irrelevant — except on main, where
+# every commit's result is worth keeping.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - run: npm ci
+
+      # `tsc --build --force` walks the project references in tsconfig.json, so this also
+      # builds @jobtrack/shared's dist — which the test run needs.
+      - name: Typecheck
+        run: npm run typecheck
+
+      # No network needed: the search suite uses FakeEmbedder rather than downloading a
+      # transformers model.
+      - name: Test
+        run: npm test
