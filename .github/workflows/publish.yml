@@ -40,7 +40,7 @@ jobs:
     steps:
       # Full history, not the default depth-1: check-publishable.mjs finds the commit that
       # set each package's version and asks whether its bundled sources moved since.
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
 
@@ -50,7 +50,7 @@ jobs:
       # expands to an empty value. npm reads it as "auth is already configured", never starts
       # the OIDC exchange, and publishing fails with ENEEDAUTH. npmjs.org is the default
       # registry anyway.
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: 24
           cache: npm
