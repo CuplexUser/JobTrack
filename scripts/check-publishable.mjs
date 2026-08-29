@@ -42,7 +42,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { dirname, join, resolve } from 'node:path';
+import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { gunzipSync } from 'node:zlib';
 
@@ -218,8 +218,13 @@ function hashTarball(gzipped) {
     // npm tarballs wrap everything in a `package/` directory.
     const path = name.startsWith('package/') ? name.slice('package/'.length) : name;
 
-    const extension = path.slice(path.lastIndexOf('.'));
-    const normalized = TEXT_EXTENSIONS.has(extension)
+    // extname, not a slice at the last dot: with no dot at all that slice returns the final
+    // character (LICENSE -> E), so LICENSE was hashed as binary and the CRLF it carried into
+    // the published tarball — packed on Windows — never matched a Linux checkout's LF.
+    // Extensionless files in an npm tarball are text by convention (LICENSE, README,
+    // CHANGELOG), so they normalize too.
+    const extension = extname(path);
+    const normalized = extension === '' || TEXT_EXTENSIONS.has(extension)
       ? Buffer.from(contents.toString('utf8').replaceAll('\r\n', '\n'))
       : contents;
     hashes.set(path, createHash('sha256').update(normalized).digest('hex'));
