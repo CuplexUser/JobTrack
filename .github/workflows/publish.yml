@@ -1,7 +1,7 @@
 name: Publish to npm
 
-# Replaces publish-all.ps1's run-from-a-laptop step. Two things this gets that the script
-# can't (ROADMAP.md item 7):
+# Replaces publish-all.ps1's run-from-a-laptop step, and publishes on every push to main.
+# Two things this gets that the script can't (ROADMAP.md item 7):
 #
 #   - Provenance. `--provenance` on a workflow with `id-token: write` attaches a signed
 #     Sigstore attestation binding each tarball to this exact workflow run and commit SHA,
@@ -17,7 +17,21 @@ name: Publish to npm
 # The checkout is always clean, which is the third gate: apps/tray's prepack rebuilds
 # vendor/ from source every time, so a stale local vendor/ can never be inherited into a
 # release.
+
+# Two triggers, and the difference between them is `dry_run`:
+#
+#   push to main   publishes for real. Safe to run on every push because the gate decides:
+#                  a push whose versions are all on the registry publishes nothing, and one
+#                  that changed a package without bumping it fails instead.
+#   manual         defaults to a dry run — every gate and `npm pack`, nothing sent to the
+#                  registry — so the button is safe to press to see what a release would do.
+#
+# The steps below read `inputs.dry_run`, which only exists for workflow_dispatch; on a push
+# the whole `inputs` context is empty, so it evaluates false and the real publish runs. That
+# is the mechanism, not a coincidence — do not "fix" it by defaulting the input to false.
 on:
+  push:
+    branches: [main]
   workflow_dispatch:
     inputs:
       dry_run:

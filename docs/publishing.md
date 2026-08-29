@@ -42,11 +42,18 @@ stored token, with `--provenance` so each tarball carries a signed attestation b
 the workflow run and commit that produced it — npm shows that as a "Built and signed on
 GitHub Actions" link back to the source.
 
-Run it from the repo's **Actions → Publish to npm → Run workflow**. It defaults to a dry run
-(every gate and `npm pack`, nothing sent to the registry); untick `dry_run` to publish for
-real. There's no typed `yes` the way `publish-all.ps1` has one — defaulting to a dry run is
-what makes a real publish a deliberate choice. Add required reviewers by putting the
-`publish` job in a GitHub environment if you want a second pair of eyes on top.
+It runs on **every push to `main`**, and publishes for real. That needs no confirmation step
+because the gate below is the confirmation: a push whose versions are all on the registry
+publishes nothing at all, so bumping a version in `package.json` *is* the release, and a push
+that changed a package without bumping it fails rather than shipping. Nothing is published
+until the same typecheck and test suite CI runs has passed on a clean checkout.
+
+You can also run it by hand from **Actions → Publish to npm → Run workflow**, where it
+defaults to a dry run — every gate and `npm pack`, nothing sent to the registry — which is
+how to see what a release would do before committing the bump. Add required reviewers by
+putting the `publish` job in a GitHub environment if you want a second pair of eyes on the
+push path; note the environment name then has to be added to all four trusted publisher
+configurations on npmjs.com, or authentication fails.
 
 ### One-time setup: a trusted publisher per package
 
