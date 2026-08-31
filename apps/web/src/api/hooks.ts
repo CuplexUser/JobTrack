@@ -7,7 +7,13 @@
  * with the table — exactly the kind of quiet inconsistency this app is meant to avoid.
  */
 
-import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tanstack/react-query';
+import {
+  useInfiniteQuery,
+  useMutation,
+  useQuery,
+  useQueryClient,
+  type QueryClient,
+} from '@tanstack/react-query';
 import { api } from './index.js';
 
 export const keys = {
@@ -46,6 +52,25 @@ export function useApplications(filter: Record<string, unknown>) {
   return useQuery({
     queryKey: keys.applications(filter),
     queryFn: () => api.listApplications(filter),
+    placeholderData: (previous) => previous, // keep the table steady while filters change
+  });
+}
+
+/**
+ * The applications table, paged with "Load more".
+ *
+ * Infinite rather than plain: every page fetched so far stays in `data.pages`, so the
+ * button appends to the table instead of replacing what is already on screen. The cursor
+ * is therefore page state, not filter state — it never appears in the query key, which is
+ * what lets a filter change start again from the first page.
+ */
+export function useApplicationsInfinite(filter: Record<string, unknown>) {
+  return useInfiniteQuery({
+    queryKey: keys.applications(filter),
+    queryFn: ({ pageParam }) =>
+      api.listApplications(pageParam ? { ...filter, cursor: pageParam } : filter),
+    initialPageParam: null as string | null,
+    getNextPageParam: (lastPage) => (lastPage.hasMore ? lastPage.cursor : null),
     placeholderData: (previous) => previous, // keep the table steady while filters change
   });
 }

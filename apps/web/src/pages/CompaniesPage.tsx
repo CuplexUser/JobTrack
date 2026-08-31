@@ -11,9 +11,12 @@ import type { CompanyWithStats } from '@jobtrack/shared';
 import { useCompanies } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 
+const DEFAULT_PAGE_SIZE = 25;
+
 export function CompaniesPage() {
   const navigate = useNavigate();
   const [search, setSearch] = useState('');
+  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
   const debounced = useDebounced(search, 300);
   const { data, isLoading } = useCompanies(debounced ? { q: debounced } : {});
 
@@ -99,7 +102,16 @@ export function CompaniesPage() {
           loading={isLoading}
           columns={columns}
           dataSource={data?.companies ?? []}
-          pagination={{ pageSize: 25, hideOnSinglePage: true }}
+          pagination={{
+            pageSize,
+            showSizeChanger: true,
+            // The page size is ours to hold: passing it without taking the change back
+            // pins the table to one size whatever the size changer says.
+            onChange: (_page, size) => setPageSize(size),
+            // Tidy away the bar for a short list, but only while nobody has picked a
+            // size — hiding it after a choice would leave no way to pick another.
+            hideOnSinglePage: pageSize === DEFAULT_PAGE_SIZE,
+          }}
           onRow={(row) => ({
             onClick: () => navigate(`/companies/${row.id}`),
             style: { cursor: 'pointer' },

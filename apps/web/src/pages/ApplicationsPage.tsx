@@ -44,7 +44,7 @@ import {
   monthName,
   type JobApplicationView,
 } from '@jobtrack/shared';
-import { useApplications, usePeriods, useTags } from '../api/hooks.js';
+import { useApplicationsInfinite, usePeriods, useTags } from '../api/hooks.js';
 import { api } from '../api/index.js';
 import { demoExportCsv } from '../api/demo-client.js';
 import { PeriodTree } from '../components/PeriodTree.js';
@@ -77,7 +77,7 @@ export function ApplicationsPage() {
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
     const entries: Record<string, unknown> = {};
-    for (const key of ['q', 'source', 'sort', 'direction', 'cursor', 'from', 'to'] as const) {
+    for (const key of ['q', 'source', 'sort', 'direction', 'from', 'to'] as const) {
       const value = params.get(key);
       if (value) entries[key] = value;
     }
@@ -92,9 +92,16 @@ export function ApplicationsPage() {
     return entries;
   }, [params]);
 
-  const { data, isLoading, isFetching } = useApplications(filter);
+  const { data, isLoading, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } =
+    useApplicationsInfinite(filter);
   const { data: periodData } = usePeriods();
   const { data: tagData } = useTags();
+
+  // "Load more" appends, so the table shows every page fetched so far. Totals and the
+  // search flags describe the whole result set, so they come from the first page.
+  const pages = data?.pages ?? [];
+  const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  const summary = pages[0];
 
   function patchFilter(changes: Record<string, unknown>): void {
     const next = new URLSearchParams(params);
@@ -106,8 +113,6 @@ export function ApplicationsPage() {
         next.set(key, Array.isArray(value) ? value.join(',') : String(value));
       }
     }
-    // Any filter change invalidates the page cursor.
-    next.delete('cursor');
     setParams(next, { replace: true });
   }
 
@@ -241,7 +246,11 @@ export function ApplicationsPage() {
                 {scopeLabel}
               </Typography.Title>
               <Typography.Text type="secondary">
-                {data ? `${data.total} application${data.total === 1 ? '' : 's'}` : 'Loading…'}
+                {summary
+                  ? items.length < summary.total
+                    ? `Showing ${items.length} of ${summary.total} applications`
+                    : `${summary.total} application${summary.total === 1 ? '' : 's'}`
+                  : 'Loading…'}
               </Typography.Text>
             </Space>
 
@@ -350,7 +359,7 @@ export function ApplicationsPage() {
                 />
               </Flex>
 
-              {data?.searched && !data.semanticReady && (
+              {summary?.searched && !summary.semanticReady && (
                 <Alert
                   type="info"
                   showIcon
@@ -364,8 +373,10 @@ export function ApplicationsPage() {
           <Table<JobApplicationView>
             rowKey="id"
             columns={columns}
-            dataSource={data?.items ?? []}
-            loading={isLoading || isFetching}
+            dataSource={items}
+            // The next page has its own button spinner; overlaying the table would hide
+            // the rows that are already loaded.
+            loading={isLoading || (isFetching && !isFetchingNextPage)}
             pagination={false}
             onRow={(row) => ({
               onClick: () => navigate(`/applications/${row.id}`),
@@ -384,11 +395,11 @@ export function ApplicationsPage() {
               ),
             }}
             footer={
-              data?.hasMore
+              hasNextPage
                 ? () => (
                     <Flex justify="center">
-                      <Tooltip title="Loads the next page">
-                        <Button onClick={() => patchFilterCursor(params, setParams, data.cursor)}>
+                      <Tooltip title="Adds the next page to the list">
+                        <Button loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
                           Load more
                         </Button>
                       </Tooltip>
@@ -404,16 +415,4 @@ export function ApplicationsPage() {
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
     </Row>
   );
-}
-
-/** Paging keeps the cursor in the URL so the back button steps back through pages. */
-function patchFilterCursor(
-  params: URLSearchParams,
-  setParams: (next: URLSearchParams) => void,
-  cursor: string | null,
-): void {
-  if (!cursor) return;
-  const next = new URLSearchParams(params);
-  next.set('cursor', cursor);
-  setParams(next);
 }
