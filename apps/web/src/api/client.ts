@@ -16,6 +16,7 @@ import type {
   JobOpeningView,
   Note,
   NoteWithTarget,
+  PostingDraft,
   StatusEvent,
   Tag,
 } from '@jobtrack/shared';
@@ -106,6 +107,19 @@ export interface DuplicateCheckResponse extends DuplicateCheck {
   semanticUsed: boolean;
 }
 
+/**
+ * What a capture returns before anything is saved: the fields we could read, plus the same
+ * duplicate verdict the New Application form shows while you type.
+ */
+export interface IngestResponse {
+  draft: PostingDraft;
+  duplicate: DuplicateCheckResponse;
+}
+
+export interface ClipResponse extends IngestResponse {
+  opening: JobOpeningView;
+}
+
 export interface DashboardResponse {
   stats: {
     total: number;
@@ -118,6 +132,16 @@ export interface DashboardResponse {
   };
   followUps: JobApplicationView[];
   recentActivity: (StatusEvent & { jobTitle: string; companyName: string })[];
+  /** applied → screening → interview → offer, counted from the status history. */
+  funnel: {
+    status: ApplicationStatus;
+    count: number;
+    conversion: number | null;
+  }[];
+  /** The last 24 months, oldest first, empty months included. */
+  volume: { year: number; month: number; count: number }[];
+  /** Live applications nothing has happened to in a while, longest silence first. */
+  stale: (JobApplicationView & { silentSince: string; silentDays: number })[];
 }
 
 export interface ImportPreviewRow {
@@ -361,6 +385,18 @@ export const httpApi = {
       method: 'POST',
       body: JSON.stringify(body),
     }),
+
+  ingestUrl: (url: string) =>
+    request<IngestResponse>('/api/ingest/url', { method: 'POST', body: JSON.stringify({ url }) }),
+
+  ingestText: (text: string, url?: string) =>
+    request<IngestResponse>('/api/ingest/text', {
+      method: 'POST',
+      body: JSON.stringify({ text, url: url ?? null }),
+    }),
+
+  clipPosting: (draft: PostingDraft) =>
+    request<ClipResponse>('/api/ingest/clip', { method: 'POST', body: JSON.stringify(draft) }),
 
   getDbTargets: () => request<DbTargetsResponse>('/api/db/targets'),
 

@@ -1,0 +1,26 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Save to JobTrack</title>
+    <link rel="stylesheet" href="./src/style.css" />
+  </head>
+  <body>
+    <h1>Save to JobTrack</h1>
+    <p id="method" class="hint">Reading this page…</p>
+
+    <label>Company<input id="company" type="text" autocomplete="off" /></label>
+    <label>Job title<input id="title" type="text" autocomplete="off" /></label>
+    <label>Location<input id="location" type="text" autocomplete="off" /></label>
+    <label>Source<input id="source" type="text" autocomplete="off" /></label>
+
+    <div class="row">
+      <button id="options" type="button">Settings</button>
+      <button id="save" class="primary" type="button">Save opening</button>
+    </div>
+
+    <div id="status" class="status" hidden></div>
+
+    <script type="module" src="./src/popup.ts"></script>
+  </body>
+</html>

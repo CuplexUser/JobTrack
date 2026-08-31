@@ -8,7 +8,7 @@
 import fastifyStatic from '@fastify/static';
 import type { FastifyInstance } from 'fastify';
 import { buildApp } from '@jobtrack/api/app';
-import { loadConfig, type Config } from '@jobtrack/api/config';
+import { loadConfig, loadEnvFile, type Config } from '@jobtrack/api/config';
 import { createRepos } from '@jobtrack/api/db/create-repos';
 import type { RepoBundle } from '@jobtrack/api/db/repos';
 import { SearchIndex } from '@jobtrack/api/search';
@@ -25,6 +25,9 @@ export interface RunningServer {
 }
 
 export async function startServer(): Promise<RunningServer> {
+  // The file the tray's "Open App Settings" menu item edits — read here, or that menu
+  // item is a text editor pointed at nothing.
+  loadEnvFile();
   const config = loadConfig();
   const repos = await createRepos(config);
 

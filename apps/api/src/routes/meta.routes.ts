@@ -25,4 +25,17 @@ export async function metaRoutes(
     version: pkg.version,
     driver: deps.config.driver,
   }));
+
+  /**
+   * "Is this token the right one?" — and nothing else.
+   *
+   * By the time a request reaches here the guard has already required a valid token
+   * (`TOKEN_ONLY_PATHS` in `lib/request-guard.ts`), so reaching the handler at all *is* the
+   * answer; a wrong or missing one was refused with a 403.
+   *
+   * It exists because the honest answer was otherwise unavailable to a browser: every other
+   * route can be reached for reasons that have nothing to do with credentials, and the
+   * extension's setup page was reporting success for any token typed into it.
+   */
+  app.get('/api/auth/check', async () => ({ ok: true }));
 }

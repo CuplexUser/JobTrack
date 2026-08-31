@@ -10,6 +10,7 @@ import Fastify, { type FastifyInstance } from 'fastify';
 import cors from '@fastify/cors';
 import type { Deps } from './deps.js';
 import { registerErrorHandler } from './lib/errors.js';
+import { isAllowedOrigin, registerRequestGuard } from './lib/request-guard.js';
 import { applicationRoutes } from './routes/applications.routes.js';
 import { companyRoutes } from './routes/companies.routes.js';
 import { tagRoutes } from './routes/tags.routes.js';
@@ -19,6 +20,7 @@ import { exportRoutes } from './routes/export.routes.js';
 import { importRoutes } from './routes/import.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { openingRoutes } from './routes/openings.routes.js';
+import { ingestRoutes } from './routes/ingest.routes.js';
 import { backupRoutes } from './routes/backup.routes.js';
 import { dbRoutes } from './routes/db.routes.js';
 import { metaRoutes } from './routes/meta.routes.js';
@@ -42,7 +44,17 @@ export async function buildApp(deps: Deps, options: BuildAppOptions = {}): Promi
     logger: options.logger ? { level: 'warn' } : false,
   });
 
-  await app.register(cors, { origin: true });
+  // An allowlist, not a reflection: the API is reachable from every page the browser on
+  // this machine has open, so `origin: true` would let any of them write. Callers from
+  // anywhere else — the browser extension — authenticate with the token instead.
+  await app.register(cors, {
+    origin: (origin, callback) => callback(null, isAllowedOrigin(origin, deps.config.corsOrigins)),
+    credentials: false,
+  });
+  registerRequestGuard(app, {
+    allowedOrigins: deps.config.corsOrigins,
+    token: deps.config.apiToken,
+  });
 
   // Every other route posts JSON, which Fastify parses by default. Import posts a raw file
   // instead — read as a Buffer rather than sniffed, so the route sees exactly the bytes the
@@ -69,6 +81,7 @@ export async function buildApp(deps: Deps, options: BuildAppOptions = {}): Promi
   await app.register(async (instance) => importRoutes(instance, deps));
   await app.register(async (instance) => dashboardRoutes(instance, deps));
   await app.register(async (instance) => openingRoutes(instance, deps));
+  await app.register(async (instance) => ingestRoutes(instance, deps));
   await app.register(async (instance) => backupRoutes(instance, deps));
   await app.register(async (instance) => dbRoutes(instance, deps));
   await app.register(async (instance) => metaRoutes(instance, deps, options.app ?? API_PACKAGE));

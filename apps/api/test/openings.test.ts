@@ -4,6 +4,7 @@ import {
   convertOpening,
   createOpening,
   deleteOpening,
+  findMatchingOpening,
   getOpening,
   listOpenings,
   updateOpening,
@@ -45,6 +46,58 @@ describe('listOpenings', () => {
     await updateOpening(repos, opening.id, { archived: true });
     expect(await listOpenings(repos)).toEqual([]);
     expect(await listOpenings(repos, { includeArchived: true })).toHaveLength(1);
+  });
+});
+
+describe('findMatchingOpening', () => {
+  const posting = (over: Partial<{ companyName: string; jobTitle: string; jobUrl: string | null }> = {}) => ({
+    companyName: 'Spotify',
+    jobTitle: 'Backend Engineer',
+    jobUrl: null,
+    ...over,
+  });
+
+  it('finds the opening a link was already saved as, however the link is written', async () => {
+    await createOpening(repos, openingInput({ jobUrl: 'https://jobs.example.com/spotify/7' }));
+
+    const match = await findMatchingOpening(
+      repos,
+      posting({ jobUrl: 'http://www.jobs.example.com/spotify/7/?utm_source=mail' }),
+    );
+
+    expect(match?.jobTitle).toBe('Backend Engineer');
+  });
+
+  it('treats two different links as two postings, title and company notwithstanding', async () => {
+    // The same role advertised in two cities is two ads, and saving both is the point.
+    await createOpening(repos, openingInput({ jobUrl: 'https://jobs.example.com/spotify/7' }));
+
+    expect(
+      await findMatchingOpening(repos, posting({ jobUrl: 'https://jobs.example.com/spotify/8' })),
+    ).toBeNull();
+  });
+
+  it('falls back to company and title when either side has no link', async () => {
+    await createOpening(repos, openingInput());
+
+    expect((await findMatchingOpening(repos, posting()))?.jobTitle).toBe('Backend Engineer');
+    // Title matching goes through titleKey, so case and punctuation are not a difference.
+    expect(await findMatchingOpening(repos, posting({ jobTitle: 'BACKEND  Engineer!' }))).not.toBeNull();
+    expect(await findMatchingOpening(repos, posting({ jobTitle: 'Platform Engineer' }))).toBeNull();
+  });
+
+  it('finds nothing at a company nothing has been saved for', async () => {
+    await createOpening(repos, openingInput());
+    expect(await findMatchingOpening(repos, posting({ companyName: 'Klarna' }))).toBeNull();
+  });
+
+  it('still finds one that was archived, or that became an application', async () => {
+    const opening = await createOpening(repos, openingInput());
+    await convertOpening(repos, opening.id, {});
+
+    const match = await findMatchingOpening(repos, posting());
+    expect(match?.archived).toBe(true);
+    expect(match?.convertedApplicationId).not.toBeNull();
   });
 });
 

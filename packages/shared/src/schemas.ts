@@ -274,6 +274,51 @@ export const convertJobOpeningSchema = z.object({
   tags: tagList.optional(),
 });
 
+/**
+ * Capturing a posting from the web.
+ *
+ * `ingestUrlSchema` and `ingestTextSchema` are what the app sends *to* a parser;
+ * `postingDraftSchema` is what comes back and what the extension posts to be saved. The
+ * draft deliberately mirrors `createJobOpeningSchema` field for field — it is the same
+ * record, one step earlier, while the user can still correct it.
+ */
+export const ingestUrlSchema = z.object({
+  url: z.string().trim().min(1).max(2000),
+});
+
+export const ingestTextSchema = z.object({
+  text: z.string().min(1).max(200000),
+  url: optionalTrimmed(2000).optional(),
+});
+
+export const postingDraftSchema = z
+  .object({
+    companyName: z.string().trim().min(1, 'Company is required').max(200),
+    jobTitle: z.string().trim().min(1, 'Job title is required').max(200),
+    jobUrl: optionalTrimmed(2000),
+    location: optionalTrimmed(200),
+    workMode: workModeSchema.default('unspecified'),
+    sourceName: optionalTrimmed(120),
+    salaryMin: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullish()
+      .transform((v) => v ?? null),
+    salaryMax: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullish()
+      .transform((v) => v ?? null),
+    salaryCurrency: optionalTrimmed(8),
+    notes: optionalTrimmed(20000),
+  })
+  .refine((v) => v.salaryMin === null || v.salaryMax === null || v.salaryMin <= v.salaryMax, {
+    message: 'Minimum salary cannot exceed the maximum',
+    path: ['salaryMin'],
+  });
+
 /** Which configured database target to make active. */
 export const switchDbTargetSchema = z.object({
   target: z.string().min(1),

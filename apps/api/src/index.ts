@@ -6,13 +6,15 @@
  * 25 MB download before the first request would be a poor trade for a local app.
  */
 
-import { loadConfig } from './config.js';
+import { loadConfig, loadEnvFile } from './config.js';
 import { createRepos } from './db/create-repos.js';
 import { buildApp } from './app.js';
 import { SearchIndex } from './search/index.js';
 import { DisabledEmbedder, type Embedder } from './search/embedder.js';
 import { TransformersEmbedder } from './search/transformers-embedder.js';
 
+// `.env` first: nothing else reads it, and everything below is configured from it.
+loadEnvFile();
 const config = loadConfig();
 const repos = await createRepos(config);
 

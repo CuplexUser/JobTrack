@@ -30,13 +30,20 @@ import {
   Typography,
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
-import { LinkOutlined, PlusOutlined, RollbackOutlined, SwapOutlined } from '@ant-design/icons';
+import {
+  ImportOutlined,
+  LinkOutlined,
+  PlusOutlined,
+  RollbackOutlined,
+  SwapOutlined,
+} from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
   WORK_MODE_LABELS,
   type JobOpeningView,
+  type PostingDraft,
 } from '@jobtrack/shared';
 import {
   useConvertOpening,
@@ -46,6 +53,7 @@ import {
   useUpdateOpening,
 } from '../api/hooks.js';
 import { OpeningDrawer } from '../components/OpeningDrawer.js';
+import { PostingIngestModal } from '../components/PostingIngestModal.js';
 
 interface ConvertFormValues {
   appliedOn: Dayjs;
@@ -73,6 +81,9 @@ export function OpeningsPage() {
   }, [data, view]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [ingestOpen, setIngestOpen] = useState(false);
+  /** Set when the drawer was opened from a captured posting rather than from scratch. */
+  const [draft, setDraft] = useState<PostingDraft | undefined>(undefined);
   const [editing, setEditing] = useState<JobOpeningView | undefined>(undefined);
   const [converting, setConverting] = useState<JobOpeningView | null>(null);
   const [form] = Form.useForm<ConvertFormValues>();
@@ -168,6 +179,7 @@ export function OpeningsPage() {
             size="small"
             onClick={() => {
               setEditing(row);
+              setDraft(undefined);
               setDrawerOpen(true);
             }}
           >
@@ -228,16 +240,22 @@ export function OpeningsPage() {
               : 'Openings that were converted into an application or archived by hand.'}
           </Typography.Text>
         </Space>
-        <Button
-          type="primary"
-          icon={<PlusOutlined />}
-          onClick={() => {
-            setEditing(undefined);
-            setDrawerOpen(true);
-          }}
-        >
-          Save opening for later
-        </Button>
+        <Space>
+          <Button icon={<ImportOutlined />} onClick={() => setIngestOpen(true)}>
+            Save from posting
+          </Button>
+          <Button
+            type="primary"
+            icon={<PlusOutlined />}
+            onClick={() => {
+              setEditing(undefined);
+              setDraft(undefined);
+              setDrawerOpen(true);
+            }}
+          >
+            Save opening for later
+          </Button>
+        </Space>
       </Flex>
 
       <Segmented<OpeningsView>
@@ -271,7 +289,26 @@ export function OpeningsPage() {
         />
       </Card>
 
-      <OpeningDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} opening={editing} />
+      <OpeningDrawer
+        open={drawerOpen}
+        onClose={() => {
+          setDrawerOpen(false);
+          setDraft(undefined);
+        }}
+        opening={editing}
+        draft={draft}
+      />
+
+      <PostingIngestModal
+        open={ingestOpen}
+        onClose={() => setIngestOpen(false)}
+        onUse={(parsed) => {
+          setIngestOpen(false);
+          setEditing(undefined);
+          setDraft(parsed);
+          setDrawerOpen(true);
+        }}
+      />
 
       <Modal
         title={converting ? `Convert "${converting.jobTitle}" at ${converting.company.name}` : ''}

@@ -3,11 +3,12 @@
  * `backup/seed.ts`, shared with the Settings page's "Seed with demo data" button.
  */
 
-import { loadConfig } from '../config.js';
+import { loadConfig, loadEnvFile } from '../config.js';
 import { createRepos } from '../db/create-repos.js';
 import { seedDemoData } from '../backup/seed.js';
 
 async function main(): Promise<void> {
+  loadEnvFile();
   const config = loadConfig();
   const repos = await createRepos(config);
 

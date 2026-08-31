@@ -4,6 +4,7 @@
     { "path": "./packages/shared" },
     { "path": "./apps/api" },
     { "path": "./apps/web" },
+    { "path": "./apps/extension" },
     { "path": "./apps/mcp" },
     { "path": "./apps/tray" }
   ]

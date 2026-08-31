@@ -9,7 +9,12 @@
 import { useEffect, useMemo } from 'react';
 import { App as AntApp, AutoComplete, Button, Col, DatePicker, Drawer, Form, Input, InputNumber, Row, Select, Space, Typography } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
-import { WORK_MODES, WORK_MODE_LABELS, type JobOpeningView } from '@jobtrack/shared';
+import {
+  WORK_MODES,
+  WORK_MODE_LABELS,
+  type JobOpeningView,
+  type PostingDraft,
+} from '@jobtrack/shared';
 import { useCompanySuggestions, useCreateOpening, useUpdateOpening } from '../api/hooks.js';
 import { ApiError } from '../api/client.js';
 
@@ -18,6 +23,12 @@ export interface OpeningDrawerProps {
   onClose: () => void;
   /** Present when editing; absent when creating. */
   opening?: JobOpeningView | undefined;
+  /**
+   * A parsed posting to start from — what "Save from posting" hands over. The form is the
+   * same one either way; capture only changes where the first values came from, and every
+   * one of them stays editable, because a parsed draft is a guess.
+   */
+  draft?: PostingDraft | undefined;
 }
 
 interface FormValues {
@@ -34,7 +45,7 @@ interface FormValues {
   notes?: string;
 }
 
-export function OpeningDrawer({ open, onClose, opening }: OpeningDrawerProps) {
+export function OpeningDrawer({ open, onClose, opening, draft }: OpeningDrawerProps) {
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const isEdit = Boolean(opening);
@@ -63,9 +74,25 @@ export function OpeningDrawer({ open, onClose, opening }: OpeningDrawerProps) {
       });
     } else {
       form.resetFields();
-      form.setFieldsValue({ savedOn: dayjs(), workMode: 'unspecified' });
+      form.setFieldsValue({
+        savedOn: dayjs(),
+        workMode: draft?.workMode ?? 'unspecified',
+        ...(draft
+          ? {
+              companyName: draft.companyName,
+              jobTitle: draft.jobTitle,
+              jobUrl: draft.jobUrl ?? undefined,
+              location: draft.location ?? undefined,
+              sourceName: draft.sourceName ?? undefined,
+              salaryMin: draft.salaryMin,
+              salaryMax: draft.salaryMax,
+              salaryCurrency: draft.salaryCurrency ?? undefined,
+              notes: draft.notes ?? undefined,
+            }
+          : {}),
+      });
     }
-  }, [open, opening, form]);
+  }, [open, opening, draft, form]);
 
   const companyOptions = useMemo(
     () => (suggestions?.companies ?? []).map((company) => ({ value: company.name })),
@@ -128,8 +155,9 @@ export function OpeningDrawer({ open, onClose, opening }: OpeningDrawerProps) {
       }
     >
       <Typography.Paragraph type="secondary">
-        For a role you found but are not ready to apply to yet — no status, no tags, just
-        enough to find it again. Convert it into a real application when you are ready.
+        {draft && !isEdit
+          ? 'Read from the posting — check it over before saving. Anything the parser could not find is blank rather than guessed.'
+          : 'For a role you found but are not ready to apply to yet — no status, no tags, just enough to find it again. Convert it into a real application when you are ready.'}
       </Typography.Paragraph>
 
       <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">

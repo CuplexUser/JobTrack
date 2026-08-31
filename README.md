@@ -70,11 +70,25 @@ tracked application on demand, using the same company-resolution and creation pa
 Application form uses; the opening itself is kept (marked archived), not deleted, so there is
 still a record of what it became.
 
+**Capture from the web.** Three ways to get a posting in without retyping it: paste a link
+and the API reads the site's own `schema.org/JobPosting` data, paste the text and it is
+parsed locally, or click a browser extension on the page you are already looking at. The
+last one is what makes LinkedIn and Indeed work — they block servers, not the browser you
+are reading them in. All three land as a job opening, run the same duplicate check, and are
+written up in [`docs/capture.md`](docs/capture.md).
+
 **Everything else.** Applications divided by year and month, full status pipeline with a
 dated history, companies as first-class records, a free-form tag vocabulary attachable to
 both companies and applications, notes that link to either, CSV/Excel export and import, and
 a Settings page for switching between pre-configured databases and for full-fidelity
 backup/restore (see "Switching databases" and "Backup & restore" below).
+
+**A dashboard that reads the history, not just the current state.** The pipeline funnel
+counts what each application *ever reached*, so one that interviewed and was then turned
+down still counts at the interview stage — which is the only way the conversion rate between
+stages means anything. Alongside it: applications per month over two years, and a "gone
+quiet" list of live applications with no follow-up date that nothing has moved in three
+weeks. Charts are inline SVG against the app's palette; no charting dependency.
 
 ---
 
@@ -85,9 +99,10 @@ apps/web/          React 19 + Vite + Ant Design 6      :5173
 apps/api/          Fastify + repolayer + search        :3001
 apps/mcp/          MCP server (stdio) over the same repos, publishable as `@jobtrack/mcp`
 apps/tray/         background process + Windows tray icon, publishable as `jobtrack`
+apps/extension/    browser extension that clips a posting into an opening (not published)
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
-docs/              longer reference docs (npm publishing, ...)
+docs/              longer reference docs (web capture, npm publishing, ...)
 ```
 
 npm workspaces — one `npm install` at the root covers everything.
@@ -124,16 +139,35 @@ That portability costs something, and the design works around it deliberately:
 
 ### Configuration
 
+Every variable below can be set in the environment or in a **`.env` file in the app data
+directory** — the repo root for a clone, `%APPDATA%\jobtrack` (or `~/.local/share/jobtrack`)
+for an installed `jobtrack`, which is the file the tray's *Open App Settings* opens. It is
+read at startup by the API, the tray and the MCP server alike. A variable set in the real
+environment wins over the file, so `PORT=3002 npm run dev` still overrides it.
+
 | variable | default | meaning |
 |---|---|---|
 | `DB_DRIVER` | `sqlite` | `sqlite`, `postgres` or `mysql` — the implicit `"default"` target |
-| `DB_FILE` | `data/jobtrack.db` | SQLite only |
+| `DB_FILE` | `data/jobtrack.db` | SQLite only; a bare filename is a second database in `data/`, a relative path resolves from the app data directory |
 | `DATABASE_URL` | — | required for postgres/mysql |
 | `DB_TARGETS` | — | JSON array of *additional* named targets, see below |
 | `PORT` / `HOST` | `3001` / `127.0.0.1` | API bind address |
 | `SEMANTIC_SEARCH` | `true` | `false` skips the model entirely; search stays lexical |
 | `EMBEDDING_MODEL` | `Xenova/all-MiniLM-L6-v2` | any transformers.js feature-extraction model |
-| `MODEL_CACHE_DIR` | `.models` | where the ONNX model is cached |
+| `MODEL_CACHE_DIR` | `.models` | where the ONNX model is cached; relative to the app data directory |
+| `CORS_ORIGINS` | — | extra browser origins allowed without a token, comma-separated |
+| `API_TOKEN` | generated | what a browser extension presents; kept in `data/api-token` |
+
+### Who can call the API
+
+The API binds to `127.0.0.1`, but that still leaves it reachable from every page open in the
+browser on the same machine — so it does not reflect arbitrary origins. A wrong token is
+refused outright; a request with no `Origin` header (curl, the MCP server, the tray itself)
+is allowed; a request from this app's own UI is allowed; anything else needs the token,
+which is how the browser extension gets in. `GET /api/meta` stays open as a health probe,
+and `GET /api/auth/check` is the reverse — only a valid token opens it, so "is this token
+right?" has an answer that depends on nothing else. Details and the reasoning are in
+[`docs/capture.md`](docs/capture.md#the-token-and-why-the-api-needed-one).
 
 ### Switching databases
 
@@ -163,7 +197,7 @@ means something has to bring the process back up:
 | command | does |
 |---|---|
 | `npm run dev` | API + web + shared in watch mode |
-| `npm test` | all three workspaces (144 tests) |
+| `npm test` | every workspace (263 tests) |
 | `npm run typecheck` | `tsc --build` across the project references |
 | `npm run build` | production web bundle |
 | `npm run seed` | sample data (`-- --force` to add to a non-empty database) |
@@ -171,6 +205,7 @@ means something has to bring the process back up:
 | `npm run tray` | run the API + web UI as one process, with a Windows tray icon — see [Tray app](#tray-app) |
 | `npm run clean` | remove build output and caches |
 | `npm run icons --workspace=@jobtrack/web` | regenerate favicon.ico / apple-touch-icon from the SVG sources |
+| `npm run build --workspace=@jobtrack/extension` | build the browser clipper into `apps/extension/dist` (load unpacked) |
 
 ---
 
@@ -240,6 +275,23 @@ holds server-side upload state — the browser just posts the same file twice:
 The one thing that does not round-trip exactly: Export merges every note on an application
 into one `Notes` cell, so Import creates that cell back as a single new note rather than
 reconstructing the original set.
+
+---
+
+## Capturing postings from the web
+
+Paste a link, paste the text, or click a browser extension on the posting you are reading.
+All three produce a job opening through the same path the form uses, with the same duplicate
+check attached.
+
+```bash
+npm run build --workspace=@jobtrack/extension   # then load apps/extension/dist unpacked
+```
+
+Which route works where is not a detail — LinkedIn, Indeed and Glassdoor block servers from
+reading postings, so the link route cannot work there and the extension is the answer, since
+it reads the page already rendered in your own browser. The full write-up, the extension's
+setup and the API token it needs are in [`docs/capture.md`](docs/capture.md).
 
 ---
 

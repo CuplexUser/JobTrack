@@ -8,8 +8,10 @@
 
 import {
   ACTIVE_STATUSES,
+  STATUS_PROGRESSION,
   isActiveStatus,
   formatDateOnly,
+  parseDateOnly,
   todayDateOnly,
   toPeriod,
   type ApplicationStatus,
@@ -17,6 +19,7 @@ import {
   type StatusEvent,
 } from '@jobtrack/shared';
 import type { Repos } from '../db/repos.js';
+import type { ApplicationRow, StatusEventRow } from '../db/schema.js';
 import { toStatus, toStatusEvent } from '../db/mappers.js';
 import { hydrateApplications } from '../db/hydrate.js';
 
@@ -31,21 +34,64 @@ export interface DashboardStats {
   byStatus: Record<string, number>;
 }
 
+/** One step of the pipeline, counted by what applications *reached* rather than where they sit now. */
+export interface FunnelStage {
+  status: ApplicationStatus;
+  /** Applications that ever got this far, whatever happened afterwards. */
+  count: number;
+  /** Share of the previous stage that made it here, 0-1. Null for the first stage. */
+  conversion: number | null;
+}
+
+/** One month's application count, for the volume chart. Months with none are included. */
+export interface VolumePoint {
+  year: number;
+  month: number;
+  count: number;
+}
+
+export interface StaleApplication extends JobApplicationView {
+  /** The date of the last thing that happened — a status change, or the application itself. */
+  silentSince: string;
+  silentDays: number;
+}
+
 export interface DashboardPayload {
   stats: DashboardStats;
   /** Follow-ups whose date has arrived, soonest first. */
   followUps: JobApplicationView[];
   /** The most recent movement across all applications. */
   recentActivity: (StatusEvent & { jobTitle: string; companyName: string })[];
+  /** applied -> screening -> interview -> offer, from the status history. */
+  funnel: FunnelStage[];
+  /** The last 24 months, oldest first. */
+  volume: VolumePoint[];
+  /** Live applications nothing has happened to in a while, longest silence first. */
+  stale: StaleApplication[];
 }
+
+/**
+ * How long an application can go without a word before it is worth a second look.
+ *
+ * Three weeks is late enough that a reply was likely coming if it were coming, and early
+ * enough to still be worth a nudge — and it is a *prompt*, never an automatic status change.
+ */
+export const STALE_AFTER_DAYS = 21;
+
+/** How much history the volume chart shows. Two years covers a long search without crowding. */
+const VOLUME_MONTHS = 24;
 
 export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
   const today = todayDateOnly();
   const currentPeriod = toPeriod(today);
 
   const applications = await repos.applications.findMany({ where: { archived: false } });
+  // Every figure below that needs history comes out of this one read: the funnel, and how
+  // long each application has been silent.
+  const events = await repos.statusEvents.findMany({});
 
   const byStatus: Record<string, number> = {};
+  const monthly = new Map<string, number>();
   let active = 0;
   let thisMonth = 0;
   let responded = 0;
@@ -60,6 +106,9 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     // Anything other than "applied" means somebody wrote back — including a rejection,
     // which is still a response and belongs in the rate.
     if (status !== 'applied') responded += 1;
+
+    const key = `${row.periodYear}-${row.periodMonth}`;
+    monthly.set(key, (monthly.get(key) ?? 0) + 1);
   }
 
   const stats: DashboardStats = {
@@ -83,12 +132,124 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     .sort((a, b) => (a.followUpOn!.getTime() - b.followUpOn!.getTime()))
     .slice(0, 20);
 
-  const [followUps, recentActivity] = await Promise.all([
+  const [followUps, recentActivity, stale] = await Promise.all([
     hydrateApplications(repos, dueRows),
     recentEvents(repos),
+    staleApplications(repos, applications, events, today),
   ]);
 
-  return { stats, followUps, recentActivity };
+  return {
+    stats,
+    followUps,
+    recentActivity,
+    funnel: buildFunnel(applications, events),
+    volume: buildVolume(monthly, currentPeriod),
+    stale,
+  };
+}
+
+/**
+ * The funnel, from history rather than from where each application currently sits.
+ *
+ * This is the difference between a useful chart and a misleading one. Counting by *current*
+ * status puts an application that interviewed and was then turned down under "rejected"
+ * alone — so the interview stage shows only the people still interviewing, and the
+ * conversion rate you actually want ("how often does applying turn into an interview?")
+ * cannot be read off it at all. Counting what each application *ever reached* answers it.
+ *
+ * One deliberate limit: an application imported straight in at `interview` has no earlier
+ * history, and none is invented for it. Inferring the stages it "must have" passed through
+ * would quietly inflate every conversion rate above it.
+ */
+function buildFunnel(applications: ApplicationRow[], events: StatusEventRow[]): FunnelStage[] {
+  const live = new Set(applications.map((row) => row.id));
+  const reached = new Map<string, Set<string>>();
+
+  const record = (applicationId: string, status: string | null): void => {
+    if (status === null || !live.has(applicationId)) return;
+    const set = reached.get(applicationId) ?? new Set<string>();
+    set.add(status);
+    reached.set(applicationId, set);
+  };
+
+  for (const event of events) {
+    record(event.applicationId, event.toStatus);
+    // The status an application moved *out of* is one it was in, even if the event that put
+    // it there is missing — a restored backup, say.
+    record(event.applicationId, event.fromStatus);
+  }
+  // An application with no history at all still counts as having reached where it is.
+  for (const row of applications) {
+    if (!reached.has(row.id)) record(row.id, row.status);
+  }
+
+  let previous: number | null = null;
+  return STATUS_PROGRESSION.map((status) => {
+    let count = 0;
+    for (const set of reached.values()) {
+      if (set.has(status)) count += 1;
+    }
+    const stage: FunnelStage = {
+      status,
+      count,
+      conversion: previous === null || previous === 0 ? null : count / previous,
+    };
+    previous = count;
+    return stage;
+  });
+}
+
+/** The last two months-worth of activity, gaps included — a month with nothing is information. */
+function buildVolume(monthly: Map<string, number>, current: { year: number; month: number }): VolumePoint[] {
+  const points: VolumePoint[] = [];
+  for (let back = VOLUME_MONTHS - 1; back >= 0; back -= 1) {
+    // Month arithmetic through a zero-based index, so December rolls the year properly.
+    const index = current.year * 12 + (current.month - 1) - back;
+    const year = Math.floor(index / 12);
+    const month = (index % 12) + 1;
+    points.push({ year, month, count: monthly.get(`${year}-${month}`) ?? 0 });
+  }
+  return points;
+}
+
+/**
+ * Live applications nothing has happened to in a while.
+ *
+ * The complement to the follow-up list rather than a duplicate of it: a follow-up appears
+ * because you set a date, and this appears because you did not. Those are exactly the
+ * applications that go quiet and stay quiet — the ones a tracker is supposed to catch.
+ */
+async function staleApplications(
+  repos: Repos,
+  applications: ApplicationRow[],
+  events: StatusEventRow[],
+  today: string,
+): Promise<StaleApplication[]> {
+  const lastEventAt = new Map<string, Date>();
+  for (const event of events) {
+    const current = lastEventAt.get(event.applicationId);
+    if (!current || event.occurredOn > current) lastEventAt.set(event.applicationId, event.occurredOn);
+  }
+
+  const todayMs = parseDateOnly(today).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+
+  const candidates = applications
+    .filter((row) => isActiveStatus(toStatus(row.status)) && row.followUpOn === null)
+    .map((row) => {
+      const since = lastEventAt.get(row.id) ?? row.appliedOn;
+      return { row, since, days: Math.floor((todayMs - since.getTime()) / dayMs) };
+    })
+    .filter((entry) => entry.days >= STALE_AFTER_DAYS)
+    .sort((a, b) => b.days - a.days)
+    .slice(0, 20);
+
+  const views = await hydrateApplications(repos, candidates.map((entry) => entry.row));
+  return views.map((view, index) => ({
+    ...view,
+    silentSince: formatDateOnly(candidates[index]!.since),
+    silentDays: candidates[index]!.days,
+  }));
 }
 
 async function recentEvents(

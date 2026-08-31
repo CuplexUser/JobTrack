@@ -11,11 +11,13 @@ apps/tray/vendor/
 # Written by scripts/check-publishable.mjs --plan, read by the publish workflow.
 publish-plan.json
 
-# Database — local data, never committed
-data/*.db
-data/*.db-shm
-data/*.db-wal
+# Database — local data, never committed. Not scoped to data/: a misconfigured DB_FILE
+# has put one somewhere else before, and a stray 6 MB database must not be committable.
+*.db
+*.db-shm
+*.db-wal
 data/active-db.json
+data/api-token
 
 # Transformers.js model cache
 .cache/

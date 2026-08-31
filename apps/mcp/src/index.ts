@@ -20,7 +20,7 @@
 
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { loadConfig } from '@jobtrack/api/config';
+import { loadConfig, loadEnvFile } from '@jobtrack/api/config';
 import { createRepos } from '@jobtrack/api/db/create-repos';
 import { SearchIndex } from '@jobtrack/api/search';
 import { DisabledEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
@@ -34,6 +34,8 @@ import { registerOpeningTools } from './tools/openings.js';
 import { registerSearchTool } from './tools/search.js';
 import { registerDashboardTool } from './tools/dashboard.js';
 
+// Same `.env` the API and the tray read, so one file configures all three.
+loadEnvFile();
 const config = loadConfig();
 const repos = await createRepos(config);
 

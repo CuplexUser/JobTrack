@@ -14,12 +14,20 @@ import type { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 export class HttpError extends Error {
   readonly statusCode: number;
   readonly details: unknown;
+  /**
+   * The machine-readable `error` field, when the default derived from the status is not
+   * specific enough. A client that wants to *behave* differently — the capture modal
+   * pointing at the paste-the-text tab when a site refuses to be read — needs to tell that
+   * case apart from any other 4xx without matching on prose.
+   */
+  readonly code: string | undefined;
 
-  constructor(statusCode: number, message: string, details?: unknown) {
+  constructor(statusCode: number, message: string, details?: unknown, code?: string) {
     super(message);
     this.name = 'HttpError';
     this.statusCode = statusCode;
     this.details = details;
+    this.code = code;
   }
 }
 
@@ -40,7 +48,7 @@ export function toErrorBody(error: unknown): { status: number; body: ErrorBody }
     return {
       status: error.statusCode,
       body: {
-        error: error.statusCode === 404 ? 'not_found' : 'request_error',
+        error: error.code ?? (error.statusCode === 404 ? 'not_found' : 'request_error'),
         message: error.message,
         ...(error.details !== undefined ? { details: error.details } : {}),
       },

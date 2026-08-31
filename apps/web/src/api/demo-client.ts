@@ -42,7 +42,9 @@ import {
   patchApplicationSchema,
   patchCompanySchema,
   patchJobOpeningSchema,
+  parsePostingText,
   patchNoteSchema,
+  postingDraftSchema,
   searchQuerySchema,
   titleKey,
   toCsvLines,
@@ -622,6 +624,52 @@ export const demoApi: typeof httpApi = {
       const { repos } = await getState();
       if (!(await deleteOpening(repos, id))) throw notFound('No such opening');
       await persist(repos);
+    }),
+
+  /**
+   * Capture, minus the half a browser cannot do.
+   *
+   * Pasted text works exactly as it does on a server — `parsePostingText` is shared code
+   * with no network in it. Fetching a URL does not and cannot: a static page has no way to
+   * read a job site cross-origin, which is a browser security boundary rather than a gap in
+   * the demo, so it says so instead of failing obscurely.
+   */
+  ingestUrl: () =>
+    guarded(async () => {
+      throw unsupported(
+        'Reading a link is not available in this demo — a page in your browser cannot fetch another site. Paste the posting text instead.',
+      );
+    }),
+
+  ingestText: (text, url) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const draft = parsePostingText(text, url);
+      const duplicate =
+        draft.companyName.trim() === ''
+          ? {
+              verdict: 'none' as const,
+              companyMatched: false,
+              matches: [],
+              priorCount: 0,
+              company: null,
+              semanticUsed: false,
+            }
+          : await checkDuplicates(repos, search, { company: draft.companyName, title: draft.jobTitle });
+      return { draft, duplicate };
+    }),
+
+  clipPosting: (body) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const draft = postingDraftSchema.parse(body);
+      const duplicate = await checkDuplicates(repos, search, {
+        company: draft.companyName,
+        title: draft.jobTitle,
+      });
+      const opening = await createOpening(repos, { ...draft, savedOn: undefined });
+      await persist(repos);
+      return { draft, duplicate, opening };
     }),
 
   convertOpening: (id, body) =>

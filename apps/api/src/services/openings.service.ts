@@ -12,9 +12,11 @@
 
 import type { TxContext } from 'repolayer';
 import {
+  canonicalJobUrl,
   companyKey,
   displayName,
   parseDateOnly,
+  titleKey,
   todayDateOnly,
   type ApplicationStatus,
   type JobApplicationView,
@@ -24,7 +26,7 @@ import { scopedRepos, type Repos } from '../db/repos.js';
 import type { JobOpeningRow } from '../db/schema.js';
 import { toCompany, toOpening } from '../db/mappers.js';
 import { missingCompany } from '../db/hydrate.js';
-import { resolveCompany } from './companies.service.js';
+import { findCompanyByName, resolveCompany } from './companies.service.js';
 import { createApplication, type CreateApplicationData } from './applications.service.js';
 
 async function hydrateOpening(repos: Repos, row: JobOpeningRow): Promise<JobOpeningView> {
@@ -58,6 +60,54 @@ export async function getOpening(repos: Repos, id: string): Promise<JobOpeningVi
   const row = await repos.jobOpenings.findById(id);
   if (!row) return null;
   return hydrateOpening(repos, row);
+}
+
+export interface OpeningIdentity {
+  companyName: string;
+  jobTitle: string;
+  jobUrl: string | null;
+}
+
+/**
+ * The opening this posting has already been saved as, if it has.
+ *
+ * "The same posting" is decided in two steps, and the order matters:
+ *
+ * - **Two links that canonicalize the same** is the same posting, full stop — that is the
+ *   case the browser extension hits when the same tab is clipped twice.
+ * - **Two links that differ** are two postings, even at the same company under the same
+ *   title: the same role advertised in Stockholm and in Berlin is two ads, and saving both
+ *   is the point of saving anything.
+ * - Only when a link is missing on one side does the company-and-title comparison decide,
+ *   which is what catches the same role captured once from a page and once by hand.
+ *
+ * Archived openings count. One archived because it became an application is the strongest
+ * possible reason not to silently save a third copy of the same ad — the caller says so
+ * rather than pretending nothing was found.
+ */
+export async function findMatchingOpening(
+  repos: Repos,
+  posting: OpeningIdentity,
+): Promise<JobOpeningView | null> {
+  const company = await findCompanyByName(repos, posting.companyName);
+  // No company means no opening can be under it, so there is nothing to collide with.
+  if (!company) return null;
+
+  const rows = await repos.jobOpenings.findMany({
+    where: { companyId: company.id },
+    orderBy: [{ field: 'savedOn', direction: 'desc' }],
+  });
+
+  const url = posting.jobUrl ? canonicalJobUrl(posting.jobUrl) : null;
+  const key = titleKey(posting.jobTitle);
+
+  const match = rows.find((row) => {
+    const rowUrl = row.jobUrl ? canonicalJobUrl(row.jobUrl) : null;
+    if (url && rowUrl) return url === rowUrl;
+    return key !== '' && titleKey(row.jobTitle) === key;
+  });
+
+  return match ? hydrateOpening(repos, match) : null;
 }
 
 export interface CreateOpeningData {
