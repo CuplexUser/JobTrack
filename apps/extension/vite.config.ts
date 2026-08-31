@@ -16,6 +16,21 @@ export default defineConfig({
     outDir: 'dist',
     emptyOutDir: true,
     sourcemap: true,
+    /**
+     * No `<link rel="modulepreload">`.
+     *
+     * Vite emits one for every shared chunk — here `chunks/settings.js`, which both the
+     * popup and the options page import — with a `crossorigin` attribute. Chrome then logs
+     * two warnings per page: the preload is a "cross-world extension resource mismatch"
+     * (the preload and the module graph's own fetch are not the same request, so the
+     * preloaded copy is thrown away), followed by the generic "preloaded but not used
+     * within a few seconds" for the copy nobody claimed.
+     *
+     * The tag buys nothing to begin with. Preloading hides *network* latency, and these
+     * files are already on disk inside the extension — the module graph loads the chunk on
+     * its own either way.
+     */
+    modulePreload: false,
     rollupOptions: {
       input: {
         popup: resolve(here, 'popup.html'),
