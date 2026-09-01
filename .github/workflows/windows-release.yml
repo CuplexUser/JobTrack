@@ -204,9 +204,25 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           $version = '${{ steps.version.outputs.version }}'
-          $draft = if ('${{ inputs.draft }}' -eq 'true') { '--draft' } else { '' }
-          gh release create "v$version" --title "JobTrack $version" --notes-file release-notes.md $draft `
-            "${{ steps.notes.outputs.setup }}" "${{ steps.notes.outputs.setup }}.sha256"
+
+          # Built as an array and splatted rather than spliced into a command line. An empty
+          # $draft is not "no flag" to PowerShell: it passes an empty argument, gh reads it as an
+          # asset pattern and stops with "no matches found for ``". That is not a corner case --
+          # `inputs.draft` does not exist on a workflow_run, so it failed every automatic build
+          # while the manual one, which has the input, went through.
+          $release = @(
+            "v$version"
+            '--title', "JobTrack $version"
+            '--notes-file', 'release-notes.md'
+            # The tag has to land on the commit that was actually built, for the same reason the
+            # checkout pins it: main may have moved on since the publish that triggered this.
+            '--target', '${{ github.event.workflow_run.head_sha || github.sha }}'
+          )
+          if ('${{ inputs.draft }}' -eq 'true') { $release += '--draft' }
+          $release += '${{ steps.notes.outputs.setup }}'
+          $release += '${{ steps.notes.outputs.setup }}.sha256'
+
+          gh release create @release
 
       # What went into the box, for anyone auditing a release later.
       - uses: actions/upload-artifact@v4
