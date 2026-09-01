@@ -39,3 +39,20 @@ jobs:
       # transformers model.
       - name: Test
         run: npm test
+
+  # The Windows app layer is outside every tsconfig project reference and every vitest root, so the
+  # job above cannot see it at all. Building it here means a C# compile break is caught in review
+  # rather than at release time, when the installer workflow is the first thing to touch it.
+  windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      # Build only. The payload build and its smoke test belong to the release workflow: they pull
+      # ~100 MB from the registry and download an embedding model, which is too much for every push.
+      - name: Build the tray host
+        run: dotnet build windows/JobTrack.Host/JobTrack.Host.csproj -c Release

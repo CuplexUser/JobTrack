@@ -113,6 +113,37 @@ with `fetch-depth: 0` — the default shallow clone has no history to ask.
 Differences under `vendor/` are still printed when they show up, as a note rather than a
 failure.
 
+## The Windows release channel
+
+The Windows installer is a **repackaging of what was just published**, not a separate build. Once
+`publish.yml` succeeds, `.github/workflows/windows-release.yml` installs `jobtrack@<version>` from
+the registry into a clean prefix, prunes it to win32-x64, adds a pinned `node.exe` and the .NET
+tray host, and attaches `JobTrack-Setup-<version>.exe` to a GitHub Release. See
+[`windows/README.md`](../windows/README.md).
+
+Three things follow from that, and they are the reason it is wired this way:
+
+- **The release gesture is unchanged.** Bump `apps/tray/package.json`, push. The installer version
+  is the npm version by construction — there is no tag to remember and no second number to keep in
+  step.
+- **It is safe to fire on every publish run.** The great majority publish nothing, and the payload
+  build stops cleanly when the version is not on the registry. A version that already has an
+  installer attached is skipped too, so re-running is free.
+- **It cannot ship something npm did not.** The payload comes from the published tarball, so an
+  installer for a version that was never published simply cannot be built.
+
+To check a change before publishing it, `--local` packs this checkout with `npm pack` instead —
+the same verification described above, carried all the way through to a real installer:
+
+```powershell
+node windows/scripts/build-payload.mjs --local --with-mcp
+```
+
+Nothing under `windows/` affects `scripts/check-publishable.mjs`: it iterates a fixed package list
+(`packages/shared`, `apps/api`, `apps/mcp`, `apps/tray`) and `windows/` is outside all four and
+outside every `files` list. The two traps named above still apply, though — editing
+`apps/tray/README.md` or `.env.example` needs a `jobtrack` version bump in the same commit range.
+
 ## Publishing by hand
 
 `publish-all.ps1`, at the repo root, still works and is handy for a local dry run — but it

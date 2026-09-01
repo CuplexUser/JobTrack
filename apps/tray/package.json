@@ -1,6 +1,6 @@
 {
   "name": "jobtrack",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "type": "module",
   "license": "MIT",
   "description": "Runs the JobTrack API + web UI as one background process with a Windows tray icon",
@@ -10,6 +10,9 @@
     "directory": "apps/tray"
   },
   "homepage": "https://github.com/CuplexUser/JobTrack#readme",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "main": "./src/cli.ts",
   "bin": {
     "jobtrack": "./bin/jobtrack.js"

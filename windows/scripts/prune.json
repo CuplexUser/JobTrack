@@ -1,0 +1,62 @@
+{
+  "_comment": [
+    "What build-payload.mjs strips out of the installed tree, as data rather than code so it can",
+    "be reviewed on its own. Every path is relative to <payload>/app.",
+    "",
+    "Two entries are deliberately `keepOnly` rather than `delete`: onnxruntime-web and sharp are",
+    "*statically* imported by @huggingface/transformers/dist/transformers.node.mjs, so deleting",
+    "either package breaks module resolution at `await import('@huggingface/transformers')` even",
+    "though neither does any work on the CPU path. Gut the directory; keep the package."
+  ],
+
+  "delete": [
+    "node_modules/systray",
+    "node_modules/onnxruntime-node/bin/napi-v6/darwin",
+    "node_modules/onnxruntime-node/bin/napi-v6/linux",
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/arm64",
+    "node_modules/exceljs/dist",
+    "node_modules/@img/sharp-wasm32",
+    "node_modules/@huggingface/transformers/types",
+    "node_modules/@huggingface/transformers/src"
+  ],
+
+  "deleteUnlessKeepDml": [
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/DirectML.dll",
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxcompiler.dll",
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/dxil.dll"
+  ],
+
+  "keepOnly": [
+    {
+      "dir": "node_modules/onnxruntime-web/dist",
+      "keep": ["ort.webgpu.bundle.min.mjs"],
+      "why": "onnxruntime-web's ./webgpu export has no `node` condition, so Node ESM resolves it to this one 113 KB file. The other 125 MB is wasm and alternate browser bundles."
+    }
+  ],
+
+  "_deleteExtensions": "TypeScript declarations are read by a compiler, never by a runtime. tsx strips types rather than checking them, so nothing in the payload ever opens a .d.ts, and there are thousands of them.",
+  "deleteDirNames": ["test", "tests", "__tests__", "example", "examples", ".github"],
+  "deleteExtensions": [".map", ".d.ts", ".d.cts", ".d.mts", ".d.ts.map"],
+
+  "require": [
+    "node_modules/jobtrack/src/cli.ts",
+    "node_modules/jobtrack/vendor/web-dist/index.html",
+    "node_modules/jobtrack/vendor/.env.example",
+    "node_modules/tsx/dist/preflight.cjs",
+    "node_modules/tsx/dist/loader.mjs",
+    "node_modules/@esbuild/win32-x64/esbuild.exe",
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/onnxruntime_binding.node",
+    "node_modules/onnxruntime-node/bin/napi-v6/win32/x64/onnxruntime.dll",
+    "node_modules/onnxruntime-web/dist/ort.webgpu.bundle.min.mjs",
+    "node_modules/@img/sharp-win32-x64/lib/libvips-42.dll"
+  ],
+
+  "forbidPrefixes": [
+    "node_modules/@esbuild/darwin",
+    "node_modules/@esbuild/linux",
+    "node_modules/@img/sharp-darwin",
+    "node_modules/@img/sharp-linux",
+    "node_modules/@img/sharp-libvips-darwin",
+    "node_modules/@img/sharp-libvips-linux"
+  ]
+}

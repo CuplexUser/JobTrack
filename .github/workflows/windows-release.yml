@@ -1,0 +1,210 @@
+name: Windows installer
+
+# Builds JobTrack-Setup-<version>.exe and attaches it to a GitHub Release.
+#
+# The trigger is "Publish to npm finished", not a tag, and that is deliberate. This repo already
+# treats a version bump pushed to main as the release gesture — publish.yml runs on every push and
+# its gate decides whether anything actually ships. Adding a tag step would put a human back into a
+# loop the maintainer automated away, and would let the npm and Windows channels drift apart.
+#
+# It also has to run *after* the publish, not alongside it: the installer repackages the published
+# tarball, so that tarball has to exist on the registry first. build-payload.mjs checks, and stops
+# cleanly when the version isn't there — which is what makes this safe to fire on every publish run,
+# including the many that publish nothing.
+#
+# Kept out of publish.yml because that workflow is irreversible and gated by `concurrency: publish`.
+# A broken installer build should be re-runnable without any possibility of touching the registry,
+# and "did the publish fail or did Inno fail?" should never be a question.
+
+on:
+  workflow_run:
+    workflows: ["Publish to npm"]
+    types: [completed]
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'jobtrack version to package (blank = whatever apps/tray/package.json says)'
+        type: string
+      draft:
+        description: 'Create the release as a draft'
+        type: boolean
+        default: true
+
+permissions:
+  contents: write # to create the release and upload the installer
+
+concurrency:
+  group: windows-release
+  cancel-in-progress: false
+
+jobs:
+  build:
+    if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
+    runs-on: windows-latest
+
+    steps:
+      # workflow_run otherwise checks out the default branch tip, which may already have moved past
+      # the commit that was published.
+      - uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.workflow_run.head_sha || github.ref }}
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+
+      - uses: actions/setup-dotnet@v5
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Decide the version
+        id: version
+        shell: pwsh
+        run: |
+          $version = '${{ inputs.version }}'
+          if (-not $version) { $version = (Get-Content apps/tray/package.json | ConvertFrom-Json).version }
+          "version=$version" >> $env:GITHUB_OUTPUT
+          Write-Host "Packaging jobtrack@$version"
+
+      # Two ways this run has nothing to do, both of them normal: the push that triggered it bumped
+      # no version (so the publish skipped `jobtrack`), or this installer was already built.
+      - name: Is there anything to do?
+        id: check
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $published = $true
+          try { Invoke-RestMethod "https://registry.npmjs.org/jobtrack/$version" -ErrorAction Stop | Out-Null }
+          catch { $published = $false }
+          if (-not $published) {
+            Write-Host "::notice::jobtrack@$version is not on the registry — nothing to package."
+            "skip=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          $asset = gh release view "v$version" --json assets --jq '.assets[].name' 2>$null
+          if ($asset -contains "JobTrack-Setup-$version.exe") {
+            Write-Host "::notice::v$version already has an installer attached."
+            "skip=true" >> $env:GITHUB_OUTPUT
+            exit 0
+          }
+          "skip=false" >> $env:GITHUB_OUTPUT
+        env:
+          GH_TOKEN: ${{ github.token }}
+
+      # Downloads the pinned Node runtime, installs the published jobtrack + @jobtrack/mcp from the
+      # registry, prunes to win32-x64, writes launch.json, then launches the result and proves it
+      # serves the UI and loads the embedding model. That last check is what makes the prune list
+      # safe to have: a bad ONNX prune degrades to lexical search silently rather than crashing.
+      - name: Build the Node payload
+        if: steps.check.outputs.skip == 'false'
+        run: node windows/scripts/build-payload.mjs --version ${{ steps.version.outputs.version }} --with-mcp
+
+      - name: Build the host
+        if: steps.check.outputs.skip == 'false'
+        run: >
+          dotnet publish windows/JobTrack.Host/JobTrack.Host.csproj
+          -c Release -r win-x64 --self-contained true
+          -o windows/installer/payload/host
+
+      # Signing both the exe and the installer, so SmartScreen has something to trust. Gated on the
+      # secrets existing: until Azure Trusted Signing is set up, the release still builds and ships
+      # unsigned rather than failing.
+      - name: Sign JobTrack.exe
+        if: steps.check.outputs.skip == 'false' && vars.AZURE_TENANT_ID != ''
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
+          files-folder: windows/installer/payload/host
+          files-folder-filter: exe,dll
+          file-digest: SHA256
+
+      - name: Build the installer
+        if: steps.check.outputs.skip == 'false'
+        shell: pwsh
+        run: |
+          choco install innosetup -y --no-progress
+          # Found rather than hardcoded: the install path carries the major version, and pinning
+          # "Inno Setup 6" would break silently the day the Chocolatey package moves to 7.
+          # LOCALAPPDATA too: Chocolatey installs machine-wide, but a winget install of the same
+          # package lands per-user, and the local build command should be the identical one.
+          $roots = @("${env:ProgramFiles(x86)}", $env:ProgramFiles, "$env:LOCALAPPDATA\Programs") |
+            Where-Object { $_ -and (Test-Path $_) }
+          $iscc = Get-ChildItem $roots -Filter ISCC.exe -Recurse -ErrorAction SilentlyContinue |
+            Select-Object -First 1
+          if (-not $iscc) { throw "ISCC.exe not found after installing Inno Setup" }
+          Write-Host "Using $($iscc.FullName)"
+          & $iscc.FullName /DAppVersion=${{ steps.version.outputs.version }} windows\installer\JobTrack.iss
+
+      - name: Sign the installer
+        if: steps.check.outputs.skip == 'false' && vars.AZURE_TENANT_ID != ''
+        uses: azure/trusted-signing-action@v0
+        with:
+          azure-tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          azure-client-id: ${{ vars.AZURE_CLIENT_ID }}
+          azure-client-secret: ${{ secrets.AZURE_CLIENT_SECRET }}
+          endpoint: ${{ vars.AZURE_SIGNING_ENDPOINT }}
+          trusted-signing-account-name: ${{ vars.AZURE_SIGNING_ACCOUNT }}
+          certificate-profile-name: ${{ vars.AZURE_CERT_PROFILE }}
+          files-folder: windows/installer/Output
+          files-folder-filter: exe
+          file-digest: SHA256
+
+      - name: Write the release notes
+        if: steps.check.outputs.skip == 'false'
+        id: notes
+        shell: pwsh
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $setup = "windows/installer/Output/JobTrack-Setup-$version.exe"
+          $hash = (Get-FileHash $setup -Algorithm SHA256).Hash.ToLower()
+          $size = '{0:N0} MB' -f ((Get-Item $setup).Length / 1MB)
+          $hash | Set-Content "$setup.sha256"
+          $launch = Get-Content windows/installer/payload/app/launch.json | ConvertFrom-Json
+          $signed = if ('${{ vars.AZURE_TENANT_ID }}') { 'Signed.' } else {
+            'This build is not code-signed, so Windows SmartScreen will warn on first run: choose **More info** then **Run anyway**.'
+          }
+          @"
+          Per-user installer for Windows -- no admin rights, no Node.js or npm needed. Installs to
+          ``%LOCALAPPDATA%\Programs\JobTrack`` and keeps your data in ``%APPDATA%\jobtrack``.
+
+          $signed
+
+          | | |
+          | --- | --- |
+          | jobtrack | $($launch.jobtrackVersion) |
+          | @jobtrack/api | $($launch.apiVersion) |
+          | @jobtrack/mcp | $($launch.mcpVersion) |
+          | Node runtime | $($launch.nodeVersion) |
+          | Download | $size |
+          | SHA-256 | ``$hash`` |
+
+          Already running ``npm install -g jobtrack``? Uninstall it first -- both use port 3001 and
+          the same data folder.
+          "@ | Set-Content release-notes.md
+          "setup=$setup" >> $env:GITHUB_OUTPUT
+
+      - name: Publish the release
+        if: steps.check.outputs.skip == 'false'
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $version = '${{ steps.version.outputs.version }}'
+          $draft = if ('${{ inputs.draft }}' -eq 'true') { '--draft' } else { '' }
+          gh release create "v$version" --title "JobTrack $version" --notes-file release-notes.md $draft `
+            "${{ steps.notes.outputs.setup }}" "${{ steps.notes.outputs.setup }}.sha256"
+
+      # What went into the box, for anyone auditing a release later.
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.skip == 'false'
+        with:
+          name: payload-manifest-${{ steps.version.outputs.version }}
+          path: |
+            windows/installer/payload/app/npm-tree.json
+            windows/installer/payload/app/launch.json

@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/mcp",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "type": "module",
   "license": "MIT",
   "description": "MCP server (stdio) for JobTrack — read and write job applications from an MCP client",
@@ -10,6 +10,9 @@
     "directory": "apps/mcp"
   },
   "homepage": "https://github.com/CuplexUser/JobTrack#readme",
+  "engines": {
+    "node": ">=24.0.0"
+  },
   "main": "./src/index.ts",
   "bin": {
     "jobtrack-mcp": "./bin/jobtrack-mcp.js"

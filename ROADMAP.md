@@ -19,9 +19,15 @@ installing both shares one database automatically.
 
 What's left before this matches the original vision:
 
-- Trade-off still stands as documented: this needs Node.js already on the
-  machine, since it runs the TypeScript sources via `tsx` rather than a compiled,
-  dependency-free binary.
+- The Node.js prerequisite is gone **on Windows**: `windows/` builds a per-user
+  installer carrying its own pinned `node.exe` and a pruned `node_modules` built
+  from the published tarball, so nothing has to be installed first — see
+  [`windows/README.md`](windows/README.md). Elsewhere the trade-off stands as
+  documented, since it runs the TypeScript sources via `tsx` rather than a
+  compiled, dependency-free binary.
+- That installer also replaces the `systray` icon with a native one, adds a
+  settings dialog over the same `.env`, and supervises the server (see item 5).
+  `npm install -g jobtrack` is unchanged and remains the route everywhere else.
 - No tray icon on macOS/Linux yet (runs headless there today).
 - Publishing now runs from GitHub Actions rather than a maintainer's laptop —
   see item 9.
@@ -85,9 +91,11 @@ median days-to-first-reply broken down by source.
 DB target switching (`apps/api/src/db/targets.ts`) currently works by having the
 server self-exit and relying on an external process supervisor (pm2, systemd,
 Docker's restart policy) to bring it back up — a documented caveat in the README.
-Once the app is tray-managed per item 1, the tray process itself becomes that
-supervisor, so it's worth revisiting: explore an in-process hot-swap that avoids
-the restart/supervisor dependency entirely.
+The Windows installer's host is now that supervisor: it treats any exit it did
+not ask for as a restart, which covers the deliberate self-exit and a crash under
+one rule, so switching targets there needs nothing external. The caveat still
+stands for `npm run tray` and for macOS/Linux, so an in-process hot-swap that
+avoids the restart entirely is still worth exploring.
 
 ## 6. Split docs into a `/docs` folder — 🚧 started
 

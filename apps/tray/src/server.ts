@@ -17,6 +17,12 @@ import { TransformersEmbedder } from '@jobtrack/api/search/transformers-embedder
 import { resolveWebDist } from './assets.js';
 import { APP_PACKAGE } from './version.js';
 
+/**
+ * Exit code for "the port is taken". Distinct from a generic crash so a supervisor can tell a
+ * misconfiguration it should surface to the user from a fault it should just retry.
+ */
+export const EXIT_PORT_IN_USE = 3;
+
 export interface RunningServer {
   app: FastifyInstance;
   config: Config;
@@ -68,7 +74,25 @@ export async function startServer(): Promise<RunningServer> {
   }
 
   await search.start();
-  await app.listen({ host: config.host, port: config.port });
+
+  try {
+    await app.listen({ host: config.host, port: config.port });
+  } catch (error) {
+    // Overwhelmingly this is a second JobTrack — autostart plus a manual launch. Left alone it
+    // surfaces as an unhandled rejection and a stack trace; a supervisor (and a person) can do
+    // something useful with a named cause and a distinct exit code.
+    if ((error as NodeJS.ErrnoException).code !== 'EADDRINUSE') throw error;
+    console.error(
+      `JOBTRACK_ERROR ${JSON.stringify({ code: 'EADDRINUSE', host: config.host, port: config.port })}`,
+    );
+    console.error(
+      `Port ${config.port} is already in use — JobTrack may already be running. Stop it, or set PORT in .env to something else.`,
+    );
+    search.stop();
+    await app.close();
+    await repos.close();
+    process.exit(EXIT_PORT_IN_USE);
+  }
 
   return { app, config, repos, search };
 }

@@ -64,6 +64,8 @@ Then in Chrome or Edge: **Extensions → Developer mode → Load unpacked →**
 - **API token** — from the `data/api-token` file of *that* JobTrack. A repo clone and a
   globally installed `jobtrack` keep separate data directories and therefore separate
   tokens, so make sure the token comes from the instance the address points at.
+  The Windows installer saves you the trip: its tray menu has **Copy API token**, and so does
+  the **Access** tab of its settings dialog.
 
 **Save and test** is one button on purpose: it stores what you typed and *then* checks it,
 so a page that says "connected" is always a page that has saved. It reports "not reachable"

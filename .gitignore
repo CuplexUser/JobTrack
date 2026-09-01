@@ -23,6 +23,15 @@ data/api-token
 .cache/
 .models/
 
+# Windows installer build output. The payload is assembled from published npm tarballs (or from
+# `npm pack` with --local) by windows/scripts/build-payload.mjs, and version.props is generated
+# alongside it -- all regenerated on every build, never hand-edited.
+windows/installer/payload/
+windows/installer/Output/
+windows/version.props
+bin/
+obj/
+
 .env
 .env.local
 .DS_Store

@@ -388,6 +388,25 @@ Windows only for now — elsewhere, `npm run tray` still runs the combined serve
 without a tray icon (Ctrl+C to stop). It also expects Node.js already installed on the
 machine.
 
+Two flags exist for the Windows installer, and are no-ops otherwise: `--no-tray` skips the tray
+icon (the installer's host draws its own), and `--home <path>` sets the data directory. When
+`--no-tray` is given, the process also accepts `quit` on stdin, which runs the same orderly
+shutdown the tray's Quit item does. On startup it prints a `JOBTRACK_READY {...}` line carrying
+the URL, port, version and driver, so a supervisor need not guess at a port that may only be set
+in `.env`.
+
+### Windows installer
+
+For anyone who is not going to install Node.js, `windows/` builds JobTrack into an ordinary
+Windows application: a per-user installer (no admin rights, no UAC), a native tray icon, a typed
+settings dialog, and a supervised server that starts silently at sign-in instead of opening a
+console window. It bundles its own Node runtime and installs the *published* `jobtrack` package,
+so it is a repackaging of the npm release rather than a second build of it — and it uses the same
+`%APPDATA%\jobtrack` directory, so the two channels share one database.
+
+Downloads are on the [Releases page](https://github.com/CuplexUser/JobTrack/releases); see
+[`windows/README.md`](windows/README.md) for how it is built and released.
+
 ### Publishing it as `npm install -g jobtrack`
 
 `apps/tray` (package name `jobtrack`), `apps/mcp` (`@jobtrack/mcp`), `@jobtrack/api`, and

@@ -10,13 +10,22 @@ road with the same company. Single user, runs on your machine, data in a local S
 
 ## Install
 
+**On Windows**, prefer the installer:
+[**JobTrack-Setup**](https://github.com/CuplexUser/JobTrack/releases/latest). It needs no admin
+rights and no Node.js, adds a native tray icon and a settings dialog, and starts silently at
+sign-in rather than opening a console window.
+
+Everywhere else — and for development on Windows too:
+
 ```bash
 npm install -g jobtrack
 jobtrack
 ```
 
-Requires **Node.js 24+** already installed on the machine — this runs the app's TypeScript
-sources via `tsx` rather than shipping a compiled, dependency-free binary.
+That route requires **Node.js 24+** already installed on the machine, since it runs the app's
+TypeScript sources via `tsx` rather than shipping a compiled, dependency-free binary. Both routes
+use the same `%APPDATA%\jobtrack` data directory, so they share one database — install only one of
+them at a time, or the two will collide on port 3001.
 
 ## What you get
 

@@ -1,0 +1,58 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Version comes from apps/tray/package.json by way of version.props, which
+    windows/scripts/build-payload.mjs writes. One number for the npm release, this assembly and
+    the installer; the Condition keeps a bare `dotnet build` in a fresh checkout working.
+  -->
+  <Import Project="../version.props" Condition="Exists('../version.props')" />
+
+  <PropertyGroup>
+    <!--
+      WinExe, not Exe, is the actual fix for the complaint that started this: a GUI-subsystem PE
+      never gets a console allocated, so nothing flashes up at sign-in no matter how it is
+      launched. Everything else here is in service of that one property.
+    -->
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net10.0-windows</TargetFramework>
+    <RuntimeIdentifier>win-x64</RuntimeIdentifier>
+    <UseWindowsForms>true</UseWindowsForms>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <AssemblyName>JobTrack</AssemblyName>
+    <RootNamespace>JobTrack.Host</RootNamespace>
+    <Product>JobTrack</Product>
+    <Company>CuplexUser</Company>
+    <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>..\..\apps\web\public\favicon.ico</ApplicationIcon>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+
+    <!--
+      Self-contained is forced, not chosen: there is no per-user install of the .NET Desktop
+      Runtime, so a framework-dependent build would need an admin-elevated prerequisite install
+      and destroy the no-UAC, per-user model the installer is built around.
+
+      Deliberately NOT single-file: Inno already applies LZMA2 over the whole tree, so compressing
+      twice is worse, and an uncompressed single-file bundle extracts to %TEMP% on first run,
+      which some AV configurations dislike. ReadyToRun is worth its ~10 MB for something that
+      launches at sign-in. Trimming is a measured follow-up rather than an assumption: WinForms
+      trims but warns around reflection paths, and the Node payload dwarfs this assembly anyway.
+    -->
+    <SelfContained>true</SelfContained>
+    <PublishSingleFile>false</PublishSingleFile>
+    <PublishTrimmed>false</PublishTrimmed>
+    <PublishReadyToRun>true</PublishReadyToRun>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!--
+      The same icon the web UI and the tray use, taken straight from source rather than copied, so
+      there is one file to change. Loaded at runtime by Icons.cs.
+    -->
+    <EmbeddedResource Include="..\..\apps\web\public\favicon.ico" LogicalName="JobTrack.ico" />
+  </ItemGroup>
+
+</Project>
