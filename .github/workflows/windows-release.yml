@@ -74,21 +74,29 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.version }}'
-          $published = $true
-          try { Invoke-RestMethod "https://registry.npmjs.org/jobtrack/$version" -ErrorAction Stop | Out-Null }
-          catch { $published = $false }
-          if (-not $published) {
-            Write-Host "::notice::jobtrack@$version is not on the registry — nothing to package."
+          try {
+            Invoke-RestMethod "https://registry.npmjs.org/jobtrack/$version" -ErrorAction Stop | Out-Null
+          } catch {
+            Write-Host "::notice::jobtrack@$version is not on the registry - nothing to package."
             "skip=true" >> $env:GITHUB_OUTPUT
             exit 0
           }
-          $asset = gh release view "v$version" --json assets --jq '.assets[].name' 2>$null
-          if ($asset -contains "JobTrack-Setup-$version.exe") {
+
+          # `gh release view` exits non-zero when the release does not exist, which is the ordinary
+          # case for a version being built for the first time. The pwsh shell ends a step with
+          # whatever $LASTEXITCODE holds, so it has to be cleared or that perfectly normal outcome
+          # fails the build. @() around the output matters too: a single asset comes back as one
+          # string, and -contains on a string tests equality with the whole thing.
+          $assets = @(gh release view "v$version" --json assets --jq '.assets[].name' 2>$null)
+          $global:LASTEXITCODE = 0
+
+          if ($assets -contains "JobTrack-Setup-$version.exe") {
             Write-Host "::notice::v$version already has an installer attached."
             "skip=true" >> $env:GITHUB_OUTPUT
             exit 0
           }
           "skip=false" >> $env:GITHUB_OUTPUT
+          exit 0
         env:
           GH_TOKEN: ${{ github.token }}
 

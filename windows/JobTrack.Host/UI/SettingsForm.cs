@@ -54,6 +54,7 @@ internal sealed class SettingsForm : Form
     };
 
     private readonly TabControl _tabs = new() { Dock = DockStyle.Fill };
+    private FlowLayoutPanel _footerButtons = null!;
     private bool _rawIsAuthoritative;
 
     public SettingsForm(NodeSupervisor supervisor, LaunchManifest manifest, HostSettings hostSettings)
@@ -66,8 +67,6 @@ internal sealed class SettingsForm : Form
         Text = "JobTrack Settings";
         Icon = Icons.App;
         StartPosition = FormStartPosition.CenterScreen;
-        Size = new Size(660, 560);
-        MinimumSize = new Size(560, 480);
         FormBorderStyle = FormBorderStyle.Sizable;
         MaximizeBox = false;
 
@@ -80,22 +79,68 @@ internal sealed class SettingsForm : Form
 
         Controls.Add(_tabs);
         Controls.Add(BuildFooter());
+        ApplySizeLimits();
         LoadValues();
     }
 
     // ------------------------------------------------------------------------------------ layout
 
+    /// <summary>
+    /// Sets the window's minimum and opening size from what its contents actually measure.
+    /// </summary>
+    /// <remarks>
+    /// Two things here refuse to shrink: the footer buttons, which do not wrap, and the hint text,
+    /// which wraps at a fixed width. A window narrower than either clips "Save and restart" off
+    /// the right-hand edge or grows a horizontal scrollbar across the tab. Measuring rather than
+    /// hard-coding a number keeps that true at 150% scaling and with a large system font, where
+    /// the same three buttons are half again as wide as they are here.
+    /// </remarks>
+    private void ApplySizeLimits()
+    {
+        // The border and title bar, which the measurements below are all inside of.
+        var chrome = Math.Max(Size.Width - ClientSize.Width, 16);
+        // Enough of the footer left for the "Changes apply when JobTrack restarts." note to sit
+        // on one line rather than wrapping into the three the old 560px minimum forced.
+        const int NoteWidth = 260;
+        var forFooter = _footerButtons.PreferredSize.Width + NoteWidth + chrome;
+        // Tab body inset, page padding, and the vertical scrollbar a full page puts there.
+        var forHints = HintWidth + 8 + 28 + SystemInformation.VerticalScrollBarWidth + chrome;
+
+        MinimumSize = new Size(Math.Max(forFooter, forHints), 520);
+        Size = new Size(Math.Max(MinimumSize.Width, 720), 620);
+    }
+
     private static Label Caption(string text) => new() { Text = text, AutoSize = true, Margin = new Padding(3, 8, 3, 0) };
+
+    /// <summary>The width hint text wraps at; <see cref="ApplySizeLimits"/> keeps room for it.</summary>
+    private const int HintWidth = 580;
 
     private static Label Hint(string text) => new()
     {
         Text = text, AutoSize = true, ForeColor = SystemColors.GrayText, Margin = new Padding(3, 0, 3, 10),
-        MaximumSize = new Size(580, 0),
+        MaximumSize = new Size(HintWidth, 0),
     };
 
-    private static Button SmallButton(string text, EventHandler onClick)
+    private Button SmallButton(string text, EventHandler onClick, Glyph? glyph = null)
     {
-        var button = new Button { Text = text, AutoSize = true };
+        var button = new Button
+        {
+            Text = text,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            // Standard rather than System: a System-styled button is drawn by the OS and ignores
+            // the Image property, so the glyph would silently not appear.
+            FlatStyle = FlatStyle.Standard,
+            Padding = new Padding(glyph is null ? 10 : 8, 5, 10, 5),
+            Margin = new Padding(0, 0, 8, 0),
+        };
+        if (glyph is { } icon)
+        {
+            button.Image = Glyphs.Button(icon, DeviceDpi);
+            button.ImageAlign = ContentAlignment.MiddleLeft;
+            button.TextAlign = ContentAlignment.MiddleRight;
+            button.TextImageRelation = TextImageRelation.ImageBeforeText;
+        }
         button.Click += onClick;
         return button;
     }
@@ -146,7 +191,7 @@ internal sealed class SettingsForm : Form
             Caption("Driver"),
             _driver,
             Caption("SQLite file"),
-            Row(_dbFile, SmallButton("Browse...", BrowseForDatabase)),
+            Row(_dbFile, SmallButton("Browse...", BrowseForDatabase, Glyphs.Folder)),
             Hint("A bare file name goes in the data folder; a relative path is resolved from it; an absolute path is used as written."),
             Caption("Connection URL"),
             Row(_databaseUrl, _showUrl),
@@ -162,15 +207,15 @@ internal sealed class SettingsForm : Form
         Caption("Embedding model"),
         _model,
         Caption("Model cache folder"),
-        Row(_modelCache, SmallButton("Open", (_, _) => Shell.OpenFolder(ResolveAgainstHome(_modelCache.Text, ".models")))));
+        Row(_modelCache, SmallButton("Open", (_, _) => Shell.OpenFolder(ResolveAgainstHome(_modelCache.Text, ".models")), Glyphs.Folder)));
 
     private TabPage BuildAccessTab() => Page("Access",
         Caption("API token"),
         Row(_token,
-            SmallButton("Copy", (_, _) => CopyToken()),
-            SmallButton("Show", (_, _) => _token.UseSystemPasswordChar = !_token.UseSystemPasswordChar)),
+            SmallButton("Copy", (_, _) => CopyToken(), Glyphs.Copy),
+            SmallButton("Show", (_, _) => _token.UseSystemPasswordChar = !_token.UseSystemPasswordChar, Glyphs.Eye)),
         Hint("Paste this into the JobTrack Clipper extension's options page."),
-        Row(SmallButton("Regenerate token...", (_, _) => RegenerateToken())),
+        Row(SmallButton("Regenerate token...", (_, _) => RegenerateToken(), Glyphs.Refresh)),
         Hint("Invalidates the current token; every browser extension using it has to be updated."),
         Caption("Extra allowed browser origins"),
         _corsOrigins,
@@ -180,8 +225,8 @@ internal sealed class SettingsForm : Form
     {
         var page = new TabPage("Advanced") { UseVisualStyleBackColor = true };
         var toolbar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 36, Padding = new Padding(6, 6, 6, 0) };
-        toolbar.Controls.Add(SmallButton("Open .env in Notepad", (_, _) => Shell.OpenInEditor(Paths.EnvFile)));
-        toolbar.Controls.Add(SmallButton("Open data folder", (_, _) => Shell.OpenFolder(Paths.JobtrackHome)));
+        toolbar.Controls.Add(SmallButton("Open .env in Notepad", (_, _) => Shell.OpenInEditor(Paths.EnvFile), Glyphs.Document));
+        toolbar.Controls.Add(SmallButton("Open data folder", (_, _) => Shell.OpenFolder(Paths.JobtrackHome), Glyphs.Folder));
         page.Controls.Add(_raw);
         page.Controls.Add(toolbar);
         return page;
@@ -189,28 +234,47 @@ internal sealed class SettingsForm : Form
 
     private Control BuildFooter()
     {
-        var saveAndRestart = SmallButton("Save and restart", async (_, _) => await SaveAsync(restart: true));
-        var save = SmallButton("Save", async (_, _) => await SaveAsync(restart: false));
-        var cancel = SmallButton("Cancel", (_, _) => Close());
+        var saveAndRestart = SmallButton("Save and restart", async (_, _) => await SaveAsync(restart: true), Glyphs.Refresh);
+        var save = SmallButton("Save", async (_, _) => await SaveAsync(restart: false), Glyphs.Save);
+        var cancel = SmallButton("Cancel", (_, _) => Close(), Glyphs.Cancel);
         AcceptButton = saveAndRestart;
         CancelButton = cancel;
 
         var buttons = new FlowLayoutPanel
         {
-            Dock = DockStyle.Right, FlowDirection = FlowDirection.RightToLeft, AutoSize = true, Padding = new Padding(0, 8, 12, 0),
+            Dock = DockStyle.Right,
+            FlowDirection = FlowDirection.RightToLeft,
+            AutoSize = true,
+            AutoSizeMode = AutoSizeMode.GrowAndShrink,
+            // Without this the three buttons wrap onto rows the footer is not tall enough to show,
+            // and Save and Cancel simply vanish off the bottom edge.
+            WrapContents = false,
+            Padding = new Padding(0, 12, 12, 12),
         };
         buttons.Controls.AddRange([saveAndRestart, save, cancel]);
+        _footerButtons = buttons;
 
-        var footer = new Panel { Dock = DockStyle.Bottom, Height = 52 };
-        footer.Controls.Add(buttons);
-        footer.Controls.Add(new Label
+        var note = new Label
         {
             // Honest rather than reassuring: apps/api/src/config.ts reads every one of these once,
             // at boot. Nothing here takes effect live except the autostart checkbox.
-            Text = "Changes take effect when JobTrack restarts.",
-            Dock = DockStyle.Left, AutoSize = false, Width = 280, ForeColor = SystemColors.GrayText,
-            Padding = new Padding(14, 16, 0, 0),
-        });
+            Text = "Changes apply when JobTrack restarts.",
+            Dock = DockStyle.Fill,
+            AutoSize = false,
+            TextAlign = ContentAlignment.MiddleLeft,
+            ForeColor = SystemColors.GrayText,
+            Padding = new Padding(14, 0, 8, 0),
+            AutoEllipsis = true,
+        };
+
+        var footer = new Panel { Dock = DockStyle.Bottom, Height = 62 };
+        // A hairline above the buttons, so the footer reads as a separate band from the tab
+        // content rather than floating loose under it.
+        footer.Paint += (_, e) => e.Graphics.DrawLine(SystemPens.ControlLight, 0, 0, footer.Width, 0);
+        // Order matters: docking is applied from the end of the collection backwards, so the
+        // buttons must be added last to claim the right-hand side before the note fills the rest.
+        footer.Controls.Add(note);
+        footer.Controls.Add(buttons);
         return footer;
     }
 

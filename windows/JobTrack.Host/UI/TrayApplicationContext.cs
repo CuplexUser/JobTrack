@@ -1,3 +1,4 @@
+using System.Drawing;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
 
@@ -51,18 +52,23 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _serverLog = serverLog;
         _ = _sync.Handle; // Force handle creation now, while we are on the UI thread.
 
+        var dpi = _sync.DeviceDpi;
+
         _header = new ToolStripMenuItem($"JobTrack {VersionInfo.Host}") { Enabled = false };
-        _open = new ToolStripMenuItem("&Open JobTrack", null, (_, _) => OpenUi()) { Enabled = false };
-        _settingsItem = new ToolStripMenuItem("&Settings...", null, (_, _) => ShowSettings());
-        _copyToken = new ToolStripMenuItem("Copy &API token", null, (_, _) => CopyApiToken());
-        _copyMcp = new ToolStripMenuItem("Copy &MCP client config", null, (_, _) => CopyMcpConfig())
+        _open = new ToolStripMenuItem("&Open JobTrack", Glyphs.Menu(Glyphs.Open, dpi), (_, _) => OpenUi())
+        {
+            Enabled = false,
+        };
+        _settingsItem = new ToolStripMenuItem("&Settings...", Glyphs.Menu(Glyphs.Settings, dpi), (_, _) => ShowSettings());
+        _copyToken = new ToolStripMenuItem("Copy &API token", Glyphs.Menu(Glyphs.Lock, dpi), (_, _) => CopyApiToken());
+        _copyMcp = new ToolStripMenuItem("Copy &MCP client config", Glyphs.Menu(Glyphs.Code, dpi), (_, _) => CopyMcpConfig())
         {
             // Only meaningful when the payload actually bundled the MCP server.
             Available = manifest.McpEntry is { Length: > 0 },
         };
-        _restart = new ToolStripMenuItem("&Restart server", null, async (_, _) => await _supervisor.RestartAsync());
+        _restart = new ToolStripMenuItem("&Restart server", Glyphs.Menu(Glyphs.Refresh, dpi), async (_, _) => await _supervisor.RestartAsync());
 
-        var menu = new ContextMenuStrip();
+        var menu = new ContextMenuStrip { ImageScalingSize = new Size(dpi / 6, dpi / 6) };
         menu.Items.AddRange(
         [
             _header,
@@ -71,12 +77,16 @@ internal sealed class TrayApplicationContext : ApplicationContext
             _settingsItem,
             _copyToken,
             _copyMcp,
-            new ToolStripMenuItem("Open &data folder", null, (_, _) => Shell.OpenFolder(Paths.JobtrackHome)),
-            new ToolStripMenuItem("&View log", null, (_, _) => ShowLog()),
+            new ToolStripMenuItem("Open &data folder", Glyphs.Menu(Glyphs.Folder, dpi), (_, _) => Shell.OpenFolder(Paths.JobtrackHome)),
+            new ToolStripMenuItem("&View log", Glyphs.Menu(Glyphs.Document, dpi), (_, _) => ShowLog()),
             new ToolStripSeparator(),
             _restart,
-            new ToolStripMenuItem("&Quit", null, async (_, _) => await QuitAsync()),
+            new ToolStripMenuItem("&Quit", Glyphs.Menu(Glyphs.Power, dpi), async (_, _) => await QuitAsync()),
         ]);
+
+        // Bold marks the default verb, which is the Windows convention for the action a
+        // double-click performs -- and double-clicking the tray icon does open the UI.
+        _open.Font = new Font(menu.Font, FontStyle.Bold);
 
         _icon = new NotifyIcon
         {

@@ -63,11 +63,3 @@ internal static class Program
         return 0;
     }
 }
-
-/// <summary>Version strings for the About box and the tray header.</summary>
-internal static class VersionInfo
-{
-    /// <summary>This application's version, stamped from apps/tray/package.json at build time.</summary>
-    public static string Host { get; } =
-        typeof(VersionInfo).Assembly.GetName().Version?.ToString(3) ?? "0.0.0";
-}
