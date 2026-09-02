@@ -59,6 +59,38 @@ import { ImportModal } from '../components/ImportModal.js';
  */
 const DEMO = import.meta.env.VITE_DEMO === 'true';
 
+/**
+ * The sort fields, and how each one's direction reads. A date sorts newest-first by
+ * default and says so; text sorts read A–Z, which is also what people expect to get
+ * first when they pick one.
+ */
+const SORT_OPTIONS = [
+  { value: 'appliedOn', label: 'Sort: date applied', kind: 'date' },
+  { value: 'company', label: 'Sort: company', kind: 'text' },
+  { value: 'jobTitle', label: 'Sort: job title', kind: 'text' },
+  { value: 'status', label: 'Sort: status', kind: 'text' },
+] as const;
+
+const DIRECTION_OPTIONS: Record<'date' | 'text', { value: string; label: string }[]> = {
+  date: [
+    { value: 'desc', label: 'Newest first' },
+    { value: 'asc', label: 'Oldest first' },
+  ],
+  text: [
+    { value: 'asc', label: 'A–Z' },
+    { value: 'desc', label: 'Z–A' },
+  ],
+};
+
+function directionKind(sort: string): 'date' | 'text' {
+  return SORT_OPTIONS.find((option) => option.value === sort)?.kind ?? 'date';
+}
+
+/** The first option for the field's kind — newest for dates, A–Z for text. */
+function defaultDirection(sort: string): string {
+  return DIRECTION_OPTIONS[directionKind(sort)][0]!.value;
+}
+
 function downloadBlob(filename: string, blob: Blob): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement('a');
@@ -74,10 +106,15 @@ export function ApplicationsPage() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
 
+  const sort = params.get('sort') ?? 'appliedOn';
+  // A URL without an explicit direction sorts the way the picker says it does, rather than
+  // falling back to the API's date-shaped default.
+  const direction = params.get('direction') ?? defaultDirection(sort);
+
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
-    const entries: Record<string, unknown> = {};
-    for (const key of ['q', 'source', 'sort', 'direction', 'from', 'to'] as const) {
+    const entries: Record<string, unknown> = { sort, direction };
+    for (const key of ['q', 'source', 'from', 'to'] as const) {
       const value = params.get(key);
       if (value) entries[key] = value;
     }
@@ -90,7 +127,7 @@ export function ApplicationsPage() {
       if (value) entries[key] = value.split(',');
     }
     return entries;
-  }, [params]);
+  }, [params, sort, direction]);
 
   const { data, isLoading, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useApplicationsInfinite(filter);
@@ -339,23 +376,19 @@ export function ApplicationsPage() {
                 />
                 <Select
                   style={{ minWidth: 170 }}
-                  value={params.get('sort') ?? 'appliedOn'}
-                  onChange={(value) => patchFilter({ sort: value })}
-                  options={[
-                    { value: 'appliedOn', label: 'Sort: date applied' },
-                    { value: 'company', label: 'Sort: company' },
-                    { value: 'jobTitle', label: 'Sort: job title' },
-                    { value: 'status', label: 'Sort: status' },
-                  ]}
+                  value={sort}
+                  // Switching fields also resets the direction: carrying "Z–A" over from
+                  // the previous field is never what someone means by picking a new sort.
+                  onChange={(value) =>
+                    patchFilter({ sort: value, direction: defaultDirection(value) })
+                  }
+                  options={SORT_OPTIONS.map(({ value, label }) => ({ value, label }))}
                 />
                 <Select
                   style={{ width: 130 }}
-                  value={params.get('direction') ?? 'desc'}
+                  value={direction}
                   onChange={(value) => patchFilter({ direction: value })}
-                  options={[
-                    { value: 'desc', label: 'Newest first' },
-                    { value: 'asc', label: 'Oldest first' },
-                  ]}
+                  options={DIRECTION_OPTIONS[directionKind(sort)]}
                 />
               </Flex>
 

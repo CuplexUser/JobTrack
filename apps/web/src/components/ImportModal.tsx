@@ -1,6 +1,7 @@
 /**
- * Import applications from a CSV/.xlsx in the same 5-column shape Export produces (Position,
- * Company, Date, Status, Notes) — notably the app's own Export output.
+ * Import applications from a CSV/.xlsx in the same shape Export produces (Position, Company,
+ * Location, Date, Status, Notes) — notably the app's own Export output. Location is optional,
+ * so a file exported before that column existed still imports.
  *
  * Two steps, both hitting the same endpoint: choosing a file previews what would happen
  * without writing anything, and only committing actually creates the new rows. Rows that
@@ -121,9 +122,9 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
         {!preview && !result && (
           <>
             <Typography.Paragraph type="secondary">
-              CSV or .xlsx with the same columns Export produces: Position, Company, Date,
-              Status, Notes. Rows that exactly match an application you have already logged
-              are skipped automatically.
+              CSV or .xlsx with the same columns Export produces: Position, Company,
+              Location, Date, Status, Notes — Location is optional. Rows that exactly match
+              an application you have already logged are skipped automatically.
             </Typography.Paragraph>
             <Upload.Dragger accept=".csv,.xlsx" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
               <p className="ant-upload-drag-icon">

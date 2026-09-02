@@ -234,7 +234,7 @@ survives storage unchanged.
 CSV and `.xlsx`, both driven by the same filter object as the list view — so what you export
 is exactly what you were looking at, including an active search.
 
-Five columns: **Position, Company, Date, Status, Notes**. A list, not a report; there is no
+Six columns: **Position, Company, Location, Date, Status, Notes**. A list, not a report; there is no
 summary or statistics sheet. The workbook keeps one worksheet per year, matching how the app
 organizes applications everywhere else.
 
@@ -253,9 +253,10 @@ shift columns and `Malmö` survives a double-click into Excel.
 
 ## Import
 
-CSV and `.xlsx`, in the same 5-column shape Export produces — Position, Company, Date,
-Status, Notes, matched by header name rather than position. The obvious source is the app's
-own Export output, so a filtered export round-trips back in; a hand-built spreadsheet in the
+CSV and `.xlsx`, in the same shape Export produces — Position, Company, Location, Date,
+Status, Notes, matched by header name rather than position. Location is optional, so a file
+exported before that column existed still imports. The obvious source is the app's own
+Export output, so a filtered export round-trips back in; a hand-built spreadsheet in the
 same shape works too.
 
 Two steps, both hitting `POST /api/import?format=csv|xlsx&mode=preview|commit`, and neither

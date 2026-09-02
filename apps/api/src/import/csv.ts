@@ -7,7 +7,7 @@
  */
 
 import { parseCsv } from '@jobtrack/shared';
-import { IMPORT_HEADERS, isBlankRow, mapHeaders, toRawRow, type RawImportRow } from './columns.js';
+import { REQUIRED_HEADERS, isBlankRow, mapHeaders, toRawRow, type RawImportRow } from './columns.js';
 
 export interface ParsedImport {
   rows: RawImportRow[];
@@ -24,7 +24,7 @@ export function parseCsvImport(text: string): ParsedImport {
   if (!headerMap) {
     return {
       rows: [],
-      errors: [`The file is missing one of the required columns: ${IMPORT_HEADERS.join(', ')}.`],
+      errors: [`The file is missing one of the required columns: ${REQUIRED_HEADERS.join(', ')}.`],
     };
   }
 

@@ -8,7 +8,7 @@
  */
 
 import ExcelJS from 'exceljs';
-import { IMPORT_HEADERS, isBlankRow, mapHeaders, toRawRow, type RawImportRow } from './columns.js';
+import { REQUIRED_HEADERS, isBlankRow, mapHeaders, toRawRow, type RawImportRow } from './columns.js';
 import type { ParsedImport } from './csv.js';
 
 /** Export writes every cell as a plain string, but a hand-edited file might carry a real
@@ -45,7 +45,7 @@ export async function parseXlsxImport(buffer: Buffer): Promise<ParsedImport> {
     const headerMap = mapHeaders(header);
     if (!headerMap) {
       errors.push(
-        `Sheet "${sheet.name}" is missing one of the required columns (${IMPORT_HEADERS.join(', ')}) and was skipped.`,
+        `Sheet "${sheet.name}" is missing one of the required columns (${REQUIRED_HEADERS.join(', ')}) and was skipped.`,
       );
       continue;
     }

@@ -82,7 +82,7 @@ function toCreateData(raw: RawImportRow): { data: CreateApplicationData | null; 
     appliedOn: raw.date,
     status,
     jobUrl: null,
-    location: null,
+    location: raw.location || null,
     workMode: 'unspecified',
     sourceName: null,
     salaryMin: null,

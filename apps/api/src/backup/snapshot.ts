@@ -3,7 +3,7 @@
  * drivers (export from SQLite, import into Postgres).
  *
  * Deliberately separate from `export/` and `import/`, which produce and read the CSV/XLSX
- * report a person reads — "Position, Company, Date, Status, Notes" (see
+ * report a person reads — "Position, Company, Location, Date, Status, Notes" (see
  * `export/columns.ts`) — a format that's lossy on purpose. This one is meant to be read back
  * by this same app and reconstruct every row exactly, including ids (so relations survive)
  * and every field on every table.

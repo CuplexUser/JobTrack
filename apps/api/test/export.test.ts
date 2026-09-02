@@ -43,6 +43,7 @@ describe('export columns', () => {
     expect(EXPORT_COLUMNS.map((c) => c.header)).toEqual([
       'Position',
       'Company',
+      'Location',
       'Date',
       'Status',
       'Notes',
@@ -80,6 +81,17 @@ describe('withNotes', () => {
     expect(backend.notesText).toContain('\n\n');
   });
 
+  it('leaves the location cell empty when the application has none', async () => {
+    await createApplication(
+      repos,
+      applicationInput({ jobTitle: 'Data Engineer', appliedOn: '2026-04-02', location: null }),
+    );
+    const exported = await rows();
+    const data = exported.find((r) => r.jobTitle === 'Data Engineer')!;
+    const locationColumn = EXPORT_COLUMNS.find((c) => c.header === 'Location')!;
+    expect(locationColumn.value(data)).toBe('');
+  });
+
   it('handles an empty export without touching the database', async () => {
     // Guards the same rule the hydrate layer follows: cost must not grow with the export.
     const exported = await withNotes(repos, []);
@@ -88,10 +100,10 @@ describe('withNotes', () => {
 });
 
 describe('CSV export', () => {
-  it('starts with a BOM and the five headers', async () => {
+  it('starts with a BOM and the six headers', async () => {
     const csv = [...csvLines(await rows())].join('');
     expect(csv.charCodeAt(0)).toBe(0xfeff);
-    expect(csv.split('\r\n')[0]).toBe('﻿Position,Company,Date,Status,Notes');
+    expect(csv.split('\r\n')[0]).toBe('﻿Position,Company,Location,Date,Status,Notes');
   });
 
   it('has one line per application plus the header', async () => {
@@ -181,21 +193,22 @@ describe('XLSX export', () => {
     expect(workbook.getWorksheet('2025')!.rowCount - 1).toBe(1);
   });
 
-  it('lays each row out as position, company, date, status, notes', async () => {
+  it('lays each row out as position, company, location, date, status, notes', async () => {
     const workbook = await read();
     const row = workbook.getWorksheet('2026')!.getRow(2);
 
     expect(row.getCell(1).value).toBe('Backend Engineer');
     expect(row.getCell(2).value).toBe('Spotify');
-    expect(row.getCell(3).value).toBe('2026-03-12');
-    expect(row.getCell(4).value).toBe('Interview');
-    expect(row.getCell(5).value).toBe('Take-home went well.');
+    expect(row.getCell(3).value).toBe('Stockholm');
+    expect(row.getCell(4).value).toBe('2026-03-12');
+    expect(row.getCell(5).value).toBe('Interview');
+    expect(row.getCell(6).value).toBe('Take-home went well.');
   });
 
   it('leaves the notes cell blank when there are none', async () => {
     const workbook = await read();
     const row = workbook.getWorksheet('2025')!.getRow(2);
-    expect(row.getCell(5).value ?? '').toBe('');
+    expect(row.getCell(6).value ?? '').toBe('');
   });
 
   it('wraps the notes column so multi-line notes are visible', async () => {

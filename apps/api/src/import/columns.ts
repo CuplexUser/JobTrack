@@ -10,8 +10,14 @@
 import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
 import { EXPORT_COLUMNS } from '../export/columns.js';
 
-/** The five column headers Export writes, in order: Position, Company, Date, Status, Notes. */
+/** The column headers Export writes, in order: Position, Company, Location, Date, Status, Notes. */
 export const IMPORT_HEADERS = EXPORT_COLUMNS.map((c) => c.header);
+
+/**
+ * Headers a file must carry to be importable at all. Location is deliberately absent: it
+ * was added to Export later, and a workbook produced before that should still import.
+ */
+export const REQUIRED_HEADERS = IMPORT_HEADERS.filter((h) => h !== 'Location');
 
 const STATUS_BY_LABEL = new Map<string, ApplicationStatus>(
   (Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(([status, label]) => [
@@ -32,23 +38,28 @@ export interface RawImportRow {
   sheet: string | null;
   position: string;
   company: string;
+  /** Empty when the file predates the Location column, or the cell was blank. */
+  location: string;
   date: string;
   status: string;
   notes: string;
 }
 
 /**
- * Match a header row against the five expected columns, case-insensitively.
+ * Match a header row against the expected columns, case-insensitively.
  *
- * Returns null when any of them is missing — Import needs all five, since a row with no
- * `appliedOn` or no company has nothing to create.
+ * Returns null when a required one is missing — a row with no `appliedOn` or no company
+ * has nothing to create. Optional columns simply stay out of the map.
  */
 export function mapHeaders(header: readonly string[]): Record<string, number> | null {
   const normalized = header.map((h) => h.trim().toLowerCase());
   const map: Record<string, number> = {};
   for (const name of IMPORT_HEADERS) {
     const index = normalized.indexOf(name.toLowerCase());
-    if (index === -1) return null;
+    if (index === -1) {
+      if (REQUIRED_HEADERS.includes(name)) return null;
+      continue;
+    }
     map[name] = index;
   }
   return map;
@@ -66,12 +77,16 @@ export function toRawRow(
   rowNumber: number,
   sheet: string | null,
 ): RawImportRow {
-  const cell = (name: string): string => (cells[headerMap[name]!] ?? '').trim();
+  const cell = (name: string): string => {
+    const index = headerMap[name];
+    return index === undefined ? '' : (cells[index] ?? '').trim();
+  };
   return {
     rowNumber,
     sheet,
     position: cell('Position'),
     company: cell('Company'),
+    location: cell('Location'),
     date: cell('Date'),
     status: cell('Status'),
     notes: cell('Notes'),

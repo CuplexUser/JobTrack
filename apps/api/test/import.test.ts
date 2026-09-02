@@ -38,6 +38,7 @@ describe('parseImportFile (csv)', () => {
       expect.objectContaining({
         position: 'Backend Engineer',
         company: 'Spotify',
+        location: 'Stockholm',
         date: '2026-03-12',
         status: 'Interview',
         notes: 'Take-home went well.',
@@ -52,6 +53,18 @@ describe('parseImportFile (csv)', () => {
     );
     expect(rows).toEqual([]);
     expect(errors[0]).toContain('missing');
+  });
+
+  it('accepts a file that predates the Location column', async () => {
+    const { rows, errors } = await parseImportFile(
+      Buffer.from(
+        'Position,Company,Date,Status,Notes\r\nPlatform Engineer,Klarna,2026-01-10,Applied,\r\n',
+        'utf8',
+      ),
+      'csv',
+    );
+    expect(errors).toEqual([]);
+    expect(rows[0]).toMatchObject({ position: 'Platform Engineer', location: '' });
   });
 
   it('drops a blank line rather than turning it into a row', async () => {
@@ -98,6 +111,15 @@ describe('previewImport', () => {
     const [preview] = await previewImport(repos, search, rows);
     expect(preview?.verdict).toBe('new');
     expect(preview?.data).toMatchObject({ companyName: 'Klarna', jobTitle: 'Platform Engineer' });
+  });
+
+  it('carries the location through to the created application', async () => {
+    const csv =
+      'Position,Company,Location,Date,Status,Notes\r\n' +
+      'Platform Engineer,Klarna,Malmo,2026-01-10,Applied,\r\n';
+    const { rows } = await parseImportFile(Buffer.from(csv, 'utf8'), 'csv');
+    const [preview] = await previewImport(repos, search, rows);
+    expect(preview?.data).toMatchObject({ location: 'Malmo' });
   });
 
   it('classifies a second identical row within the same file as a duplicate too', async () => {
