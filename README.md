@@ -52,6 +52,18 @@ the seed data that is why 40 applications produce 32 companies.
 The same check is available without starting an application, from the dashboard's *Check
 before you apply* box.
 
+**Duplicates already in the database.** The live check only helps for records you are about
+to create; *Applications → Duplicates* runs the same rules over everything already stored —
+an import run twice, a posting clipped from two tabs — and groups the repeats by employer.
+Each group nominates the record to keep (the one furthest along the pipeline, then the one
+carrying the most notes, tags and filled-in fields), you can pick a different one, and the
+rest are deleted on confirmation.
+
+The bulk *Remove* button covers only the exact repeats. Similar-title groups are a judgment
+call — *Software Engineer* in 2025 and *Senior Software Engineer* in 2026 at one employer are
+two real applications — so those are removed a group at a time, or dismissed as "not a
+duplicate" for the session.
+
 **Hybrid search.** Two retrievers over the same documents, fused by
 [Reciprocal Rank Fusion](https://dl.acm.org/doi/10.1145/1571941.1572114):
 

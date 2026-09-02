@@ -447,6 +447,28 @@ export async function deleteApplication(repos: Repos, id: string): Promise<boole
   return true;
 }
 
+/**
+ * Delete several applications in one call, for the duplicates sweep.
+ *
+ * One transaction each, rather than one for the batch: a batch that fails halfway through
+ * has still removed exactly the records it reports, which is easier to reason about than a
+ * partial rollback — and `deleteApplication` already knows every table a record touches.
+ * Ids that no longer exist are counted as missing rather than treated as failures, since
+ * the goal state (that record is gone) is already true.
+ */
+export async function deleteApplications(
+  repos: Repos,
+  ids: readonly string[],
+): Promise<{ deleted: number; missing: number }> {
+  let deleted = 0;
+  let missing = 0;
+  for (const id of ids) {
+    if (await deleteApplication(repos, id)) deleted += 1;
+    else missing += 1;
+  }
+  return { deleted, missing };
+}
+
 export interface PeriodNode extends Period {
   count: number;
   months?: PeriodNode[];

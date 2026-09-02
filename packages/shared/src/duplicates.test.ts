@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { evaluateDuplicates, shouldBlockSave, type PriorApplication } from './duplicates.js';
+import {
+  evaluateDuplicates,
+  groupDuplicates,
+  shouldBlockSave,
+  type DuplicateCandidate,
+  type PriorApplication,
+} from './duplicates.js';
 import { diceCoefficient, cosineSimilarity } from './similarity.js';
 
 const prior = (over: Partial<PriorApplication> = {}): PriorApplication => ({
@@ -134,5 +140,93 @@ describe('cosineSimilarity', () => {
 
   it('refuses mismatched lengths instead of comparing nonsense', () => {
     expect(() => cosineSimilarity([1, 2], [1, 2, 3])).toThrow(/length mismatch/);
+  });
+});
+
+const candidate = (over: Partial<DuplicateCandidate> = {}): DuplicateCandidate => ({
+  id: 'a1',
+  companyId: 'c1',
+  jobTitle: 'Backend Engineer',
+  titleKey: 'backend engineer',
+  appliedOn: '2026-01-10',
+  status: 'applied',
+  createdAt: '2026-01-10T10:00:00.000Z',
+  ...over,
+});
+
+describe('groupDuplicates', () => {
+  it('groups two identical titles at one company', () => {
+    const groups = groupDuplicates([candidate({ id: 'a' }), candidate({ id: 'b' })]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.kind).toBe('exact');
+    expect(groups[0]!.members.map((m) => m.id).sort()).toEqual(['a', 'b']);
+  });
+
+  it('never groups across companies, however alike the titles', () => {
+    const groups = groupDuplicates([
+      candidate({ id: 'a', companyId: 'c1' }),
+      candidate({ id: 'b', companyId: 'c2' }),
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it('leaves genuinely different roles alone', () => {
+    const groups = groupDuplicates([
+      candidate({ id: 'a' }),
+      candidate({ id: 'b', jobTitle: 'Graphic Designer', titleKey: 'graphic designer' }),
+    ]);
+    expect(groups).toEqual([]);
+  });
+
+  it('reports a reworded title as one similar group, not two pairs', () => {
+    const groups = groupDuplicates([
+      candidate({ id: 'a' }),
+      candidate({ id: 'b', titleKey: 'backend engineer ii' }),
+      candidate({ id: 'c', titleKey: 'backend engineer iii' }),
+    ]);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]!.kind).toBe('similar');
+    expect(groups[0]!.members).toHaveLength(3);
+  });
+
+  it('keeps the record that got furthest', () => {
+    const groups = groupDuplicates([
+      candidate({ id: 'bare', status: 'applied' }),
+      candidate({ id: 'live', status: 'interview' }),
+    ]);
+    expect(groups[0]!.members[0]!.id).toBe('live');
+  });
+
+  it('breaks a tie on status with how much each record carries', () => {
+    const groups = groupDuplicates(
+      [candidate({ id: 'empty' }), candidate({ id: 'full' })],
+      { richness: (item) => (item.id === 'full' ? 3 : 0) },
+    );
+    expect(groups[0]!.members[0]!.id).toBe('full');
+  });
+
+  it('falls back to the record that was there first, so the pick is stable', () => {
+    // The shape of the real problem: an import run twice leaves two rows identical in
+    // everything but their id.
+    const groups = groupDuplicates([
+      candidate({ id: 'second', createdAt: '2026-01-11T09:00:00.000Z' }),
+      candidate({ id: 'first', createdAt: '2026-01-10T09:00:00.000Z' }),
+    ]);
+    expect(groups[0]!.members.map((m) => m.id)).toEqual(['first', 'second']);
+  });
+
+  it('puts exact repeats ahead of merely similar ones', () => {
+    const groups = groupDuplicates([
+      candidate({ id: 'a', companyId: 'c1' }),
+      candidate({ id: 'b', companyId: 'c1', titleKey: 'backend engineer ii' }),
+      candidate({ id: 'c', companyId: 'c2' }),
+      candidate({ id: 'd', companyId: 'c2' }),
+    ]);
+    expect(groups.map((g) => g.kind)).toEqual(['exact', 'similar']);
+  });
+
+  it('ignores a record with no title to compare on', () => {
+    const groups = groupDuplicates([candidate({ id: 'a', titleKey: '' }), candidate({ id: 'b' })]);
+    expect(groups).toEqual([]);
   });
 });

@@ -28,6 +28,7 @@ import { ZodError } from 'zod';
 import { NotFoundError, QueryError, UniqueConstraintError } from 'repolayer';
 import {
   applicationFilterSchema,
+  bulkDeleteSchema,
   changeStatusSchema,
   companyKey,
   convertJobOpeningSchema,
@@ -62,6 +63,7 @@ import {
   computePeriods,
   createApplication,
   deleteApplication,
+  deleteApplications,
   findAllMatching,
   getApplication,
   listApplications,
@@ -69,7 +71,7 @@ import {
   type CreateApplicationData,
 } from '@jobtrack/api/services/applications';
 import { getCompanyWithTags, listCompanies, suggestCompanies, updateCompany } from '@jobtrack/api/services/companies';
-import { checkDuplicates } from '@jobtrack/api/services/duplicates';
+import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/duplicates';
 import { createNote, deleteNote, listNotes, updateNote } from '@jobtrack/api/services/notes';
 import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
@@ -367,6 +369,12 @@ export const demoApi: typeof httpApi = {
       return checkDuplicates(repos, search, input);
     }),
 
+  duplicateGroups: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return findDuplicateGroups(repos);
+    }),
+
   createApplication: (body) =>
     guarded(async () => {
       const { repos, search } = await getState();
@@ -406,6 +414,15 @@ export const demoApi: typeof httpApi = {
       if (!removed) throw notFound('No such application');
       search.markStale();
       await persist(repos);
+    }),
+
+  deleteApplications: (ids) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const result = await deleteApplications(repos, bulkDeleteSchema.parse({ ids }).ids);
+      if (result.deleted > 0) search.markStale();
+      await persist(repos);
+      return result;
     }),
 
   listCompanies: (params = {}) =>

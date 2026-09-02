@@ -6,6 +6,7 @@
 import type { FastifyInstance } from 'fastify';
 import {
   applicationFilterSchema,
+  bulkDeleteSchema,
   changeStatusSchema,
   createApplicationSchema,
   duplicateCheckSchema,
@@ -18,11 +19,12 @@ import {
   computePeriods,
   createApplication,
   deleteApplication,
+  deleteApplications,
   getApplication,
   listApplications,
   patchApplication,
 } from '../services/applications.service.js';
-import { checkDuplicates } from '../services/duplicates.service.js';
+import { checkDuplicates, findDuplicateGroups } from '../services/duplicates.service.js';
 
 export async function applicationRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
   const { repos, search } = deps;
@@ -67,6 +69,9 @@ export async function applicationRoutes(app: FastifyInstance, deps: Deps): Promi
     return checkDuplicates(repos, search, input);
   });
 
+  /** The whole-database sweep behind the duplicates page. Static segment, so before `/:id`. */
+  app.get('/api/applications/duplicates', async () => findDuplicateGroups(repos));
+
   app.get('/api/applications/:id', async (request) => {
     const { id } = request.params as { id: string };
     const application = await getApplication(repos, id);
@@ -97,6 +102,17 @@ export async function applicationRoutes(app: FastifyInstance, deps: Deps): Promi
     if (!updated) throw notFound('No such application');
     search.markStale();
     return updated;
+  });
+
+  /**
+   * Remove several at once — what "delete the duplicates" does. A POST rather than a DELETE
+   * with a body, since a body on DELETE is poorly supported and this needs a list.
+   */
+  app.post('/api/applications/bulk-delete', async (request) => {
+    const { ids } = bulkDeleteSchema.parse(request.body);
+    const result = await deleteApplications(repos, ids);
+    if (result.deleted > 0) search.markStale();
+    return result;
   });
 
   app.delete('/api/applications/:id', async (request, reply) => {

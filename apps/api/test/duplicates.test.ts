@@ -1,7 +1,12 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
-import { createApplication } from '../src/services/applications.service.js';
-import { checkDuplicates } from '../src/services/duplicates.service.js';
+import {
+  changeStatus,
+  createApplication,
+  deleteApplications,
+  patchApplication,
+} from '../src/services/applications.service.js';
+import { checkDuplicates, findDuplicateGroups } from '../src/services/duplicates.service.js';
 import { applicationInput, createMemoryRepos, createTestSearch } from './support/repos.js';
 
 let repos: RepoBundle;
@@ -99,5 +104,92 @@ describe('checkDuplicates', () => {
 
     expect(check.semanticUsed).toBe(true);
     expect(check.matches[0]!.semanticSimilarity).not.toBeNull();
+  });
+});
+
+describe('findDuplicateGroups', () => {
+  it('reports a reworded title at the same employer as a similar group', async () => {
+    // The fixture's "Backend Engineer" and "Senior Backend Engineer" went to one company
+    // (Spotify and Spotify AB normalize together), which is exactly what the sweep is for.
+    const scan = await findDuplicateGroups(repos);
+    expect(scan.scanned).toBe(3);
+    expect(scan.groups).toHaveLength(1);
+    expect(scan.groups[0]).toMatchObject({ companyName: 'Spotify', kind: 'similar' });
+  });
+
+  it('pairs up an application that was entered twice, exact repeats first', async () => {
+    // What an import run twice, or a posting clipped from two tabs, leaves behind.
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
+    );
+
+    const scan = await findDuplicateGroups(repos);
+    expect(scan.groups.map((g) => g.kind)).toEqual(['exact', 'similar']);
+    expect(scan.groups[0]).toMatchObject({ companyName: 'Klarna' });
+    expect(scan.groups[0]!.members).toHaveLength(2);
+  });
+
+  it('groups differently-spelled companies together, since they are one company', async () => {
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'spotify ab', jobTitle: 'Backend Engineer', appliedOn: '2026-05-01' }),
+    );
+
+    const scan = await findDuplicateGroups(repos);
+    expect(scan.groups).toHaveLength(1);
+    expect(scan.groups[0]!.companyName).toBe('Spotify');
+    expect(scan.groups[0]!.members).toHaveLength(3);
+  });
+
+  it('recommends keeping the record with the history on it', async () => {
+    const other = await createApplication(
+      repos,
+      applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
+    );
+    await changeStatus(repos, other.id, { status: 'interview', occurredOn: '2026-04-01', comment: null });
+
+    const scan = await findDuplicateGroups(repos);
+    const klarna = scan.groups.find((g) => g.companyName === 'Klarna')!;
+    expect(klarna.keepId).toBe(other.id);
+    expect(klarna.members[0]!.id).toBe(other.id);
+  });
+
+  it('includes archived records, so half a pair cannot hide', async () => {
+    const extra = await createApplication(
+      repos,
+      applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
+    );
+    await patchApplication(repos, extra.id, { archived: true });
+
+    const scan = await findDuplicateGroups(repos);
+    const klarna = scan.groups.find((g) => g.companyName === 'Klarna')!;
+    expect(klarna.members.map((m) => m.id)).toContain(extra.id);
+  });
+});
+
+describe('deleteApplications', () => {
+  it('removes exactly the records it was given', async () => {
+    const extra = await createApplication(
+      repos,
+      applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
+    );
+
+    const result = await deleteApplications(repos, [extra.id]);
+    expect(result).toEqual({ deleted: 1, missing: 0 });
+
+    const scan = await findDuplicateGroups(repos);
+    expect(scan.scanned).toBe(3);
+    expect(scan.groups.some((g) => g.companyName === 'Klarna')).toBe(false);
+  });
+
+  it('counts an id that is already gone as missing rather than failing the batch', async () => {
+    const extra = await createApplication(
+      repos,
+      applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
+    );
+
+    const result = await deleteApplications(repos, [extra.id, '00000000-0000-4000-8000-000000000000']);
+    expect(result).toEqual({ deleted: 1, missing: 1 });
   });
 });

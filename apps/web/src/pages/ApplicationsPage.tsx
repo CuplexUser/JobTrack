@@ -29,6 +29,7 @@ import {
 import dayjs, { type Dayjs } from 'dayjs';
 import type { ColumnsType } from 'antd/es/table';
 import {
+  CopyOutlined,
   DownloadOutlined,
   FilterOutlined,
   PlusOutlined,
@@ -314,6 +315,9 @@ export function ApplicationsPage() {
               </Dropdown>
               <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
                 Import
+              </Button>
+              <Button icon={<CopyOutlined />} onClick={() => navigate('/applications/duplicates')}>
+                Duplicates
               </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
                 New application

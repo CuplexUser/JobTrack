@@ -107,6 +107,20 @@ export interface DuplicateCheckResponse extends DuplicateCheck {
   semanticUsed: boolean;
 }
 
+/** One cluster from the duplicates sweep: the record to keep first, then the repeats. */
+export interface DuplicateGroupResponse {
+  companyId: string;
+  companyName: string;
+  kind: 'exact' | 'similar';
+  keepId: string;
+  members: JobApplicationView[];
+}
+
+export interface DuplicateScanResponse {
+  groups: DuplicateGroupResponse[];
+  scanned: number;
+}
+
 /**
  * What a capture returns before anything is saved: the fields we could read, plus the same
  * duplicate verdict the New Application form shows while you type.
@@ -304,6 +318,8 @@ export const httpApi = {
   checkDuplicates: (params: { company: string; title?: string; excludeId?: string }) =>
     request<DuplicateCheckResponse>(`/api/applications/check${toQuery(params)}`),
 
+  duplicateGroups: () => request<DuplicateScanResponse>('/api/applications/duplicates'),
+
   createApplication: (body: unknown) =>
     request<JobApplicationView>('/api/applications', {
       method: 'POST',
@@ -324,6 +340,12 @@ export const httpApi = {
 
   deleteApplication: (id: string) =>
     request<void>(`/api/applications/${id}`, { method: 'DELETE' }),
+
+  deleteApplications: (ids: string[]) =>
+    request<{ deleted: number; missing: number }>('/api/applications/bulk-delete', {
+      method: 'POST',
+      body: JSON.stringify({ ids }),
+    }),
 
   listCompanies: (params: Record<string, unknown> = {}) =>
     request<{ companies: CompanyWithStats[] }>(`/api/companies${toQuery(params)}`),

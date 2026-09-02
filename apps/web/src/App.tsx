@@ -18,6 +18,7 @@ import {
 import { DashboardPage } from './pages/DashboardPage.js';
 import { ApplicationsPage } from './pages/ApplicationsPage.js';
 import { ApplicationDetailPage } from './pages/ApplicationDetailPage.js';
+import { DuplicatesPage } from './pages/DuplicatesPage.js';
 import { CompaniesPage } from './pages/CompaniesPage.js';
 import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
 import { NotesPage } from './pages/NotesPage.js';
@@ -122,6 +123,8 @@ export function App() {
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
+              {/* Before `/:id`, so the word is a page and not an application id. */}
+              <Route path="/applications/duplicates" element={<DuplicatesPage />} />
               <Route path="/applications/:id" element={<ApplicationDetailPage />} />
               <Route path="/openings" element={<OpeningsPage />} />
               <Route path="/companies" element={<CompaniesPage />} />

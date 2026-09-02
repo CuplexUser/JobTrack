@@ -153,6 +153,11 @@ export const applicationFilterSchema = z.object({
 
 export type ApplicationFilter = z.output<typeof applicationFilterSchema>;
 
+/** The duplicates sweep's remove action: the records the user chose not to keep. */
+export const bulkDeleteSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(500),
+});
+
 export const duplicateCheckSchema = z.object({
   company: z.string().trim().min(1).max(200),
   title: z.string().trim().max(200).optional().default(''),

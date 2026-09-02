@@ -27,6 +27,7 @@ export const keys = {
   notes: (params: unknown) => ['notes', params] as const,
   dashboard: () => ['dashboard'] as const,
   duplicates: (params: unknown) => ['duplicates', params] as const,
+  duplicateGroups: () => ['duplicates', 'groups'] as const,
   search: (q: string) => ['search', q] as const,
   openings: (params: unknown) => ['openings', params] as const,
   opening: (id: string) => ['opening', id] as const,
@@ -136,6 +137,14 @@ export function useDuplicateCheck(params: {
   });
 }
 
+/** The whole-database sweep behind the duplicates page. */
+export function useDuplicateGroups() {
+  return useQuery({
+    queryKey: keys.duplicateGroups(),
+    queryFn: () => api.duplicateGroups(),
+  });
+}
+
 export function useCompanySuggestions(q: string) {
   return useQuery({
     queryKey: keys.companySuggest(q),
@@ -173,6 +182,15 @@ export function useDeleteApplication() {
   const client = useQueryClient();
   return useMutation({
     mutationFn: (id: string) => api.deleteApplication(id),
+    onSuccess: () => invalidateApplicationScope(client),
+  });
+}
+
+/** Removing the repeats the duplicates page found — one call, one invalidation. */
+export function useDeleteApplications() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (ids: string[]) => api.deleteApplications(ids),
     onSuccess: () => invalidateApplicationScope(client),
   });
 }
