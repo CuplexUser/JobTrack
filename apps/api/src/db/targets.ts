@@ -36,12 +36,12 @@ function validateTarget(raw: RawTarget, index: number): DbTarget {
     throw new Error(`DB_TARGETS[${index}] is missing a "name"`);
   }
   if (name === DEFAULT_TARGET_NAME) {
-    throw new Error(`DB_TARGETS[${index}] cannot be named "${DEFAULT_TARGET_NAME}" — that name is reserved for DB_DRIVER`);
+    throw new Error(`DB_TARGETS[${index}] cannot be named "${DEFAULT_TARGET_NAME}": that name is reserved for DB_DRIVER`);
   }
 
   const driver = raw.driver;
   if (driver !== 'sqlite' && driver !== 'postgres' && driver !== 'mysql') {
-    throw new Error(`DB_TARGETS[${index}] ("${name}") has an invalid driver ${JSON.stringify(driver)} — must be sqlite, postgres or mysql`);
+    throw new Error(`DB_TARGETS[${index}] ("${name}") has an invalid driver ${JSON.stringify(driver)}. It must be sqlite, postgres or mysql`);
   }
 
   if (driver === 'sqlite') {

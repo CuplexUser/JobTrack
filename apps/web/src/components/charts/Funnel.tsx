@@ -85,7 +85,7 @@ export function Funnel({ stages }: FunnelProps) {
       })}
 
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Counted from your status history — an application that interviewed and was then
+        Counted from your status history: an application that interviewed and was then
         turned down still counts at every stage it reached.
       </Typography.Text>
     </Space>

@@ -134,3 +134,14 @@ export function tagKey(name: string): string {
 export function displayName(input: string): string {
   return input.replace(/\s+/g, ' ').trim();
 }
+
+/**
+ * The comparison key for a location, so "Malmö", "malmo" and "MALMÖ " filter as one place.
+ *
+ * Punctuation is kept on purpose: a location filter is a *contains* match, and folding
+ * "Stockholm, Sweden" to "stockholm sweden" would let a search for "holm swe" match across
+ * the comma — which nobody typing a place name means.
+ */
+export function locationKey(input: string): string {
+  return normalizeText(input);
+}

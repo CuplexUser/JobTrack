@@ -141,7 +141,7 @@ function TargetPicker({ form }: { form: FormInstance<NoteFormValues> }) {
     if (targetType === 'application') {
       return (applicationData?.items ?? []).map((a) => ({
         value: a.id,
-        label: `${a.jobTitle} — ${a.company.name}`,
+        label: `${a.jobTitle} at ${a.company.name}`,
       }));
     }
     return [];

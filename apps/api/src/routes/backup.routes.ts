@@ -77,7 +77,7 @@ export async function backupRoutes(app: FastifyInstance, deps: Deps): Promise<vo
 
   app.post('/api/backup/seed', async () => {
     const counts = await currentCounts(repos);
-    if (!isEmpty(counts)) throw conflict('The active database is not empty — clear it first');
+    if (!isEmpty(counts)) throw conflict('The active database is not empty. Clear it first.');
 
     const result = await seedDemoData(repos);
     search.markStale();

@@ -119,6 +119,19 @@ const csvArray = <T extends z.ZodType<string, string>>(item: T) =>
   }, z.array(item).optional());
 
 /**
+ * Like `csvArray`, but split on `|`. For values that legitimately contain commas — a
+ * location is typically written "Stockholm, Sweden", and splitting that on the comma would
+ * turn one place into two unrelated search terms.
+ */
+const pipeArray = <T extends z.ZodType<string, string>>(item: T) =>
+  z.preprocess((v) => {
+    if (v === undefined || v === null) return undefined;
+    const parts = Array.isArray(v) ? v.map(String) : String(v).split('|');
+    const cleaned = parts.map((p) => p.trim()).filter(Boolean);
+    return cleaned.length > 0 ? cleaned : undefined;
+  }, z.array(item).optional());
+
+/**
  * The list/filter query.
  *
  * The *same* object drives the list view, the search endpoint and both exports — which is
@@ -132,6 +145,11 @@ export const applicationFilterSchema = z.object({
   status: csvArray(statusSchema),
   workMode: csvArray(workModeSchema),
   tags: csvArray(z.string()),
+  /**
+   * Any-of, case- and accent-insensitive *contains* match on the location text, so
+   * "Stockholm" also finds "Stockholm, Sweden". `|`-separated in a URL.
+   */
+  location: pipeArray(z.string().max(200)),
   companyId: z.uuid().optional(),
   source: z.string().trim().max(120).optional(),
   from: dateOnly.optional(),

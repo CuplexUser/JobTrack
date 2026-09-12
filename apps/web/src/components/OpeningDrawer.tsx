@@ -156,15 +156,15 @@ export function OpeningDrawer({ open, onClose, opening, draft }: OpeningDrawerPr
     >
       <Typography.Paragraph type="secondary">
         {draft && !isEdit
-          ? 'Read from the posting — check it over before saving. Anything the parser could not find is blank rather than guessed.'
-          : 'For a role you found but are not ready to apply to yet — no status, no tags, just enough to find it again. Convert it into a real application when you are ready.'}
+          ? 'Read from the posting. Check it over before saving. Anything the parser could not find is blank rather than guessed.'
+          : 'For a role you found but are not ready to apply to yet. No status, no tags, just enough to find it again. Convert it into a real application when you are ready.'}
       </Typography.Paragraph>
 
       <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item name="companyName" label="Company" rules={[{ required: true, message: 'Company is required' }]}>
-              <AutoComplete options={companyOptions} placeholder="Start typing — existing companies appear" filterOption={false} allowClear />
+              <AutoComplete options={companyOptions} placeholder="Start typing to see existing companies" filterOption={false} allowClear />
             </Form.Item>
           </Col>
           <Col span={12}>

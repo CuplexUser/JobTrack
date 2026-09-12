@@ -20,6 +20,8 @@ export const keys = {
   applications: (filter: unknown) => ['applications', filter] as const,
   application: (id: string) => ['application', id] as const,
   periods: () => ['periods'] as const,
+  // Under `applications`, so every application write already refreshes the suggestions.
+  applicationLocations: () => ['applications', 'locations'] as const,
   companies: (params: unknown) => ['companies', params] as const,
   company: (id: string) => ['company', id] as const,
   companySuggest: (q: string) => ['company-suggest', q] as const,
@@ -86,6 +88,13 @@ export function useApplication(id: string | undefined) {
 
 export function usePeriods() {
   return useQuery({ queryKey: keys.periods(), queryFn: () => api.periods() });
+}
+
+export function useApplicationLocations() {
+  return useQuery({
+    queryKey: keys.applicationLocations(),
+    queryFn: () => api.applicationLocations(),
+  });
 }
 
 export function useDashboard() {

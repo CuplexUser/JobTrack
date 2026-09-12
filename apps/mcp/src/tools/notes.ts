@@ -16,7 +16,7 @@ export function registerNoteTools(server: McpServer, deps: Deps): void {
     'list_notes',
     {
       description:
-        'List notes, optionally scoped to one target (a company, an application, or standalone notes). Pinned first, then most recently updated. Long bodies come back cut to a preview — get_note has any one of them in full.',
+        'List notes, optionally scoped to one target (a company, an application, or standalone notes). Pinned first, then most recently updated. Long bodies come back cut to a preview; get_note has any one of them in full.',
       inputSchema: z.object({
         targetType: noteTargetSchema.optional(),
         targetId: z.string().optional(),

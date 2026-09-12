@@ -13,6 +13,7 @@
 import type { Filter, QueryOptions, TxContext } from 'repolayer';
 import {
   ACTIVE_STATUSES,
+  locationKey,
   parseDateOnly,
   titleKey as toTitleKey,
   toPeriod,
@@ -29,6 +30,12 @@ import { toNote, toStatusEvent } from '../db/mappers.js';
 import { hydrateApplication, hydrateApplications } from '../db/hydrate.js';
 import { resolveCompany, escapeLike } from './companies.service.js';
 import { applyTagNames, applicationIdsWithAllTags } from './tags.service.js';
+
+export interface LocationOption {
+  /** The most common spelling among the applications grouped under this location. */
+  label: string;
+  count: number;
+}
 
 export interface ListResult {
   items: JobApplicationView[];
@@ -105,6 +112,59 @@ const SORT_FIELDS = {
   createdAt: 'createdAt',
 } as const;
 
+/**
+ * Ids whose location contains any of `terms`, compared by `locationKey` — or null when there
+ * is no location filter at all.
+ *
+ * Resolved in memory, like the tag filter: "contains any of these" is an OR of `ilike`s,
+ * and repolayer's portable operators have no OR.
+ */
+export async function applicationIdsMatchingLocations(
+  repos: Repos,
+  terms: readonly string[] | undefined,
+): Promise<string[] | null> {
+  const keys = (terms ?? []).map(locationKey).filter(Boolean);
+  if (keys.length === 0) return null;
+
+  const rows = await repos.applications.findMany({
+    where: [{ field: 'location', op: 'isNull', value: false }],
+  });
+  return rows
+    .filter((row) => {
+      const key = locationKey(row.location ?? '');
+      return keys.some((term) => key.includes(term));
+    })
+    .map((row) => row.id);
+}
+
+/**
+ * Combine id restrictions from independent filters. `null` means "this filter is not
+ * active" and imposes nothing; the order of the first active list is kept, which matters
+ * when that list is a search ranking.
+ */
+function intersectRestrictions(...lists: (string[] | null)[]): string[] | null {
+  let result: string[] | null = null;
+  for (const list of lists) {
+    if (list === null) continue;
+    if (result === null) {
+      result = list;
+    } else {
+      const allowed = new Set(list);
+      result = result.filter((id) => allowed.has(id));
+    }
+  }
+  return result;
+}
+
+/** The tag and location filters, resolved to the ids they allow. */
+async function filterRestrictions(repos: Repos, filter: ApplicationFilter): Promise<string[] | null> {
+  const [tagIds, locationIds] = await Promise.all([
+    applicationIdsWithAllTags(repos, filter.tags),
+    applicationIdsMatchingLocations(repos, filter.location),
+  ]);
+  return intersectRestrictions(tagIds, locationIds);
+}
+
 export interface ListOptions {
   /**
    * Ranked ids from a search. When present the database ordering is ignored and results
@@ -118,14 +178,10 @@ export async function listApplications(
   filter: ApplicationFilter,
   options: ListOptions = {},
 ): Promise<ListResult> {
-  // A tag filter means "has all of these", which needs the junction table resolved first.
-  const tagIds = await applicationIdsWithAllTags(repos, filter.tags);
+  // Tags ("has all of these") and locations ("contains any of these") both need resolving
+  // to ids first. The search ranking goes first so its order survives the intersection.
   const orderedIds = options.orderedIds ?? null;
-
-  let restrictToIds: string[] | null = tagIds;
-  if (orderedIds !== null) {
-    restrictToIds = tagIds === null ? orderedIds : orderedIds.filter((id) => tagIds.includes(id));
-  }
+  const restrictToIds = intersectRestrictions(orderedIds, await filterRestrictions(repos, filter));
   // An empty restriction matches nothing; short-circuit rather than sending `in ()`.
   if (restrictToIds !== null && restrictToIds.length === 0) {
     return { items: [], cursor: null, hasMore: false, total: 0 };
@@ -199,10 +255,10 @@ export async function findAllMatching(
   repos: Repos,
   filter: ApplicationFilter,
 ): Promise<JobApplicationView[]> {
-  const tagIds = await applicationIdsWithAllTags(repos, filter.tags);
-  if (tagIds !== null && tagIds.length === 0) return [];
+  const restrictToIds = await filterRestrictions(repos, filter);
+  if (restrictToIds !== null && restrictToIds.length === 0) return [];
 
-  const where = buildWhere(filter, tagIds);
+  const where = buildWhere(filter, restrictToIds);
   const sortField = SORT_FIELDS[filter.sort as keyof typeof SORT_FIELDS] ?? 'appliedOn';
 
   const rows = await repos.applications.findMany({
@@ -310,7 +366,7 @@ export async function createApplication(
 
     if (data.notes) {
       await scoped.notes.create({
-        title: `Notes — ${data.jobTitle}`,
+        title: `Notes: ${data.jobTitle}`,
         body: data.notes,
         targetType: 'application',
         targetId: row.id,
@@ -506,4 +562,37 @@ export async function computePeriods(
         .sort((a, b) => b[0] - a[0])
         .map(([month, count]) => ({ year, month, count })),
     }));
+}
+
+/**
+ * The distinct locations on file, for the filter's suggestions, most used first.
+ *
+ * Grouped by `locationKey` so "Malmö" and "malmo" are one entry; the label is whichever
+ * spelling appears most often, so the list shows what the user actually tends to type.
+ */
+export async function computeLocations(repos: Repos): Promise<LocationOption[]> {
+  const rows = await repos.applications.findMany({
+    where: [
+      { field: 'archived', op: 'eq', value: false },
+      { field: 'location', op: 'isNull', value: false },
+    ],
+  });
+
+  const groups = new Map<string, { count: number; spellings: Map<string, number> }>();
+  for (const row of rows) {
+    const label = (row.location ?? '').replace(/\s+/g, ' ').trim();
+    const key = locationKey(label);
+    if (!key) continue;
+    const group = groups.get(key) ?? { count: 0, spellings: new Map<string, number>() };
+    group.count += 1;
+    group.spellings.set(label, (group.spellings.get(label) ?? 0) + 1);
+    groups.set(key, group);
+  }
+
+  return [...groups.values()]
+    .map((group) => ({
+      label: [...group.spellings.entries()].sort((a, b) => b[1] - a[1])[0]![0],
+      count: group.count,
+    }))
+    .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label));
 }

@@ -25,7 +25,7 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'list_openings',
     {
       description:
-        "List saved job openings — opportunities found but not yet applied to. Excludes converted/dismissed openings unless includeArchived is set.",
+        "List saved job openings: opportunities found but not yet applied to. Excludes converted/dismissed openings unless includeArchived is set.",
       inputSchema: z.object({ includeArchived: z.boolean().optional() }),
     },
     async ({ includeArchived }) => jsonResult(await listOpenings(repos, { includeArchived })),
@@ -44,7 +44,7 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'create_opening',
     {
       description:
-        "Save a job opportunity for later — when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags.",
+        "Save a job opportunity for later, when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags.",
       inputSchema: createJobOpeningSchema,
     },
     async (input) => jsonResult(await createOpening(repos, input)),

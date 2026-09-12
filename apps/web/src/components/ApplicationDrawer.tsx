@@ -264,7 +264,7 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
             >
               <AutoComplete
                 options={companyOptions}
-                placeholder="Start typing — existing companies appear"
+                placeholder="Start typing to see existing companies"
                 filterOption={false}
                 allowClear
               />

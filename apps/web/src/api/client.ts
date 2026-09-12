@@ -95,6 +95,11 @@ export interface ApplicationListResponse {
   semanticReady: boolean;
 }
 
+export interface LocationOption {
+  label: string;
+  count: number;
+}
+
 export interface PeriodNode {
   year: number;
   month: number;
@@ -314,6 +319,9 @@ export const httpApi = {
   getApplication: (id: string) => request<JobApplicationDetail>(`/api/applications/${id}`),
 
   periods: () => request<{ periods: PeriodNode[] }>('/api/applications/periods'),
+
+  applicationLocations: () =>
+    request<{ locations: LocationOption[] }>('/api/applications/locations'),
 
   checkDuplicates: (params: { company: string; title?: string; excludeId?: string }) =>
     request<DuplicateCheckResponse>(`/api/applications/check${toQuery(params)}`),

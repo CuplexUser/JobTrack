@@ -131,7 +131,7 @@ export function DuplicatesPage() {
             description={
               (data?.scanned ?? 0) === 0
                 ? 'Nothing to scan yet'
-                : 'No duplicates — every application is a distinct role or employer'
+                : 'No duplicates. Every application is a distinct role or employer.'
             }
           />
         </Card>
@@ -236,7 +236,7 @@ function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }
           <Alert
             type="warning"
             showIcon
-            message="Close but not identical — two applications a year apart can look like this. Delete only if it really is the same job."
+            message="Close but not identical. Two applications a year apart can look like this. Delete only if it really is the same job."
           />
         )}
         <Table<JobApplicationView>

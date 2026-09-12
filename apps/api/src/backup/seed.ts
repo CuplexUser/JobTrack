@@ -44,12 +44,12 @@ const ROWS: SeedRow[] = [
   { company: 'Tink', title: 'Server-Side Developer', appliedOn: '2024-05-02', status: 'interview', location: 'Stockholm', workMode: 'remote', source: 'LinkedIn', salary: [600000, 720000], tags: ['fintech', 'remote-ok'], notes: 'Two rounds done. Liked the team a lot.' },
   { company: 'Volvo Cars', title: 'Embedded Systems Engineer', appliedOn: '2024-06-11', status: 'rejected', location: 'Gothenburg', workMode: 'onsite', source: 'Job board' },
   { company: 'King', title: 'Game Backend Developer', appliedOn: '2024-08-21', status: 'rejected', location: 'Stockholm', workMode: 'hybrid', source: 'LinkedIn', tags: ['games'] },
-  { company: 'Northvolt', title: 'Data Engineer', appliedOn: '2024-09-09', status: 'withdrawn', location: 'Västerås', workMode: 'onsite', source: 'Recruiter', notes: 'Withdrew — relocation was not workable.' },
+  { company: 'Northvolt', title: 'Data Engineer', appliedOn: '2024-09-09', status: 'withdrawn', location: 'Västerås', workMode: 'onsite', source: 'Recruiter', notes: 'Withdrew. Relocation was not workable.' },
   { company: 'Truecaller', title: 'Backend Engineer', appliedOn: '2024-10-15', status: 'rejected', location: 'Stockholm', workMode: 'hybrid', source: 'Company site' },
   { company: 'Izettle', title: 'API Developer', appliedOn: '2024-11-27', status: 'ghosted', location: 'Stockholm', workMode: 'hybrid', source: 'Job board', tags: ['fintech'] },
 
   // ---- 2025 ----
-  { company: 'Spotify AB', title: 'Senior Backend Engineer', appliedOn: '2025-01-14', status: 'rejected', location: 'Stockholm', workMode: 'hybrid', source: 'LinkedIn', salary: [720000, 880000], tags: ['music', 'dream-job'], notes: 'Second attempt, a year on. Got further this time — final round.' },
+  { company: 'Spotify AB', title: 'Senior Backend Engineer', appliedOn: '2025-01-14', status: 'rejected', location: 'Stockholm', workMode: 'hybrid', source: 'LinkedIn', salary: [720000, 880000], tags: ['music', 'dream-job'], notes: 'Second attempt, a year on. Got further this time: final round.' },
   { company: 'Epidemic Sound', title: 'Backend Engineer', appliedOn: '2025-02-03', status: 'rejected', location: 'Stockholm', workMode: 'remote', source: 'LinkedIn', tags: ['music', 'remote-ok'] },
   { company: 'Klarna', title: 'Senior Platform Engineer', appliedOn: '2025-02-20', status: 'ghosted', location: 'Stockholm', workMode: 'hybrid', source: 'Referral', tags: ['fintech'] },
   { company: 'Mentimeter', title: 'Full Stack Developer', appliedOn: '2025-03-11', status: 'interview', location: 'Stockholm', workMode: 'hybrid', source: 'Company site', salary: [620000, 740000], tags: ['saas'] },

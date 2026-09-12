@@ -60,6 +60,7 @@ import { SearchIndex } from '@jobtrack/api/search';
 import { FakeEmbedder } from '@jobtrack/api/search/embedder';
 import {
   changeStatus,
+  computeLocations,
   computePeriods,
   createApplication,
   deleteApplication,
@@ -362,6 +363,12 @@ export const demoApi: typeof httpApi = {
       return { periods: await computePeriods(repos, {}) };
     }),
 
+  applicationLocations: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return { locations: await computeLocations(repos) };
+    }),
+
   checkDuplicates: (params) =>
     guarded(async () => {
       const { repos, search } = await getState();
@@ -551,7 +558,7 @@ export const demoApi: typeof httpApi = {
 
   previewImport: (file, format) =>
     guarded(async () => {
-      if (format === 'xlsx') throw unsupported('Excel import is not available in this demo — please use a CSV file instead.');
+      if (format === 'xlsx') throw unsupported('Excel import is not available in this demo. Please use a CSV file instead.');
       const { repos, search } = await getState();
       const text = await file.text();
       const { rows, errors } = parseCsvImport(text);
@@ -567,7 +574,7 @@ export const demoApi: typeof httpApi = {
 
   commitImport: (file, format) =>
     guarded(async () => {
-      if (format === 'xlsx') throw unsupported('Excel import is not available in this demo — please use a CSV file instead.');
+      if (format === 'xlsx') throw unsupported('Excel import is not available in this demo. Please use a CSV file instead.');
       const { repos, search } = await getState();
       const text = await file.text();
       const { rows, errors } = parseCsvImport(text);
@@ -654,7 +661,7 @@ export const demoApi: typeof httpApi = {
   ingestUrl: () =>
     guarded(async () => {
       throw unsupported(
-        'Reading a link is not available in this demo — a page in your browser cannot fetch another site. Paste the posting text instead.',
+        'Reading a link is not available in this demo, because a page in your browser cannot fetch another site. Paste the posting text instead.',
       );
     }),
 
@@ -742,7 +749,7 @@ export const demoApi: typeof httpApi = {
     guarded(async () => {
       const { repos } = await getState();
       const counts = await currentCounts(repos);
-      if (!isEmpty(counts)) throw new ApiError(409, 'conflict', 'The active database is not empty — clear it first');
+      if (!isEmpty(counts)) throw new ApiError(409, 'conflict', 'The active database is not empty. Clear it first.');
       const result = await seedDemoData(repos);
       await persist(repos);
       return result;

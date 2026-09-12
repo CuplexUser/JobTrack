@@ -177,7 +177,7 @@ internal sealed class SettingsForm : Form
             Hint("127.0.0.1 keeps JobTrack reachable only from this machine. Leave it unless you know you want otherwise."),
             _hostWarning,
             _autostart,
-            Hint("Applies immediately — it is a Windows setting, not part of the JobTrack configuration."),
+            Hint("Applies immediately. It is a Windows setting, not part of the JobTrack configuration."),
             _openBrowser);
     }
 

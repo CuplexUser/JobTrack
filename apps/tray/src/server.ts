@@ -70,7 +70,7 @@ export async function startServer(): Promise<RunningServer> {
       return reply.status(404).send({ error: 'not_found', message: 'Not found' });
     });
   } else {
-    console.warn('[tray] no built web UI found — run "npm run build" to serve it. API-only for now.');
+    console.warn('[tray] no built web UI found. Run "npm run build" to serve it. API-only for now.');
   }
 
   await search.start();
@@ -86,7 +86,7 @@ export async function startServer(): Promise<RunningServer> {
       `JOBTRACK_ERROR ${JSON.stringify({ code: 'EADDRINUSE', host: config.host, port: config.port })}`,
     );
     console.error(
-      `Port ${config.port} is already in use — JobTrack may already be running. Stop it, or set PORT in .env to something else.`,
+      `Port ${config.port} is already in use. JobTrack may already be running. Stop it, or set PORT in .env to something else.`,
     );
     search.stop();
     await app.close();

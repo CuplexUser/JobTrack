@@ -173,7 +173,7 @@ export function DashboardPage() {
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   attention === 'follow-ups'
-                    ? 'Nothing due — all caught up'
+                    ? 'Nothing due. All caught up.'
                     : 'Nothing has gone quiet'
                 }
               />

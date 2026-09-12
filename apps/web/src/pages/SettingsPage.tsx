@@ -77,7 +77,7 @@ function DatabaseCard() {
     Modal.confirm({
       title: `Switch to "${target}"?`,
       content:
-        'The server restarts to connect to the new target. This page will reconnect and reload automatically once it is back — under `npm run dev`, that may require restarting it by hand.',
+        'The server restarts to connect to the new target. This page will reconnect and reload automatically once it is back. Under `npm run dev`, you may need to restart it by hand.',
       okText: 'Switch and restart',
       onOk: async () => {
         try {
@@ -211,10 +211,10 @@ function BackupCard() {
     <Card title="Backup & restore">
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          A full-fidelity snapshot of every table — every field, every relation, driver-agnostic.
+          A full-fidelity snapshot of every table: every field, every relation, driver-agnostic.
           Not the same as the CSV/Excel export elsewhere in the app, which is a lossy report meant
           for people to read. This file is scrambled (gzip + obfuscation) so it isn't plain,
-          readable JSON at rest — that's an obfuscation step, not encryption, and does not
+          readable JSON at rest. That's an obfuscation step, not encryption, and does not
           protect the personal data inside from anyone who actually wants it.
         </Typography.Paragraph>
 
@@ -318,7 +318,7 @@ function DataCard() {
     <Card title="Reset & demo data" loading={isLoading}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Wipe everything in the active database, or — only while it's empty — fill it with a
+          Wipe everything in the active database, or (only while it's empty) fill it with a
           realistic multi-year demo dataset to explore the app with.
         </Typography.Paragraph>
 
@@ -341,7 +341,7 @@ function DataCard() {
           <Alert
             type="warning"
             showIcon
-            message="This permanently deletes every row below. There is no undo — export a backup first if you might want this data again."
+            message="This permanently deletes every row below. There is no undo. Export a backup first if you might want this data again."
           />
           <CountList counts={counts} />
           <Typography.Text>

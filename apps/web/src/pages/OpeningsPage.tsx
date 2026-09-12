@@ -236,7 +236,7 @@ export function OpeningsPage() {
           </Typography.Title>
           <Typography.Text type="secondary">
             {view === 'active'
-              ? "Saved for later — convert one to a real application when you're ready to apply."
+              ? "Saved for later. Convert one to a real application when you're ready to apply."
               : 'Openings that were converted into an application or archived by hand.'}
           </Typography.Text>
         </Space>
@@ -280,7 +280,7 @@ export function OpeningsPage() {
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   view === 'active'
-                    ? "Nothing saved yet — use “Save opening for later” for a role you're not ready to apply to."
+                    ? "Nothing saved yet. Use “Save opening for later” for a role you're not ready to apply to."
                     : 'No archived openings.'
                 }
               />

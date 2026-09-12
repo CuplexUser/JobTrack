@@ -31,7 +31,7 @@ export function registerCompanyTools(server: McpServer, deps: Deps): void {
     'get_company',
     {
       description:
-        "Get one company by id, with its tags and its full application history (summarized — get_application has the detail for any one of them).",
+        "Get one company by id, with its tags and its full application history (summarized; get_application has the detail for any one of them).",
       inputSchema: idOnly,
     },
     async ({ id }) => {

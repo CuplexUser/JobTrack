@@ -36,7 +36,7 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'list_applications',
     {
       description:
-        'List job applications with the same filters the web app supports: status, work mode, tags, company, date range, archived, follow-up due, and a free-text `q` that runs the hybrid (lexical + semantic) search. Rows come back summarized — call get_application for one record in full, including its status history and notes.',
+        'List job applications with the same filters the web app supports: status, work mode, tags, location (any of several, matched as a case- and accent-insensitive contains, so "Stockholm" also finds "Stockholm, Sweden"), company, date range, archived, follow-up due, and a free-text `q` that runs the hybrid (lexical + semantic) search. Rows come back summarized. Call get_application for one record in full, including its status history and notes.',
       inputSchema: applicationFilterSchema,
     },
     async (filter) => {
@@ -72,7 +72,7 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'check_duplicate',
     {
       description:
-        "Check whether an application already exists for a company/title before creating a new one. Always call this before create_application unless you already know the answer — an 'exact' verdict means it almost certainly already exists.",
+        "Check whether an application already exists for a company/title before creating a new one. Always call this before create_application unless you already know the answer. An 'exact' verdict means it almost certainly already exists.",
       inputSchema: duplicateCheckSchema,
     },
     async (input) => jsonResult(await checkDuplicates(repos, search, input)),
@@ -82,7 +82,7 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'create_application',
     {
       description:
-        'Create a new job application. The company is resolved by name — an existing company with a matching name is reused, otherwise one is created — so there is no need to look up a company id first.',
+        'Create a new job application. The company is resolved by name (an existing company with a matching name is reused, otherwise one is created), so there is no need to look up a company id first.',
       inputSchema: createApplicationSchema,
     },
     async (input) => {

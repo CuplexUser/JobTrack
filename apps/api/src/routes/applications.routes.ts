@@ -16,6 +16,7 @@ import type { Deps } from '../deps.js';
 import { notFound } from '../lib/errors.js';
 import {
   changeStatus,
+  computeLocations,
   computePeriods,
   createApplication,
   deleteApplication,
@@ -57,6 +58,9 @@ export async function applicationRoutes(app: FastifyInstance, deps: Deps): Promi
     });
     return { periods };
   });
+
+  /** Distinct locations with counts, for the location filter's suggestions. */
+  app.get('/api/applications/locations', async () => ({ locations: await computeLocations(repos) }));
 
   /**
    * The duplicate check.

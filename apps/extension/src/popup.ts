@@ -22,7 +22,7 @@ interface ClipResponse {
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
-const NO_TOKEN = 'No token set yet — open Settings and paste the one from JobTrack.';
+const NO_TOKEN = 'No token set yet. Open Settings and paste the one from JobTrack.';
 
 let settings: Settings;
 let draft: PostingDraft | null = null;
@@ -121,7 +121,7 @@ async function readCurrentTab(): Promise<void> {
 
   $('method').textContent = `Read from ${extraction.method}.`;
   if (!draft.companyName || !draft.jobTitle) {
-    setStatus('Could not make out the company or title — fill them in below.', 'error');
+    setStatus('Could not make out the company or title. Fill them in below.', 'error');
   } else {
     // Never clear the setup warning: reading the page says nothing about whether this
     // extension can reach JobTrack, and silently dropping it is what let a save be

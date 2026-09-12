@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
 import {
   changeStatus,
+  computeLocations,
   computePeriods,
   createApplication,
   deleteApplication,
@@ -207,6 +208,55 @@ describe('listApplications', () => {
     expect(result.total).toBe(0);
   });
 
+  it('filters by location as a contains match, ignoring case and accents', async () => {
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'Axis', jobTitle: 'Firmware Engineer', location: 'Malmö, Sweden' }),
+    );
+    const result = await listApplications(repos, filter({ location: 'MALMO' }));
+    expect(result.items.map((i) => i.company.name)).toEqual(['Axis']);
+  });
+
+  it('matches any of several locations', async () => {
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'Ericsson', jobTitle: 'Software Developer', location: 'Lund' }),
+    );
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'Volvo', jobTitle: 'Developer', location: 'Göteborg' }),
+    );
+    const result = await listApplications(repos, filter({ location: 'Lund|goteborg', sort: 'company', direction: 'asc' }));
+    expect(result.items.map((i) => i.company.name)).toEqual(['Ericsson', 'Volvo']);
+    expect(result.total).toBe(2);
+  });
+
+  it('combines a location with tags and status', async () => {
+    await createApplication(
+      repos,
+      applicationInput({ companyName: 'Tink', jobTitle: 'Server-Side Developer', location: 'Lund', tags: ['fintech'] }),
+    );
+    // Klarna is fintech in Stockholm, Tink is fintech in Lund: only one survives both filters.
+    const both = await listApplications(repos, filter({ location: 'Lund', tags: 'fintech' }));
+    expect(both.items.map((i) => i.company.name)).toEqual(['Tink']);
+
+    const none = await listApplications(repos, filter({ location: 'Lund', status: 'interview' }));
+    expect(none.items).toEqual([]);
+  });
+
+  it('keeps the search ranking order under a location filter', async () => {
+    const all = await listApplications(repos, filter());
+    const reversed = all.items.map((i) => i.id).reverse();
+    const ranked = await listApplications(repos, filter({ location: 'stockholm' }), { orderedIds: reversed });
+    expect(ranked.items.map((i) => i.id)).toEqual(reversed);
+  });
+
+  it('returns nothing for a location nobody applied in', async () => {
+    const result = await listApplications(repos, filter({ location: 'Kiruna' }));
+    expect(result.items).toEqual([]);
+    expect(result.total).toBe(0);
+  });
+
   it('filters by date range', async () => {
     const result = await listApplications(repos, filter({ from: '2026-01-01', to: '2026-12-31' }));
     expect(result.items).toHaveLength(2);
@@ -256,7 +306,35 @@ describe('computePeriods', () => {
   });
 });
 
+describe('computeLocations', () => {
+  it('groups spellings of one place, labels it by the most common, and counts', async () => {
+    await createApplication(repos, applicationInput({ jobTitle: 'A', location: 'Malmö' }));
+    await createApplication(repos, applicationInput({ jobTitle: 'B', location: 'Malmö' }));
+    await createApplication(repos, applicationInput({ jobTitle: 'C', location: 'malmo ' }));
+    await createApplication(repos, applicationInput({ jobTitle: 'D', location: 'Lund' }));
+    await createApplication(repos, applicationInput({ jobTitle: 'E', location: null }));
+
+    expect(await computeLocations(repos)).toEqual([
+      { label: 'Malmö', count: 3 },
+      { label: 'Lund', count: 1 },
+    ]);
+  });
+
+  it('leaves out archived applications', async () => {
+    const created = await createApplication(repos, applicationInput({ location: 'Umeå' }));
+    await patchApplication(repos, created.id, { archived: true });
+    expect(await computeLocations(repos)).toEqual([]);
+  });
+});
+
 describe('findAllMatching', () => {
+  it('applies the location filter, so an export matches the table', async () => {
+    await createApplication(repos, applicationInput({ jobTitle: 'Stockholm role', location: 'Stockholm' }));
+    await createApplication(repos, applicationInput({ jobTitle: 'Lund role', location: 'Lund' }));
+    const rows = await findAllMatching(repos, filter({ location: 'lund' }));
+    expect(rows.map((r) => r.jobTitle)).toEqual(['Lund role']);
+  });
+
   it('ignores the page limit, because an export is not paged', async () => {
     for (let i = 0; i < 5; i += 1) {
       await createApplication(repos, applicationInput({ jobTitle: `Role ${i}` }));

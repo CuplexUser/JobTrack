@@ -77,7 +77,7 @@ async function main(): Promise<void> {
   $<HTMLInputElement>('token').value = settings.token;
 
   if (settings.token === '') {
-    setStatus('No token saved yet — paste one and press Save and test.', 'info');
+    setStatus('No token saved yet. Paste one and press Save and test.', 'info');
   }
 
   $('test').addEventListener('click', () => void saveAndTest());

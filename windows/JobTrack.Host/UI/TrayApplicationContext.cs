@@ -91,7 +91,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _icon = new NotifyIcon
         {
             Icon = Icons.App,
-            Text = "JobTrack — starting...",
+            Text = "JobTrack: starting...",
             Visible = true,
             ContextMenuStrip = menu,
         };
@@ -132,12 +132,12 @@ internal sealed class TrayApplicationContext : ApplicationContext
 
         _icon.Text = state switch
         {
-            ServerState.Starting => "JobTrack — starting...",
-            ServerState.Restarting => "JobTrack — restarting...",
+            ServerState.Starting => "JobTrack: starting...",
+            ServerState.Restarting => "JobTrack: restarting...",
             // NotifyIcon.Text is capped at 63 characters, which the URL comfortably fits inside.
-            ServerState.Running => $"JobTrack {ready?.Version} — {ready?.Url}",
-            ServerState.Failed => "JobTrack — not running",
-            _ => "JobTrack — stopped",
+            ServerState.Running => $"JobTrack {ready?.Version} at {ready?.Url}",
+            ServerState.Failed => "JobTrack: not running",
+            _ => "JobTrack: stopped",
         };
         if (ready is not null) _header.Text = $"JobTrack {ready.Version} ({ready.Driver})";
 
@@ -195,7 +195,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _settings.Save();
         // Windows 11 hides new notification-area icons by default, so without this the app looks
         // like it did nothing at all.
-        Notify("JobTrack is running", "It lives in the notification area — you may want to pin it there.",
+        Notify("JobTrack is running", "It lives in the notification area. You may want to pin it there.",
             ToolTipIcon.Info, BalloonAction.None);
     }
 
@@ -257,7 +257,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         if (_quitting) return;
         _quitting = true;
         _hostLog.Write("quitting");
-        _icon.Text = "JobTrack — stopping...";
+        _icon.Text = "JobTrack: stopping...";
         await _supervisor.StopAsync();
         _icon.Visible = false;
         ExitThread();

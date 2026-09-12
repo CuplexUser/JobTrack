@@ -132,7 +132,7 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
                 />
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                   Works on most company career pages and applicant tracking systems. LinkedIn
-                  and Indeed block automated readers — for those, copy the posting and use
+                  and Indeed block automated readers. For those, copy the posting and use
                   the other tab.
                 </Typography.Text>
               </Space>
@@ -150,7 +150,7 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
                 <Input.TextArea
                   rows={8}
                   value={text}
-                  placeholder={'Backend Engineer at Spotify\nStockholm — hybrid\nSalary: SEK 55 000 - 70 000'}
+                  placeholder={'Backend Engineer at Spotify\nStockholm, hybrid\nSalary: SEK 55 000 - 70 000'}
                   onChange={(event) => setText(event.target.value)}
                 />
                 <Flex justify="space-between" align="center" gap={12} wrap>

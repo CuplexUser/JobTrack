@@ -115,7 +115,7 @@ export function registerRequestGuard(app: FastifyInstance, options: GuardOptions
 
     throw new HttpError(
       403,
-      'This origin is not allowed to use the JobTrack API. A browser extension needs its token — see docs/capture.md.',
+      'This origin is not allowed to use the JobTrack API. A browser extension needs its token (see docs/capture.md).',
     );
   });
 }

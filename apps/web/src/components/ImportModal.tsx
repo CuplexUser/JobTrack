@@ -25,7 +25,7 @@ const VERDICT_COLOR: Record<ImportPreviewRow['verdict'], string> = {
 };
 const VERDICT_LABEL: Record<ImportPreviewRow['verdict'], string> = {
   new: 'New',
-  duplicate: 'Duplicate — skipped',
+  duplicate: 'Duplicate, skipped',
   error: 'Error',
 };
 
@@ -123,7 +123,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
           <>
             <Typography.Paragraph type="secondary">
               CSV or .xlsx with the same columns Export produces: Position, Company,
-              Location, Date, Status, Notes — Location is optional. Rows that exactly match
+              Location, Date, Status, Notes. Location is optional. Rows that exactly match
               an application you have already logged are skipped automatically.
             </Typography.Paragraph>
             <Upload.Dragger accept=".csv,.xlsx" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
@@ -141,7 +141,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
           <>
             <Space wrap>
               <Tag color="green">{preview.totals.new} new</Tag>
-              <Tag>{preview.totals.duplicate} duplicate — will be skipped</Tag>
+              <Tag>{preview.totals.duplicate} duplicate, will be skipped</Tag>
               {preview.totals.error > 0 && <Tag color="red">{preview.totals.error} error</Tag>}
             </Space>
             {preview.fileErrors.map((message) => (

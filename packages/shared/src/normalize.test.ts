@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { companyKey, displayName, normalizeText, tagKey, titleKey } from './normalize.js';
+import { companyKey, displayName, locationKey, normalizeText, tagKey, titleKey } from './normalize.js';
 
 describe('normalizeText', () => {
   it('lowercases and collapses whitespace', () => {
@@ -61,6 +61,16 @@ describe('tagKey', () => {
     expect(tagKey('Remote OK')).toBe('remote ok');
     expect(tagKey('remote-ok')).toBe('remote ok');
     expect(tagKey('  REMOTE_OK ')).toBe('remote ok');
+  });
+});
+
+describe('locationKey', () => {
+  it('folds case, accents and spacing so one place filters as one', () => {
+    expect(locationKey('  MALMÖ ')).toBe(locationKey('malmo'));
+  });
+
+  it('keeps punctuation, so a contains match cannot straddle a comma', () => {
+    expect(locationKey('Stockholm, Sweden')).toBe('stockholm, sweden');
   });
 });
 

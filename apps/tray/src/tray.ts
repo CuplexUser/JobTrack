@@ -36,7 +36,7 @@ export interface TrayHandlers {
 export function createTray(handlers: TrayHandlers): InstanceType<SysTrayCtor> {
   const webDist = resolveWebDist();
   if (!webDist) {
-    throw new Error('No built web UI found — run "npm run build" before starting the tray.');
+    throw new Error('No built web UI found. Run "npm run build" before starting the tray.');
   }
   const icon = readFileSync(resolve(webDist, 'favicon.ico')).toString('base64');
 

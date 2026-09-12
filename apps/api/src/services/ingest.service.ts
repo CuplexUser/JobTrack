@@ -69,12 +69,12 @@ export class IngestBlockedError extends HttpError {
 function alreadySavedMessage(existing: JobOpeningView): string {
   const what = `“${existing.jobTitle}” at ${existing.company.name}`;
   if (existing.convertedApplicationId !== null) {
-    return `${what} is already saved — captured on ${existing.savedOn}, and you have since applied to it.`;
+    return `${what} was already saved on ${existing.savedOn}, and you have since applied to it.`;
   }
   if (existing.archived) {
-    return `${what} is already saved — captured on ${existing.savedOn}, and archived since.`;
+    return `${what} was already saved on ${existing.savedOn}, and archived since.`;
   }
-  return `${what} is already saved — it has been in JobTrack since ${existing.savedOn}.`;
+  return `${what} is already saved. It has been in JobTrack since ${existing.savedOn}.`;
 }
 
 /**
@@ -153,7 +153,7 @@ async function fetchPosting(url: string): Promise<{ html: string; finalUrl: stri
       const blocker = KNOWN_BLOCKERS.some((host) => current.hostname.endsWith(host));
       throw new IngestBlockedError(
         blocker
-          ? `${current.hostname} does not allow this — it blocks automated readers. Use the browser extension, or paste the posting text.`
+          ? `${current.hostname} does not allow this, because it blocks automated readers. Use the browser extension, or paste the posting text.`
           : `That page answered ${response.status}. Paste the posting text instead.`,
       );
     }

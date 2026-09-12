@@ -45,7 +45,7 @@ import {
   monthName,
   type JobApplicationView,
 } from '@jobtrack/shared';
-import { useApplicationsInfinite, usePeriods, useTags } from '../api/hooks.js';
+import { useApplicationLocations, useApplicationsInfinite, usePeriods, useTags } from '../api/hooks.js';
 import { api } from '../api/index.js';
 import { demoExportCsv } from '../api/demo-client.js';
 import { PeriodTree } from '../components/PeriodTree.js';
@@ -115,7 +115,9 @@ export function ApplicationsPage() {
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
     const entries: Record<string, unknown> = { sort, direction };
-    for (const key of ['q', 'source', 'from', 'to'] as const) {
+    // `location` stays a `|`-joined string all the way to the API: locations contain
+    // commas, so the comma-joining every other list filter uses would split them apart.
+    for (const key of ['q', 'source', 'from', 'to', 'location'] as const) {
       const value = params.get(key);
       if (value) entries[key] = value;
     }
@@ -134,6 +136,8 @@ export function ApplicationsPage() {
     useApplicationsInfinite(filter);
   const { data: periodData } = usePeriods();
   const { data: tagData } = useTags();
+  const { data: locationData } = useApplicationLocations();
+  const selectedLocations = params.get('location')?.split('|').filter(Boolean) ?? [];
 
   // "Load more" appends, so the table shows every page fetched so far. Totals and the
   // search flags describe the whole result set, so they come from the first page.
@@ -148,7 +152,8 @@ export function ApplicationsPage() {
           (Array.isArray(value) && value.length === 0)) {
         next.delete(key);
       } else {
-        next.set(key, Array.isArray(value) ? value.join(',') : String(value));
+        const separator = key === 'location' ? '|' : ',';
+        next.set(key, Array.isArray(value) ? value.join(separator) : String(value));
       }
     }
     setParams(next, { replace: true });
@@ -331,7 +336,7 @@ export function ApplicationsPage() {
                 allowClear
                 size="large"
                 prefix={<SearchOutlined />}
-                placeholder="Search by meaning — try “server-side developer” or “remote fintech”"
+                placeholder="Search by meaning, like “server-side developer” or “remote fintech”"
                 defaultValue={params.get('q') ?? ''}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -370,6 +375,22 @@ export function ApplicationsPage() {
                   options={WORK_MODES.map((m) => ({ value: m, label: WORK_MODE_LABELS[m] }))}
                 />
                 <Select
+                  // `tags` mode: pick a location on file, or type any fragment ("Sweden").
+                  mode="tags"
+                  allowClear
+                  placeholder="Location"
+                  style={{ minWidth: 200 }}
+                  value={selectedLocations}
+                  onChange={(value: string[]) =>
+                    patchFilter({ location: value.map((v) => v.replace(/\|/g, ' ').trim()).filter(Boolean) })
+                  }
+                  optionFilterProp="value"
+                  options={(locationData?.locations ?? []).map((l) => ({
+                    value: l.label,
+                    label: `${l.label} (${l.count})`,
+                  }))}
+                />
+                <Select
                   mode="multiple"
                   allowClear
                   placeholder="Tags"
@@ -401,7 +422,7 @@ export function ApplicationsPage() {
                   type="info"
                   showIcon
                   icon={<ThunderboltOutlined />}
-                  message="Results will improve shortly — the semantic model is still loading."
+                  message="Results will improve shortly. The semantic model is still loading."
                 />
               )}
             </Space>

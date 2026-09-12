@@ -66,7 +66,7 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
           )}
           {!check.semanticUsed && check.matches.length > 0 && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Matched on wording only — semantic matching is still warming up.
+              Matched on wording only. Semantic matching is still warming up.
             </Typography.Text>
           )}
         </Space>

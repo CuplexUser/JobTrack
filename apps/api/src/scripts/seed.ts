@@ -28,8 +28,8 @@ async function main(): Promise<void> {
     `Done: ${result.applications} applications, ${result.companies} companies, ${result.tags} tags, ${result.notes} notes.`,
   );
   console.log('\nThings worth trying:');
-  console.log('  · Search "server-side developer" — should surface Backend Engineer roles');
-  console.log('  · Start a new application at "Spotify AB" — three prior applications should appear');
+  console.log('  · Search "server-side developer": should surface Backend Engineer roles');
+  console.log('  · Start a new application at "Spotify AB": three prior applications should appear');
   console.log('  · Klarna has been applied to three times, under two different titles');
 
   await repos.close();
