@@ -20,6 +20,7 @@ import { exportRoutes } from './routes/export.routes.js';
 import { importRoutes } from './routes/import.routes.js';
 import { dashboardRoutes } from './routes/dashboard.routes.js';
 import { openingRoutes } from './routes/openings.routes.js';
+import { contactRoutes } from './routes/contacts.routes.js';
 import { ingestRoutes } from './routes/ingest.routes.js';
 import { backupRoutes } from './routes/backup.routes.js';
 import { dbRoutes } from './routes/db.routes.js';
@@ -81,6 +82,7 @@ export async function buildApp(deps: Deps, options: BuildAppOptions = {}): Promi
   await app.register(async (instance) => importRoutes(instance, deps));
   await app.register(async (instance) => dashboardRoutes(instance, deps));
   await app.register(async (instance) => openingRoutes(instance, deps));
+  await app.register(async (instance) => contactRoutes(instance, deps));
   await app.register(async (instance) => ingestRoutes(instance, deps));
   await app.register(async (instance) => backupRoutes(instance, deps));
   await app.register(async (instance) => dbRoutes(instance, deps));

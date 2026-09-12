@@ -14,6 +14,7 @@ import {
   SettingOutlined,
   ShopOutlined,
   SunOutlined,
+  TeamOutlined,
 } from '@ant-design/icons';
 import { DashboardPage } from './pages/DashboardPage.js';
 import { ApplicationsPage } from './pages/ApplicationsPage.js';
@@ -23,6 +24,8 @@ import { CompaniesPage } from './pages/CompaniesPage.js';
 import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
 import { NotesPage } from './pages/NotesPage.js';
 import { OpeningsPage } from './pages/OpeningsPage.js';
+import { ContactsPage } from './pages/ContactsPage.js';
+import { ContactDetailPage } from './pages/ContactDetailPage.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 import { buildAntdTheme, palette } from './theme.js';
 
@@ -33,6 +36,7 @@ const NAV_ITEMS = [
   { key: '/applications', icon: <ProfileOutlined />, label: <Link to="/applications">Applications</Link> },
   { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">Openings</Link> },
   { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">Companies</Link> },
+  { key: '/people', icon: <TeamOutlined />, label: <Link to="/people">People</Link> },
   { key: '/notes', icon: <FileTextOutlined />, label: <Link to="/notes">Notes</Link> },
   { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Settings</Link> },
 ];
@@ -129,6 +133,8 @@ export function App() {
               <Route path="/openings" element={<OpeningsPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/companies/:id" element={<CompanyDetailPage />} />
+              <Route path="/people" element={<ContactsPage />} />
+              <Route path="/people/:id" element={<ContactDetailPage />} />
               <Route path="/notes" element={<NotesPage />} />
               <Route path="/settings" element={<SettingsPage />} />
               <Route path="*" element={<Navigate to="/dashboard" replace />} />

@@ -14,7 +14,7 @@
  * breadth, detail on request.
  */
 
-import type { JobApplicationView, JobOpeningView, Note, NoteTarget } from '@jobtrack/shared';
+import type { ContactView, JobApplicationView, JobOpeningView, Note, NoteTarget } from '@jobtrack/shared';
 
 /** Drop keys that carry nothing, so an unset field costs zero characters instead of six. */
 function compact<T extends object>(value: T): T {
@@ -149,5 +149,45 @@ export function openingSummary(opening: JobOpeningView): OpeningSummary {
     notesTruncated: truncated ? true : undefined,
     archived: opening.archived ? true : undefined,
     convertedApplicationId: opening.convertedApplicationId ?? undefined,
+  });
+}
+
+/** How much of the free-text notes about a person a list row carries. */
+export const CONTACT_ABOUT_PREVIEW_CHARS = 200;
+
+export interface ContactSummary {
+  id: string;
+  name: string;
+  company?: string;
+  headline?: string;
+  relationship: string;
+  email?: string;
+  linkedinUrl?: string;
+  about?: string;
+  reconnectOn?: string;
+  lastInteractionOn?: string;
+  interactionCount?: number;
+  archived?: boolean;
+}
+
+export function contactSummary(contact: ContactView): ContactSummary {
+  const about = contact.about ?? '';
+  return compact({
+    id: contact.id,
+    name: contact.name,
+    company: contact.companyName ?? undefined,
+    headline: contact.headline ?? undefined,
+    relationship: contact.relationship,
+    email: contact.email ?? undefined,
+    linkedinUrl: contact.linkedinUrl ?? undefined,
+    about: about
+      ? about.length > CONTACT_ABOUT_PREVIEW_CHARS
+        ? `${about.slice(0, CONTACT_ABOUT_PREVIEW_CHARS)}…`
+        : about
+      : undefined,
+    reconnectOn: contact.reconnectOn ?? undefined,
+    lastInteractionOn: contact.lastInteractionOn ?? undefined,
+    interactionCount: contact.interactionCount > 0 ? contact.interactionCount : undefined,
+    archived: contact.archived ? true : undefined,
   });
 }

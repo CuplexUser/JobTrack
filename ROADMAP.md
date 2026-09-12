@@ -164,3 +164,43 @@ What's left: `publish-all.ps1` and the workflow now encode the same package list
 two places. And the bundled-sources list is hand-maintained — if `apps/web` grows a
 dependency on something outside itself, that path has to be added to the tray's
 `bundles` entry by hand or the gate won't see it.
+
+## 10. Claude Desktop does the chores — ✅ done
+
+The MCP server grew from record keeping into workflows. `capture_posting` reads a posting
+from a link or pasted text through the same ingest path the web app uses; `get_agenda` (also
+`GET /api/agenda`) collects what is waiting today; `bulk_change_status` handles "mark these
+ghosted"; `find_duplicate_groups` exposes the duplicates sweep. Prompts script the routine
+work end to end: `weekly_review`, `triage_openings`, `log_email_update`,
+`prepare_application`, `interview_prep` and `draft_outreach`. Every prompt asks before
+changing anything, and there are still no delete tools.
+
+The MCP suite now runs a real MCP client against the server over an in-memory transport, so
+a tool whose schema cannot be advertised, or a result that breaks once serialized, fails CI.
+
+## 11. Networking — ✅ done
+
+People, conversations, reconnect dates and links to applications, plus an import of
+LinkedIn's own `Connections.csv` export. The duplicate check names who you know at a company
+before you apply. See [`docs/networking.md`](docs/networking.md), including why contacts
+reference employers by name rather than by company record.
+
+Worth doing next:
+
+- People on the Openings page, the way the application page shows them.
+- An email-address match, so a pasted recruiter email in `log_email_update` finds the person
+  as well as the application.
+
+## 12. Profile, fit ranking, rules and reminders
+
+Planned: a profile (CV text, preferred locations, work modes, salary floor, keywords) that
+ranks saved openings by fit using the local embedder; opt-in rules such as a default
+follow-up date and auto-ghosting after a long silence; and Windows tray notifications that
+poll the agenda.
+
+## 13. Automatic job feeds
+
+Planned: saved searches that poll public, terms-friendly sources (Arbetsförmedlingen's
+JobTech API, Greenhouse/Lever/Ashby boards for companies you watch) and drop new matches in
+as openings, deduplicated against what is already saved. No LinkedIn scraping, for the same
+reasons given in item 3.

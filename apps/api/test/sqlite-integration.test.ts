@@ -17,11 +17,20 @@ import type { RepoBundle } from '../src/db/repos.js';
 import {
   computePeriods,
   createApplication,
+  deleteApplication,
   getApplication,
   listApplications,
   patchApplication,
 } from '../src/services/applications.service.js';
 import { checkDuplicates } from '../src/services/duplicates.service.js';
+import {
+  commitLinkedInImport,
+  createContact,
+  getContact,
+  linkContact,
+  listContacts,
+  logInteraction,
+} from '../src/services/contacts.service.js';
 import { applicationFilterSchema } from '@jobtrack/shared';
 import { applicationInput } from './support/repos.js';
 
@@ -53,6 +62,56 @@ describe('against real SQLite', () => {
     await expect(repos.notes.count()).resolves.toBe(0);
     await expect(repos.statusEvents.count()).resolves.toBe(0);
     await expect(repos.searchVectors.count()).resolves.toBe(0);
+    await expect(repos.contacts.count()).resolves.toBe(0);
+    await expect(repos.interactions.count()).resolves.toBe(0);
+    await expect(repos.contactLinks.count()).resolves.toBe(0);
+  });
+
+  it('round-trips people, conversations and links through the renamed columns', async () => {
+    // The columns are `link_role`, `channel_name` and `summary_text`, kept clear of engine
+    // keywords; this proves the field-to-column mapping survives a real engine.
+    const application = await createApplication(repos, applicationInput({ companyName: 'Network Co', jobTitle: 'Role' }));
+    const contact = await createContact(repos, {
+      name: 'Real Person',
+      companyName: 'Network Co AB',
+      headline: 'Recruiter',
+      email: null,
+      phone: null,
+      linkedinUrl: null,
+      relationship: 'recruiter',
+      about: null,
+      reconnectOn: '2026-01-01',
+    });
+    await logInteraction(repos, contact.id, {
+      occurredOn: '2025-12-24',
+      channel: 'phone',
+      direction: 'inbound',
+      summary: 'Called about the role',
+      applicationId: application.id,
+    });
+    await linkContact(repos, contact.id, { targetType: 'application', targetId: application.id, role: 'recruiter' });
+
+    const detail = await getContact(repos, contact.id);
+    expect(detail).toMatchObject({ reconnectOn: '2026-01-01', lastInteractionOn: '2025-12-24' });
+    expect(detail!.interactions[0]).toMatchObject({ channel: 'phone', summary: 'Called about the role' });
+    expect(detail!.links[0]).toMatchObject({ role: 'recruiter', targetLabel: 'Role at Network Co' });
+    expect((await listContacts(repos, { company: 'network co' })).map((c) => c.name)).toEqual(['Real Person']);
+
+    // updateMany on a real engine: the conversation outlives the application, unpointed.
+    await deleteApplication(repos, application.id);
+    const after = await getContact(repos, contact.id);
+    expect(after!.links).toEqual([]);
+    expect(after!.interactions[0]!.applicationId).toBeNull();
+  });
+
+  it('imports a LinkedIn export in one transaction', async () => {
+    const csv = [
+      'First Name,Last Name,URL,Email Address,Company,Position,Connected On',
+      ...Array.from({ length: 1200 }, (_, i) => `Imported,Person${i},https://www.linkedin.com/in/imported-${i},,Batch Co,Engineer,01 Jan 2024`),
+    ].join('\n');
+    const result = await commitLinkedInImport(repos, csv);
+    expect(result.created).toBe(1200);
+    expect(await repos.contacts.count({ where: { companyKey: 'batch' } })).toBe(1200);
   });
 
   it('round-trips a calendar date without shifting it', async () => {

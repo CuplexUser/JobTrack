@@ -15,6 +15,7 @@ import {
   todayDateOnly,
   toPeriod,
   type ApplicationStatus,
+  type ContactView,
   type JobApplicationView,
   type StatusEvent,
 } from '@jobtrack/shared';
@@ -22,6 +23,7 @@ import type { Repos } from '../db/repos.js';
 import type { ApplicationRow, StatusEventRow } from '../db/schema.js';
 import { toStatus, toStatusEvent } from '../db/mappers.js';
 import { hydrateApplications } from '../db/hydrate.js';
+import { reconnectsDue } from './contacts.service.js';
 
 export interface DashboardStats {
   total: number;
@@ -68,6 +70,8 @@ export interface DashboardPayload {
   volume: VolumePoint[];
   /** Live applications nothing has happened to in a while, longest silence first. */
   stale: StaleApplication[];
+  /** People whose reconnect date has arrived, soonest first. */
+  reconnect: ContactView[];
 }
 
 /**
@@ -121,10 +125,11 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     byStatus,
   };
 
-  const [followUps, recentActivity, stale] = await Promise.all([
+  const [followUps, recentActivity, stale, reconnect] = await Promise.all([
     hydrateApplications(repos, dueFollowUpRows(applications, today)),
     recentEvents(repos),
     staleApplications(repos, applications, events, today),
+    reconnectsDue(repos),
   ]);
 
   return {
@@ -134,6 +139,7 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     funnel: buildFunnel(applications, events),
     volume: buildVolume(monthly, currentPeriod),
     stale,
+    reconnect,
   };
 }
 

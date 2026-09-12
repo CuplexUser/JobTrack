@@ -23,6 +23,7 @@ export const PROMPT_NAMES = [
   'log_email_update',
   'prepare_application',
   'interview_prep',
+  'draft_outreach',
 ] as const;
 
 export function registerPrompts(server: McpServer): void {
@@ -39,7 +40,8 @@ export function registerPrompts(server: McpServer): void {
 2. Follow-ups due: for each, tell me what it is and when I applied, and suggest a short follow-up message I could send. Ask whether to push the follow-up date out (update_application with a new followUpOn) or mark a response (change_application_status).
 3. Gone quiet: list them with how many days they have been silent. Suggest which look worth one more nudge and which to mark ghosted. Only after I confirm, call bulk_change_status for the ones I choose, with a comment saying why.
 4. Idle openings: list them oldest first and ask, for each, whether to apply now (convert_opening_to_application), keep it, or archive it (update_opening with archived: true).
-5. Finish with a short summary: applications this month, response rate, the funnel, and the one or two things most worth doing this week.
+5. Reconnect: for each person due, say who they are and when we last spoke, and suggest a short check-in message. After I say I have reached out, log it with log_interaction and set the next reconnectOn; if I want to skip someone, push their reconnectOn out with update_contact.
+6. Finish with a short summary: applications this month, response rate, the funnel, and the one or two things most worth doing this week.
 
 Keep it concise and do not change anything I have not agreed to.`),
   );
@@ -55,7 +57,7 @@ Keep it concise and do not change anything I have not agreed to.`),
 
 1. Call list_openings. For any opening whose notes were cut short, call get_opening when you need the full posting.
 2. For each opening, call check_duplicate with its company and title so you know whether I have applied there before and how that went (get_application on a prior match if it matters).
-3. Give me a table: company, title, location, how long it has been saved, prior history at the company, and your recommendation (apply / research first / archive) with a one-line reason.
+3. Give me a table: company, title, location, how long it has been saved, prior history at the company, who I know there (the contacts check_duplicate returns), and your recommendation (apply / research first / archive) with a one-line reason.
 4. Then ask me what to do. For the ones I want to apply to, call convert_opening_to_application. For the ones I want gone, call update_opening with archived: true. Do nothing without my go-ahead.`),
   );
 
@@ -113,5 +115,25 @@ ${email}
 2. Write a prep sheet: what the role is about, what they will likely probe given the posting, where my history at this company (earlier rounds, earlier rejections and their stated reasons) should shape my answers, and questions worth asking them.
 3. Suggest a few likely interview questions with a note on how to approach each.
 4. Offer to save the prep sheet as a note on the application (create_note), and to set followUpOn to the interview date if I tell you when it is.`),
+  );
+
+  server.registerPrompt(
+    'draft_outreach',
+    {
+      title: 'Reach out to someone you know',
+      description: 'Find the people you know at a company and draft a message asking for a referral or an introduction.',
+      argsSchema: {
+        target: z.string().describe('A company name, or the id of an opening or application'),
+      },
+    },
+    ({ target }) =>
+      userPrompt(`Help me reach out to someone I know about a job. The target is: ${target}
+
+1. If that looks like an id, call get_opening with it, and if there is no such opening, get_application. Otherwise treat it as a company name. Either way, work out the company and, when there is one, the role.
+2. Call list_contacts with company set to that employer. Also call check_duplicate for the company (and the role) so you know my history there.
+3. Show me who I know there: name, their job title, how I know them, and when we last spoke (get_contact for anyone whose history matters). Suggest who is best placed to help, and why. A recruiter or someone I have talked to recently usually beats a connection I have never spoken to.
+4. If I know nobody there, say so plainly and suggest how I might find a warm introduction instead (for example people at companies I know who used to work there). Do not invent contacts.
+5. Once I pick someone, draft a short, specific message for the channel I choose: who I am, the role, why them, and one clear ask. Keep it under 120 words and match how well we know each other.
+6. After I confirm I have sent it, call log_interaction (direction outbound, a one-line summary, reconnectOn about a week out), and if there is an opening or application, link_contact with role 'contact', or 'referral' if they agree to refer me.`),
   );
 }

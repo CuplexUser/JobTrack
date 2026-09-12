@@ -89,6 +89,13 @@ last one is what makes LinkedIn and Indeed work — they block servers, not the 
 are reading them in. All three land as a job opening, run the same duplicate check, and are
 written up in [`docs/capture.md`](docs/capture.md).
 
+**The people behind it.** A People page for your network: who works where, how you know
+them, every conversation you have logged, and a reconnect date that lands on the dashboard
+when it comes due. Link someone to an application as the person who referred you or
+interviewed you. The duplicate check names who you know at a company before you apply, even a
+company you have never applied to, and you can import your whole network from LinkedIn's own
+data export. See [`docs/networking.md`](docs/networking.md).
+
 **Everything else.** Applications divided by year and month, full status pipeline with a
 dated history, companies as first-class records, a free-form tag vocabulary attachable to
 both companies and applications, notes that link to either, CSV/Excel export and import, and
@@ -114,7 +121,7 @@ apps/tray/         background process + Windows tray icon, publishable as `jobtr
 apps/extension/    browser extension that clips a posting into an opening (not published)
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
-docs/              longer reference docs (web capture, npm publishing, ...)
+docs/              longer reference docs (web capture, networking, npm publishing, ...)
 ```
 
 npm workspaces — one `npm install` at the root covers everything.
@@ -336,6 +343,7 @@ an MCP client cannot destroy data, only add to or edit it. On top of the plain r
 | `bulk_change_status` | one status change across several applications ("mark these ghosted"), each with its own dated event |
 | `find_duplicate_groups` | the Duplicates page's sweep, read-only |
 | `list_openings` | now filterable by `q`, `location` and `source` |
+| `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `log_interaction`, `link_contact`, `list_linked_contacts` | the network: who works where, conversations, reconnect dates, and who played a part in which application (see [`docs/networking.md`](docs/networking.md)) |
 
 **Prompts** turn the routine chores into one click in the client's prompt menu. Each is a
 script telling the model which tools to call in which order, and none changes anything
@@ -348,6 +356,7 @@ without asking first:
 | `log_email_update` | takes a pasted employer email, finds the application and records the status change, date and notes |
 | `prepare_application` | gathers an opening's posting and company history and drafts a cover letter, saved as a note |
 | `interview_prep` | builds a prep sheet from an application, its history and your notes |
+| `draft_outreach` | finds who you know at a company, suggests who can help, drafts a referral or intro request, and logs it once sent |
 
 ```bash
 npm run mcp   # runs it directly, for manual testing (e.g. with @modelcontextprotocol/inspector)

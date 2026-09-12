@@ -9,8 +9,10 @@
 import { Alert, Space, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
 import {
+  RELATIONSHIP_LABELS,
   STATUS_COLORS,
   STATUS_LABELS,
+  type ContactView,
   type DuplicateMatch,
   type DuplicateVerdict,
 } from '@jobtrack/shared';
@@ -35,13 +37,20 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
   }
   if (!check) return null;
 
+  const people = check.contacts ?? [];
+
   if (check.verdict === 'none') {
     return (
       <Alert
         type="success"
         showIcon
         message="No history with this company"
-        description="This looks like a company you haven't applied to before."
+        description={
+          <Space direction="vertical" size={6} style={{ width: '100%' }}>
+            <span>This looks like a company you haven't applied to before.</span>
+            <KnownPeople people={people} />
+          </Space>
+        }
         style={{ marginBottom: 16 }}
       />
     );
@@ -64,6 +73,7 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
               None of them were for this role, but it is worth a look before you apply again.
             </Typography.Text>
           )}
+          <KnownPeople people={people} />
           {!check.semanticUsed && check.matches.length > 0 && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               Matched on wording only. Semantic matching is still warming up.
@@ -72,6 +82,29 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
         </Space>
       }
     />
+  );
+}
+
+/**
+ * "You know 2 people here": the most useful thing to learn before applying, since a referral
+ * does more than a cold application. Shows the closest few; the rest are on the company page.
+ */
+function KnownPeople({ people }: { people: ContactView[] }) {
+  if (people.length === 0) return null;
+  const shown = people.slice(0, 3);
+  return (
+    <Space direction="vertical" size={2}>
+      <Typography.Text strong>
+        You know {people.length === 1 ? '1 person' : `${people.length} people`} here. Worth asking for a referral?
+      </Typography.Text>
+      {shown.map((person) => (
+        <Space key={person.id} size={8} wrap>
+          <Link to={`/people/${person.id}`}>{person.name}</Link>
+          {person.headline && <Typography.Text type="secondary">{person.headline}</Typography.Text>}
+          <Tag>{RELATIONSHIP_LABELS[person.relationship]}</Tag>
+        </Space>
+      ))}
+    </Space>
   );
 }
 

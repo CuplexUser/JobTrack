@@ -31,6 +31,7 @@ import { toNote, toStatusEvent } from '../db/mappers.js';
 import { hydrateApplication, hydrateApplications } from '../db/hydrate.js';
 import { resolveCompany, escapeLike } from './companies.service.js';
 import { applyTagNames, applicationIdsWithAllTags } from './tags.service.js';
+import { detachTarget } from './contacts.service.js';
 
 export interface LocationOption {
   /** The most common spelling among the applications grouped under this location. */
@@ -525,6 +526,7 @@ export async function deleteApplication(repos: Repos, id: string): Promise<boole
     await scoped.notes.deleteMany({ where: { targetType: 'application', targetId: id } });
     await scoped.statusEvents.deleteMany({ where: { applicationId: id } });
     await scoped.searchVectors.deleteMany({ where: { targetType: 'application', targetId: id } });
+    await detachTarget(scoped, 'application', id);
     await scoped.applications.delete(id);
   });
 

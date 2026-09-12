@@ -47,6 +47,9 @@ const TABLE_LABELS: Record<string, string> = {
   notes: 'Notes',
   statusEvents: 'Status events',
   jobOpenings: 'Job openings',
+  contacts: 'People',
+  interactions: 'Interactions',
+  contactLinks: 'People links',
 };
 
 function CountList({ counts }: { counts: Record<string, number> }) {

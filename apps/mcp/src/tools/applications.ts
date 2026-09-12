@@ -27,7 +27,7 @@ import {
 import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/duplicates';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
-import { applicationSummary } from '../views.js';
+import { applicationSummary, contactSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
 
@@ -74,10 +74,13 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'check_duplicate',
     {
       description:
-        "Check whether an application already exists for a company/title before creating a new one. Always call this before create_application unless you already know the answer. An 'exact' verdict means it almost certainly already exists.",
+        "Check whether an application already exists for a company/title before creating a new one. Always call this before create_application unless you already know the answer. An 'exact' verdict means it almost certainly already exists. Also lists up to 10 people the user knows at that employer (`contacts`, closest first), even for a company they have never applied to: worth mentioning, since a referral beats a cold application.",
       inputSchema: duplicateCheckSchema,
     },
-    async (input) => jsonResult(await checkDuplicates(repos, search, input)),
+    async (input) => {
+      const result = await checkDuplicates(repos, search, input);
+      return jsonResult({ ...result, contacts: result.contacts.map(contactSummary) });
+    },
   );
 
   server.registerTool(

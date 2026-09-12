@@ -1,5 +1,5 @@
 /**
- * The seven tables, described with repolayer's schema descriptor.
+ * Every table, described with repolayer's schema descriptor.
  *
  * Two conventions run through all of them:
  *
@@ -145,7 +145,60 @@ export const jobOpeningSchema = defineSchema({
   ...timestampFields,
 });
 
+/**
+ * A person in the user's network.
+ *
+ * `companyKey` is `companyKey(companyName)`, stored rather than linking to a company row: a
+ * LinkedIn import brings in hundreds of employers the user will never apply to, and the key
+ * finds "who do I know here" against a company that exists now or is created later.
+ */
+export const contactSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  name: { type: 'string' },
+  nameKey: { type: 'string', column: 'name_key' },
+  companyName: { type: 'string', nullable: true, column: 'company_name' },
+  companyKey: { type: 'string', nullable: true, column: 'company_key' },
+  headline: { type: 'string', nullable: true },
+  email: { type: 'string', nullable: true },
+  phone: { type: 'string', nullable: true },
+  linkedinUrl: { type: 'string', nullable: true, column: 'linkedin_url' },
+  relationship: { type: 'string' },
+  about: { type: 'string', nullable: true },
+  reconnectOn: { type: 'date', nullable: true, column: 'reconnect_on' },
+  connectedOn: { type: 'date', nullable: true, column: 'connected_on' },
+  archived: { type: 'boolean' },
+  ...timestampFields,
+});
+
+/** A dated conversation with a contact. Column names are suffixed to stay clear of engine keywords. */
+export const interactionSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  contactId: { type: 'string', column: 'contact_id' },
+  occurredOn: { type: 'date', column: 'occurred_on' },
+  channel: { type: 'string', column: 'channel_name' },
+  direction: { type: 'string' },
+  summary: { type: 'string', column: 'summary_text' },
+  applicationId: { type: 'string', nullable: true, column: 'application_id' },
+  ...timestampFields,
+});
+
+/**
+ * A contact's part in one application or opening. Polymorphic like `tag_links`. The field is
+ * `role`, but the column is `link_role`: ROLE is a keyword on Postgres and MySQL.
+ */
+export const contactLinkSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  contactId: { type: 'string', column: 'contact_id' },
+  targetType: { type: 'string', column: 'target_type' },
+  targetId: { type: 'string', column: 'target_id' },
+  role: { type: 'string', column: 'link_role' },
+  ...timestampFields,
+});
+
 export type CompanyRow = Infer<typeof companySchema>;
+export type ContactRow = Infer<typeof contactSchema>;
+export type InteractionRow = Infer<typeof interactionSchema>;
+export type ContactLinkRow = Infer<typeof contactLinkSchema>;
 export type ApplicationRow = Infer<typeof applicationSchema>;
 export type TagRow = Infer<typeof tagSchema>;
 export type TagLinkRow = Infer<typeof tagLinkSchema>;

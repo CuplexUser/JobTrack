@@ -10,16 +10,28 @@
 
 import {
   APPLICATION_STATUSES,
+  CHANNELS,
+  CONTACT_LINK_TARGETS,
+  CONTACT_ROLES,
+  DIRECTIONS,
   NOTE_TARGETS,
+  RELATIONSHIPS,
   TAG_SCOPES,
   WORK_MODES,
   formatDateOnly,
   type ApplicationStatus,
+  type Channel,
   type Company,
+  type Contact,
+  type ContactLinkTarget,
+  type ContactRole,
+  type Direction,
+  type Interaction,
   type JobApplication,
   type JobOpening,
   type Note,
   type NoteTarget,
+  type Relationship,
   type StatusEvent,
   type Tag,
   type TagScope,
@@ -29,6 +41,8 @@ import {
 import type {
   ApplicationRow,
   CompanyRow,
+  ContactRow,
+  InteractionRow,
   JobOpeningRow,
   NoteRow,
   StatusEventRow,
@@ -50,6 +64,12 @@ export const toStatus = (raw: string): ApplicationStatus =>
 export const toWorkMode = (raw: string): WorkMode => oneOf(WORK_MODES, raw, 'unspecified');
 export const toNoteTarget = (raw: string): NoteTarget => oneOf(NOTE_TARGETS, raw, 'standalone');
 export const toTagScope = (raw: string): TagScope => oneOf(TAG_SCOPES, raw, 'both');
+export const toRelationship = (raw: string): Relationship => oneOf(RELATIONSHIPS, raw, 'other');
+export const toChannel = (raw: string): Channel => oneOf(CHANNELS, raw, 'other');
+export const toDirection = (raw: string): Direction => oneOf(DIRECTIONS, raw, 'outbound');
+export const toContactLinkTarget = (raw: string): ContactLinkTarget =>
+  oneOf(CONTACT_LINK_TARGETS, raw, 'application');
+export const toContactRole = (raw: string): ContactRole => oneOf(CONTACT_ROLES, raw, 'contact');
 
 const dateOnly = (value: Date): string => formatDateOnly(value);
 const iso = (value: Date): string => value.toISOString();
@@ -145,6 +165,40 @@ export function toStatusEvent(row: StatusEventRow): StatusEvent {
     // `comment_text` in the database only because `comment` is too close to a reserved
     // word to risk on an engine repolayer never quotes identifiers for.
     comment: row.commentText,
+    createdAt: iso(row.createdAt),
+  };
+}
+
+export function toContact(row: ContactRow): Contact {
+  return {
+    id: row.id,
+    name: row.name,
+    nameKey: row.nameKey,
+    companyName: row.companyName,
+    companyKey: row.companyKey,
+    headline: row.headline,
+    email: row.email,
+    phone: row.phone,
+    linkedinUrl: row.linkedinUrl,
+    relationship: toRelationship(row.relationship),
+    about: row.about,
+    reconnectOn: row.reconnectOn ? dateOnly(row.reconnectOn) : null,
+    connectedOn: row.connectedOn ? dateOnly(row.connectedOn) : null,
+    archived: row.archived,
+    createdAt: iso(row.createdAt),
+    updatedAt: iso(row.updatedAt),
+  };
+}
+
+export function toInteraction(row: InteractionRow): Interaction {
+  return {
+    id: row.id,
+    contactId: row.contactId,
+    occurredOn: dateOnly(row.occurredOn),
+    channel: toChannel(row.channel),
+    direction: toDirection(row.direction),
+    summary: row.summary,
+    applicationId: row.applicationId,
     createdAt: iso(row.createdAt),
   };
 }

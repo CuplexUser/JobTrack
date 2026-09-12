@@ -27,7 +27,7 @@ import {
 import type { Repos } from '../db/repos.js';
 import type { Embedder } from './embedder.js';
 
-export type DocType = 'application' | 'company' | 'note';
+export type DocType = 'application' | 'company' | 'note' | 'contact';
 
 export interface SearchDoc {
   /** `${type}:${entityId}` — unique across types, which is what MiniSearch indexes on. */
@@ -183,12 +183,14 @@ export class SearchIndex {
    * what lets "remote fintech" find an application whose own row says neither.
    */
   async #composeDocs(): Promise<SearchDoc[]> {
-    const [applications, companies, notes, tagLinks, tags] = await Promise.all([
+    const [applications, companies, notes, tagLinks, tags, contacts, interactions] = await Promise.all([
       this.#repos.applications.findMany({}),
       this.#repos.companies.findMany({}),
       this.#repos.notes.findMany({}),
       this.#repos.tagLinks.findMany({}),
       this.#repos.tags.findMany({}),
+      this.#repos.contacts.findMany({ where: { archived: false } }),
+      this.#repos.interactions.findMany({}),
     ]);
 
     const companyById = new Map(companies.map((c) => [c.id, c]));
@@ -250,6 +252,39 @@ export class SearchIndex {
         tags: tagNames.join(' '),
         body,
         text: [company.name, company.location ?? '', tagNames.join(' '), body]
+          .filter(Boolean)
+          .join(' — '),
+      });
+    }
+
+    // A person is found by who they are and what was said: "recruiter fintech" should reach the
+    // recruiter at Klarna whose conversations mention the payments team.
+    const summariesByContact = new Map<string, string[]>();
+    for (const interaction of interactions) {
+      const list = summariesByContact.get(interaction.contactId) ?? [];
+      list.push(interaction.summary);
+      summariesByContact.set(interaction.contactId, list);
+    }
+    for (const contact of contacts) {
+      const body = [contact.headline, contact.about, ...(summariesByContact.get(contact.id) ?? [])]
+        .filter(Boolean)
+        .join(' ');
+      docs.push({
+        id: `contact:${contact.id}`,
+        type: 'contact',
+        entityId: contact.id,
+        title: contact.name,
+        company: contact.companyName ?? '',
+        location: '',
+        tags: contact.relationship,
+        body,
+        text: [
+          contact.name,
+          contact.headline ?? '',
+          contact.companyName ? `at ${contact.companyName}` : '',
+          contact.relationship.replace('_', ' '),
+          body,
+        ]
           .filter(Boolean)
           .join(' — '),
       });

@@ -16,8 +16,10 @@ delete tools**, so an MCP client can only add to or edit data, never destroy it.
 Beyond the plain records it can capture a posting from a link or pasted text
 (`capture_posting`), list what is waiting on you today (`get_agenda`), change several
 statuses at once (`bulk_change_status`) and sweep for duplicates (`find_duplicate_groups`).
-It also ships prompts for the routine chores: `weekly_review`, `triage_openings`,
-`log_email_update`, `prepare_application` and `interview_prep`.
+It keeps track of your network too (`list_contacts`, `log_interaction`, `link_contact` and
+friends), and `check_duplicate` names who you know at a company. It also ships prompts for
+the routine chores: `weekly_review`, `triage_openings`, `log_email_update`,
+`prepare_application`, `interview_prep` and `draft_outreach`.
 
 ## Install
 

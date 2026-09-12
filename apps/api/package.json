@@ -39,6 +39,8 @@
     "./search": "./src/search/index.ts",
     "./search/embedder": "./src/search/embedder.ts",
     "./search/transformers-embedder": "./src/search/transformers-embedder.ts",
+    "./search/results": "./src/search/results.ts",
+    "./services/contacts": "./src/services/contacts.service.ts",
     "./backup/snapshot": "./src/backup/snapshot.ts",
     "./backup/seed": "./src/backup/seed.ts",
     "./import/csv": "./src/import/csv.ts",
@@ -54,7 +56,7 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@huggingface/transformers": "^4.2.0",
-    "@jobtrack/shared": "^1.0.5",
+    "@jobtrack/shared": "^1.1.0",
     "exceljs": "^3.4.0",
     "fastify": "^5.12.1",
     "minisearch": "^7.2.0",

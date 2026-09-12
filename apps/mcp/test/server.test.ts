@@ -22,6 +22,7 @@ import { registerSearchTool } from '../src/tools/search.js';
 import { registerDashboardTool } from '../src/tools/dashboard.js';
 import { registerAgendaTool } from '../src/tools/agenda.js';
 import { registerCaptureTool } from '../src/tools/capture.js';
+import { registerContactTools } from '../src/tools/contacts.js';
 import { PROMPT_NAMES, registerPrompts } from '../src/prompts.js';
 
 let deps: Deps;
@@ -39,6 +40,7 @@ beforeEach(async () => {
   registerDashboardTool(server, deps);
   registerAgendaTool(server, deps);
   registerCaptureTool(server, deps);
+  registerContactTools(server, deps);
   registerPrompts(server);
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -82,7 +84,20 @@ describe('discovery', () => {
   it('advertises the new tools alongside the existing ones', async () => {
     const { tools } = await client.listTools();
     const names = tools.map((tool) => tool.name);
-    for (const name of ['capture_posting', 'get_agenda', 'bulk_change_status', 'find_duplicate_groups', 'list_openings']) {
+    for (const name of [
+      'capture_posting',
+      'get_agenda',
+      'bulk_change_status',
+      'find_duplicate_groups',
+      'list_openings',
+      'list_contacts',
+      'get_contact',
+      'create_contact',
+      'update_contact',
+      'log_interaction',
+      'link_contact',
+      'list_linked_contacts',
+    ]) {
       expect(names).toContain(name);
     }
   });
@@ -163,5 +178,69 @@ describe('find_duplicate_groups', () => {
     expect(body.groups).toHaveLength(1);
     expect(body.groups[0].kind).toBe('exact');
     expect(body.groups[0].members[0]).not.toHaveProperty('titleKey');
+  });
+});
+
+describe('people', () => {
+  it('adds a person, finds them by employer, and names them in a duplicate check', async () => {
+    const created = await call('create_contact', { name: 'Lina Ahmadi', companyName: 'Klarna AB', relationship: 'recruiter' });
+    expect(created.body).toMatchObject({ name: 'Lina Ahmadi', company: 'Klarna AB', relationship: 'recruiter' });
+
+    const listed = await call('list_contacts', { company: 'klarna' });
+    expect(listed.body.map((c: { name: string }) => c.name)).toEqual(['Lina Ahmadi']);
+
+    const check = await call('check_duplicate', { company: 'Klarna', title: 'Platform Engineer' });
+    expect(check.body.contacts).toEqual([expect.objectContaining({ name: 'Lina Ahmadi' })]);
+    expect(check.body.contacts[0]).not.toHaveProperty('nameKey');
+  });
+
+  it('logs a conversation, links the person, and puts them on the agenda when due', async () => {
+    const application = await createApplication(deps.repos, applicationInput({ companyName: 'Klarna' }));
+    const { body: contact } = await call('create_contact', { name: 'Johan Berg', companyName: 'Klarna' });
+
+    const logged = await call('log_interaction', {
+      contactId: contact.id,
+      interaction: { summary: 'Asked for a referral', channel: 'email', reconnectOn: daysAgo(1) },
+    });
+    expect(logged.isError).toBe(false);
+
+    const linked = await call('link_contact', {
+      contactId: contact.id,
+      link: { targetType: 'application', targetId: application.id, role: 'referral' },
+    });
+    expect(linked.body).toMatchObject({ role: 'referral' });
+
+    const people = await call('list_linked_contacts', { targetType: 'application', targetId: application.id });
+    expect(people.body[0]).toMatchObject({ name: 'Johan Berg', role: 'referral' });
+
+    const agenda = await call('get_agenda');
+    expect(agenda.body.reconnect.map((c: { name: string }) => c.name)).toEqual(['Johan Berg']);
+
+    const detail = await call('get_contact', { id: contact.id });
+    expect(detail.body.interactions[0].summary).toBe('Asked for a referral');
+  });
+
+  it('reports a bad link as an error result rather than failing the call', async () => {
+    const { body: contact } = await call('create_contact', { name: 'Someone' });
+    const result = await call('link_contact', {
+      contactId: contact.id,
+      link: { targetType: 'opening', targetId: '00000000-0000-4000-8000-000000000000' },
+    });
+    expect(result.isError).toBe(true);
+    expect(result.body).toMatch(/No such opening/);
+  });
+
+  it('finds people through search_jobtrack', async () => {
+    await call('create_contact', { name: 'Sara Nystrom', companyName: 'Anthropic', headline: 'Staff Engineer' });
+    await deps.search.rebuild();
+    const { body } = await call('search_jobtrack', { q: 'Sara Nystrom', types: ['contact'] });
+    expect(body.results[0]).toMatchObject({ type: 'contact', record: { name: 'Sara Nystrom' } });
+  });
+
+  it('renders the outreach prompt with its target', async () => {
+    const rendered = await client.getPrompt({ name: 'draft_outreach', arguments: { target: 'Spotify' } });
+    const message = rendered.messages[0]!.content as { type: string; text: string };
+    expect(message.text).toContain('Spotify');
+    expect(message.text).toContain('list_contacts');
   });
 });

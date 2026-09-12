@@ -6,8 +6,13 @@
 import { z } from 'zod';
 import {
   APPLICATION_STATUSES,
+  CHANNELS,
+  CONTACT_LINK_TARGETS,
+  CONTACT_ROLES,
+  DIRECTIONS,
   WORK_MODES,
   NOTE_TARGETS,
+  RELATIONSHIPS,
   TAG_SCOPES,
   LINK_TARGETS,
 } from './types.js';
@@ -223,7 +228,7 @@ export const duplicateCheckSchema = z.object({
 export const searchQuerySchema = z.object({
   q: z.string().trim().min(1).max(300),
   limit: z.coerce.number().int().min(1).max(100).default(25),
-  types: csvArray(z.enum(['application', 'company', 'note'])),
+  types: csvArray(z.enum(['application', 'company', 'note', 'contact'])),
 });
 
 export const exportQuerySchema = applicationFilterSchema.extend({
@@ -396,6 +401,86 @@ export const postingDraftSchema = z
 /** Which configured database target to make active. */
 export const switchDbTargetSchema = z.object({
   target: z.string().min(1),
+});
+
+// ---------------------------------------------------------------- networking
+
+export const relationshipSchema = z.enum(RELATIONSHIPS);
+export const channelSchema = z.enum(CHANNELS);
+export const directionSchema = z.enum(DIRECTIONS);
+export const contactLinkTargetSchema = z.enum(CONTACT_LINK_TARGETS);
+export const contactRoleSchema = z.enum(CONTACT_ROLES);
+
+/**
+ * A person in the network. Only the name is required: a contact is often a name and an
+ * employer scribbled down after an event, filled in later.
+ */
+export const createContactSchema = z.object({
+  name: z.string().trim().min(1, 'Name is required').max(200),
+  companyName: optionalTrimmed(200),
+  headline: optionalTrimmed(300),
+  email: optionalTrimmed(320),
+  phone: optionalTrimmed(60),
+  linkedinUrl: optionalTrimmed(2000),
+  relationship: relationshipSchema.default('connection'),
+  about: optionalTrimmed(20000),
+  reconnectOn: dateOnly.nullish().transform((v) => v ?? null),
+});
+
+export const patchContactSchema = z
+  .object({
+    name: z.string().trim().min(1).max(200).optional(),
+    companyName: optionalTrimmed(200).optional(),
+    headline: optionalTrimmed(300).optional(),
+    email: optionalTrimmed(320).optional(),
+    phone: optionalTrimmed(60).optional(),
+    linkedinUrl: optionalTrimmed(2000).optional(),
+    relationship: relationshipSchema.optional(),
+    about: optionalTrimmed(20000).optional(),
+    reconnectOn: dateOnly.nullish(),
+    archived: z.boolean().optional(),
+  })
+  .refine((v) => Object.keys(v).length > 0, { message: 'Nothing to update' });
+
+export const contactFilterSchema = z.object({
+  /** Words that must all appear in the name, company, headline or notes about them. */
+  q: z.string().trim().max(300).optional(),
+  /** Everyone at this employer, matched by company key, so "Spotify AB" finds "Spotify". */
+  company: z.string().trim().max(200).optional(),
+  relationship: csvArray(relationshipSchema),
+  /** Only contacts whose reconnect date has arrived. */
+  reconnectDue: booleanish,
+  includeArchived: booleanish,
+  limit: z.coerce.number().int().min(1).max(5000).default(500),
+});
+
+export type ContactFilter = z.output<typeof contactFilterSchema>;
+
+/**
+ * Logging a conversation. `reconnectOn` is optional and moves the contact's reminder in the
+ * same step (null clears it), since "talked to her, check back in a month" is one thought.
+ */
+export const createInteractionSchema = z.object({
+  occurredOn: dateOnly.optional(),
+  channel: channelSchema.default('linkedin'),
+  direction: directionSchema.default('outbound'),
+  summary: z.string().trim().min(1, 'Say what happened').max(5000),
+  applicationId: z
+    .uuid()
+    .nullish()
+    .transform((v) => v ?? null),
+  reconnectOn: dateOnly.nullish(),
+});
+
+export const linkContactSchema = z.object({
+  targetType: contactLinkTargetSchema,
+  targetId: z.uuid(),
+  role: contactRoleSchema.default('contact'),
+});
+
+/** LinkedIn's `Connections.csv`, sent as text so the browser and the API parse the same bytes. */
+export const linkedInImportSchema = z.object({
+  csv: z.string().min(1).max(20_000_000),
 });
 
 export type CreateApplicationInput = z.input<typeof createApplicationSchema>;

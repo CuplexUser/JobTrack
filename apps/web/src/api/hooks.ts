@@ -32,6 +32,9 @@ export const keys = {
   duplicateGroups: () => ['duplicates', 'groups'] as const,
   search: (q: string) => ['search', q] as const,
   openings: (params: unknown) => ['openings', params] as const,
+  contacts: (params: unknown) => ['contacts', params] as const,
+  contact: (id: string) => ['contact', id] as const,
+  linkedContacts: (targetType: string, targetId: string) => ['contacts', 'linked', targetType, targetId] as const,
   opening: (id: string) => ['opening', id] as const,
   dbTargets: () => ['db-targets'] as const,
   dataStatus: () => ['data-status'] as const,
@@ -325,4 +328,86 @@ export function useSeedDatabase() {
  */
 export function useMeta() {
   return useQuery({ queryKey: keys.meta(), queryFn: () => api.getMeta(), staleTime: Infinity });
+}
+
+export function useContacts(params: Record<string, unknown> = {}) {
+  return useQuery({
+    queryKey: keys.contacts(params),
+    queryFn: () => api.listContacts(params),
+    placeholderData: (previous) => previous, // keep the table steady while filters change
+  });
+}
+
+export function useContact(id: string | undefined) {
+  return useQuery({
+    queryKey: keys.contact(id ?? ''),
+    queryFn: () => api.getContact(id!),
+    enabled: Boolean(id),
+  });
+}
+
+/** People everywhere they appear: the people pages, the dashboard, and duplicate checks. */
+function invalidatePeople(client: QueryClient): void {
+  void client.invalidateQueries({ queryKey: ['contacts'] });
+  void client.invalidateQueries({ queryKey: ['contact'] });
+  void client.invalidateQueries({ queryKey: ['dashboard'] });
+  void client.invalidateQueries({ queryKey: ['duplicates'] });
+  void client.invalidateQueries({ queryKey: ['search'] });
+}
+
+export function useLinkedContacts(targetType: 'application' | 'opening', targetId: string | undefined) {
+  return useQuery({
+    queryKey: keys.linkedContacts(targetType, targetId ?? ''),
+    queryFn: () => api.linkedContacts(targetType, targetId!),
+    enabled: Boolean(targetId),
+  });
+}
+
+export function useSaveContact() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, body }: { id?: string; body: unknown }) =>
+      id ? api.updateContact(id, body) : api.createContact(body),
+    onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useDeleteContact() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteContact(id),
+    onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useLogInteraction() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, body }: { contactId: string; body: unknown }) => api.logInteraction(contactId, body),
+    onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useDeleteInteraction() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.deleteInteraction(id),
+    onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useLinkContact() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: ({ contactId, body }: { contactId: string; body: unknown }) => api.linkContact(contactId, body),
+    onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useUnlinkContact() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (linkId: string) => api.unlinkContact(linkId),
+    onSuccess: () => invalidatePeople(client),
+  });
 }

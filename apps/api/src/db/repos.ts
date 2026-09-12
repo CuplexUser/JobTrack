@@ -16,6 +16,9 @@ import type { Repo, TxContext } from 'repolayer';
 import type {
   ApplicationRow,
   CompanyRow,
+  ContactLinkRow,
+  ContactRow,
+  InteractionRow,
   JobOpeningRow,
   NoteRow,
   SearchVectorRow,
@@ -33,6 +36,9 @@ export interface Repos {
   statusEvents: Repo<StatusEventRow>;
   searchVectors: Repo<SearchVectorRow>;
   jobOpenings: Repo<JobOpeningRow>;
+  contacts: Repo<ContactRow>;
+  interactions: Repo<InteractionRow>;
+  contactLinks: Repo<ContactLinkRow>;
 }
 
 export interface RepoBundle extends Repos {
@@ -59,5 +65,8 @@ export function scopedRepos(repos: Repos, ctx: TxContext | undefined): Repos {
     statusEvents: repos.statusEvents.with(ctx),
     searchVectors: repos.searchVectors.with(ctx),
     jobOpenings: repos.jobOpenings.with(ctx),
+    contacts: repos.contacts.with(ctx),
+    interactions: repos.interactions.with(ctx),
+    contactLinks: repos.contactLinks.with(ctx),
   };
 }

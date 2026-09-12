@@ -19,6 +19,7 @@ import {
   titleKey,
   formatDateOnly,
   type Company,
+  type ContactView,
   type DuplicateCheck,
   type DuplicateMatch,
   type JobApplicationView,
@@ -28,6 +29,29 @@ import type { Repos } from '../db/repos.js';
 import { toCompany, toStatus } from '../db/mappers.js';
 import { findAllMatching } from './applications.service.js';
 import { findCompanyByName } from './companies.service.js';
+import { contactsAtCompany } from './contacts.service.js';
+
+/** How many people at the company a check reports. The rest are on the company page. */
+export const CONTACTS_IN_CHECK = 10;
+
+/**
+ * People worth mentioning first: a recruiter or someone who could refer you beats a
+ * connection accepted years ago, and someone you actually talk to beats someone you don't.
+ */
+function closestFirst(a: ContactView, b: ContactView): number {
+  const weight = (contact: ContactView) => (contact.relationship === 'connection' ? 1 : 0);
+  return (
+    weight(a) - weight(b) ||
+    (b.lastInteractionOn ?? '').localeCompare(a.lastInteractionOn ?? '') ||
+    a.name.localeCompare(b.name)
+  );
+}
+
+/** The people the user knows at a company, closest first, capped for a result that travels. */
+export async function knownContacts(repos: Repos, companyName: string): Promise<ContactView[]> {
+  const contacts = await contactsAtCompany(repos, companyName);
+  return contacts.sort(closestFirst).slice(0, CONTACTS_IN_CHECK);
+}
 import type { SearchIndex } from '../search/index.js';
 
 export interface DuplicateCheckResult extends DuplicateCheck {
@@ -35,6 +59,11 @@ export interface DuplicateCheckResult extends DuplicateCheck {
   company: Company | null;
   /** False when the model was not ready, so matching used text similarity alone. */
   semanticUsed: boolean;
+  /**
+   * People the user knows at this employer, closest first. Present even when the company is
+   * new to JobTrack, since knowing someone there matters most before a first application.
+   */
+  contacts: ContactView[];
 }
 
 export async function checkDuplicates(
@@ -42,7 +71,10 @@ export async function checkDuplicates(
   search: SearchIndex | null,
   input: { company: string; title: string; excludeId?: string },
 ): Promise<DuplicateCheckResult> {
-  const companyRow = await findCompanyByName(repos, input.company);
+  const [companyRow, contacts] = await Promise.all([
+    findCompanyByName(repos, input.company),
+    knownContacts(repos, input.company),
+  ]);
 
   if (!companyRow) {
     return {
@@ -52,6 +84,7 @@ export async function checkDuplicates(
       priorCount: 0,
       company: null,
       semanticUsed: false,
+      contacts,
     };
   }
 
@@ -86,7 +119,7 @@ export async function checkDuplicates(
 
   const check = evaluateDuplicates(input.title, priors);
 
-  return { ...check, company: toCompany(companyRow), semanticUsed };
+  return { ...check, company: toCompany(companyRow), semanticUsed, contacts };
 }
 
 /** One cluster of records that look like the same application, ready to act on. */

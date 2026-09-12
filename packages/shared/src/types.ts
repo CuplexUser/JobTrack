@@ -205,3 +205,128 @@ export interface JobOpening {
 export interface JobOpeningView extends JobOpening {
   company: Company;
 }
+
+// ---------------------------------------------------------------- networking
+
+/** How the user knows someone. `connection` is the default for an imported LinkedIn contact. */
+export const RELATIONSHIPS = [
+  'connection',
+  'recruiter',
+  'hiring_manager',
+  'referrer',
+  'colleague',
+  'alumni',
+  'other',
+] as const;
+export type Relationship = (typeof RELATIONSHIPS)[number];
+
+export const RELATIONSHIP_LABELS: Record<Relationship, string> = {
+  connection: 'Connection',
+  recruiter: 'Recruiter',
+  hiring_manager: 'Hiring manager',
+  referrer: 'Referrer',
+  colleague: 'Former colleague',
+  alumni: 'Alumni',
+  other: 'Other',
+};
+
+/** How a conversation with a contact happened. */
+export const CHANNELS = ['linkedin', 'email', 'phone', 'meeting', 'event', 'other'] as const;
+export type Channel = (typeof CHANNELS)[number];
+
+export const CHANNEL_LABELS: Record<Channel, string> = {
+  linkedin: 'LinkedIn',
+  email: 'Email',
+  phone: 'Phone',
+  meeting: 'Meeting',
+  event: 'Event',
+  other: 'Other',
+};
+
+/** Who reached out: the user (`outbound`) or the contact (`inbound`). */
+export const DIRECTIONS = ['outbound', 'inbound'] as const;
+export type Direction = (typeof DIRECTIONS)[number];
+
+/** What a contact can be linked to besides their employer. */
+export const CONTACT_LINK_TARGETS = ['application', 'opening'] as const;
+export type ContactLinkTarget = (typeof CONTACT_LINK_TARGETS)[number];
+
+/** The part a contact played in an application or opening. */
+export const CONTACT_ROLES = ['referral', 'recruiter', 'interviewer', 'contact'] as const;
+export type ContactRole = (typeof CONTACT_ROLES)[number];
+
+export const CONTACT_ROLE_LABELS: Record<ContactRole, string> = {
+  referral: 'Referred me',
+  recruiter: 'Recruiter',
+  interviewer: 'Interviewer',
+  contact: 'Contact',
+};
+
+/**
+ * A person in the user's network.
+ *
+ * The employer is kept as a name plus its `companyKey`, not as a link to a company row. An
+ * imported network spans hundreds of employers the user will never apply to, and creating a
+ * company for each would bury the ones that matter. Matching on the key still finds "people
+ * I know at Spotify" the moment Spotify becomes a company, whichever side came first.
+ */
+export interface Contact {
+  id: string;
+  name: string;
+  nameKey: string;
+  companyName: string | null;
+  companyKey: string | null;
+  /** Their job title, as they describe it. */
+  headline: string | null;
+  email: string | null;
+  phone: string | null;
+  linkedinUrl: string | null;
+  relationship: Relationship;
+  about: string | null;
+  /** When the user wants to get back in touch. Surfaces in the agenda once it arrives. */
+  reconnectOn: string | null;
+  /** When the connection was made, as LinkedIn reports it. */
+  connectedOn: string | null;
+  archived: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+/** A contact with the figures a list needs. */
+export interface ContactView extends Contact {
+  lastInteractionOn: string | null;
+  interactionCount: number;
+}
+
+export interface Interaction {
+  id: string;
+  contactId: string;
+  occurredOn: string;
+  channel: Channel;
+  direction: Direction;
+  summary: string;
+  /** The application the conversation was about, when it was about one. */
+  applicationId: string | null;
+  createdAt: string;
+}
+
+export interface ContactLink {
+  id: string;
+  contactId: string;
+  targetType: ContactLinkTarget;
+  targetId: string;
+  role: ContactRole;
+  /** "Backend Engineer at Spotify", or null when the target no longer exists. */
+  targetLabel: string | null;
+}
+
+export interface ContactDetail extends ContactView {
+  interactions: Interaction[];
+  links: ContactLink[];
+}
+
+/** A contact as it appears next to an application or opening they are linked to. */
+export interface LinkedContact extends ContactView {
+  linkId: string;
+  role: ContactRole;
+}

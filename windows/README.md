@@ -75,6 +75,9 @@ dotnet publish windows/JobTrack.Host/JobTrack.Host.csproj -c Release -r win-x64 
 
 # The installer
 & "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.11 windows\installer\JobTrack.iss
+
+# The installer (from local user install/winget)
+& "${env:LOCALAPPDATA}\programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.11 windows\installer\JobTrack.iss
 ```
 
 To test a change before publishing it, `--local` packs this checkout with `npm pack` instead of

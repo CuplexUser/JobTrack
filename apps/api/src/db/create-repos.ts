@@ -14,6 +14,9 @@ import type { RepoBundle } from './repos.js';
 import {
   applicationSchema,
   companySchema,
+  contactLinkSchema,
+  contactSchema,
+  interactionSchema,
   jobOpeningSchema,
   noteSchema,
   searchVectorSchema,
@@ -22,6 +25,9 @@ import {
   tagSchema,
   type ApplicationRow,
   type CompanyRow,
+  type ContactLinkRow,
+  type ContactRow,
+  type InteractionRow,
   type JobOpeningRow,
   type NoteRow,
   type SearchVectorRow,
@@ -75,6 +81,9 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
   const statusEvents = await createRepo<StatusEventRow>({ ...common, table: 'status_events', schema: statusEventSchema });
   const searchVectors = await createRepo<SearchVectorRow>({ ...common, table: 'search_vectors', schema: searchVectorSchema });
   const jobOpenings = await createRepo<JobOpeningRow>({ ...common, table: 'job_openings', schema: jobOpeningSchema });
+  const contacts = await createRepo<ContactRow>({ ...common, table: 'contacts', schema: contactSchema });
+  const interactions = await createRepo<InteractionRow>({ ...common, table: 'interactions', schema: interactionSchema });
+  const contactLinks = await createRepo<ContactLinkRow>({ ...common, table: 'contact_links', schema: contactLinkSchema });
 
   return {
     companies,
@@ -85,6 +94,9 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
     statusEvents,
     searchVectors,
     jobOpenings,
+    contacts,
+    interactions,
+    contactLinks,
     async close() {
       // Closing every repo is correct even when they share a pool: repolayer closes a pool
       // it created once, and leaves one that was passed in alone.
@@ -97,6 +109,9 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
         statusEvents.close(),
         searchVectors.close(),
         jobOpenings.close(),
+        contacts.close(),
+        interactions.close(),
+        contactLinks.close(),
       ]);
     },
   };

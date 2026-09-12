@@ -25,11 +25,12 @@ async function main(): Promise<void> {
   const result = await seedDemoData(repos);
 
   console.log(
-    `Done: ${result.applications} applications, ${result.companies} companies, ${result.tags} tags, ${result.notes} notes.`,
+    `Done: ${result.applications} applications, ${result.companies} companies, ${result.tags} tags, ${result.notes} notes, ${result.contacts} people.`,
   );
   console.log('\nThings worth trying:');
   console.log('  · Search "server-side developer": should surface Backend Engineer roles');
   console.log('  · Start a new application at "Spotify AB": three prior applications should appear');
+  console.log('  · The same check names Maria Lindqvist, who you know at Spotify');
   console.log('  · Klarna has been applied to three times, under two different titles');
 
   await repos.close();

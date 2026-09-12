@@ -24,6 +24,7 @@ import type { CompanyRow } from '../db/schema.js';
 import { formatDateOnly } from '@jobtrack/shared';
 import { tagsForTargets } from '../db/hydrate.js';
 import { applyTagNames } from './tags.service.js';
+import { followCompanyRename } from './contacts.service.js';
 
 /** Look up a company by typed name, without creating anything. */
 export async function findCompanyByName(
@@ -165,10 +166,12 @@ export async function updateCompany(
   },
 ): Promise<Company> {
   const changes: Record<string, unknown> = {};
+  let renamedFrom: string | null = null;
   if (patch.name !== undefined) {
     const display = displayName(patch.name);
     changes.name = display;
     changes.nameKey = companyKey(display);
+    renamedFrom = (await requireCompany(repos, id)).nameKey;
   }
   if (patch.website !== undefined) changes.website = patch.website;
   if (patch.location !== undefined) changes.location = patch.location;
@@ -180,6 +183,7 @@ export async function updateCompany(
       : await requireCompany(repos, id);
 
   if (patch.tags !== undefined) await applyTagNames(repos, 'company', id, patch.tags);
+  if (renamedFrom !== null) await followCompanyRename(repos, renamedFrom, row.name);
   return toCompany(row);
 }
 

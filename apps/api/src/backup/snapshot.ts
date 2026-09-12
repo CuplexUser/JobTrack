@@ -24,6 +24,9 @@ import { scopedRepos, type Repos } from '../db/repos.js';
 import type {
   ApplicationRow,
   CompanyRow,
+  ContactLinkRow,
+  ContactRow,
+  InteractionRow,
   JobOpeningRow,
   NoteRow,
   StatusEventRow,
@@ -44,9 +47,21 @@ export const BACKUP_TABLES = [
   'notes',
   'statusEvents',
   'jobOpenings',
+  'contacts',
+  'interactions',
+  'contactLinks',
 ] as const;
 
 export type BackupTable = (typeof BACKUP_TABLES)[number];
+
+/**
+ * Tables added after the backup format was first written. A version 1 backup made before
+ * they existed simply has no such key, and restoring it should give an empty table rather
+ * than refuse the file, so these are allowed to be missing. The format version stays 1: an
+ * older build reading a newer backup ignores tables it does not know, which is the same
+ * forgiveness in the other direction.
+ */
+const TABLES_ADDED_LATER: readonly BackupTable[] = ['contacts', 'interactions', 'contactLinks'];
 
 interface BackupRowTypes {
   companies: CompanyRow;
@@ -56,6 +71,9 @@ interface BackupRowTypes {
   notes: NoteRow;
   statusEvents: StatusEventRow;
   jobOpenings: JobOpeningRow;
+  contacts: ContactRow;
+  interactions: InteractionRow;
+  contactLinks: ContactLinkRow;
 }
 
 export interface BackupSnapshot {
@@ -74,10 +92,24 @@ const DATE_FIELDS: { [K in BackupTable]: (keyof BackupRowTypes[K])[] } = {
   notes: ['createdAt', 'updatedAt'],
   statusEvents: ['occurredOn', 'createdAt', 'updatedAt'],
   jobOpenings: ['savedOn', 'createdAt', 'updatedAt'],
+  contacts: ['reconnectOn', 'connectedOn', 'createdAt', 'updatedAt'],
+  interactions: ['occurredOn', 'createdAt', 'updatedAt'],
+  contactLinks: ['createdAt', 'updatedAt'],
 };
 
 export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
-  const [companies, applications, tags, tagLinks, notes, statusEvents, jobOpenings] = await Promise.all([
+  const [
+    companies,
+    applications,
+    tags,
+    tagLinks,
+    notes,
+    statusEvents,
+    jobOpenings,
+    contacts,
+    interactions,
+    contactLinks,
+  ] = await Promise.all([
     repos.companies.findMany({}),
     repos.applications.findMany({}),
     repos.tags.findMany({}),
@@ -85,13 +117,27 @@ export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
     repos.notes.findMany({}),
     repos.statusEvents.findMany({}),
     repos.jobOpenings.findMany({}),
+    repos.contacts.findMany({}),
+    repos.interactions.findMany({}),
+    repos.contactLinks.findMany({}),
   ]);
 
   return {
     format: BACKUP_FORMAT,
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    tables: { companies, applications, tags, tagLinks, notes, statusEvents, jobOpenings },
+    tables: {
+      companies,
+      applications,
+      tags,
+      tagLinks,
+      notes,
+      statusEvents,
+      jobOpenings,
+      contacts,
+      interactions,
+      contactLinks,
+    },
   };
 }
 
@@ -127,13 +173,19 @@ export function validateSnapshot(input: unknown): BackupSnapshot {
 
   const tables = (input as { tables?: unknown }).tables;
   if (typeof tables !== 'object' || tables === null) throw badRequest('This file is not a JobTrack backup');
+  const record = tables as Record<string, unknown>;
   for (const table of BACKUP_TABLES) {
-    if (!Array.isArray((tables as Record<string, unknown>)[table])) {
+    if (record[table] === undefined && TABLES_ADDED_LATER.includes(table)) continue;
+    if (!Array.isArray(record[table])) {
       throw badRequest(`This backup is missing its "${table}" table`);
     }
   }
 
-  return input as BackupSnapshot;
+  // Fill in the tables an older backup predates, so everything downstream can rely on every
+  // table being present. A copy, so the caller's object is left as it was.
+  const filled: Record<string, unknown> = { ...record };
+  for (const table of TABLES_ADDED_LATER) filled[table] ??= [];
+  return { ...(input as BackupSnapshot), tables: filled as BackupSnapshot['tables'] };
 }
 
 export function countRows(snapshot: BackupSnapshot): Record<BackupTable, number> {

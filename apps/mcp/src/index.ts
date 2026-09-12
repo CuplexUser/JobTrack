@@ -35,6 +35,7 @@ import { registerSearchTool } from './tools/search.js';
 import { registerDashboardTool } from './tools/dashboard.js';
 import { registerAgendaTool } from './tools/agenda.js';
 import { registerCaptureTool } from './tools/capture.js';
+import { registerContactTools } from './tools/contacts.js';
 import { registerPrompts } from './prompts.js';
 
 // Same `.env` the API and the tray read, so one file configures all three.
@@ -76,6 +77,7 @@ registerSearchTool(server, deps);
 registerDashboardTool(server, deps);
 registerAgendaTool(server, deps);
 registerCaptureTool(server, deps);
+registerContactTools(server, deps);
 registerPrompts(server);
 
 const transport = new StdioServerTransport();

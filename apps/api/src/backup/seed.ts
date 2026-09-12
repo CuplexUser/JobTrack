@@ -10,17 +10,21 @@
  * - **Semantic search**: titles deliberately use different vocabulary for the same work
  *   ("Backend Engineer", "Server-Side Developer", "Platform Engineer"), so a query for one
  *   should surface the others.
+ * - **Networking**: a handful of people at companies in the dataset, one of them a referral
+ *   on an open application and one overdue for a reconnect, so the People page, the
+ *   dashboard's Reconnect list and "you know someone here" all have something to show.
  *
  * Shared between `scripts/seed.ts` (the CLI, for local setup) and the Settings page's "Seed
  * with demo data" button — both call `seedDemoData`, so the two never drift into two
  * different demo datasets.
  */
 
-import type { ApplicationStatus } from '@jobtrack/shared';
+import type { ApplicationStatus, Channel, ContactRole, Direction, Relationship } from '@jobtrack/shared';
 import type { Repos } from '../db/repos.js';
 import { createApplication } from '../services/applications.service.js';
 import { createNote } from '../services/notes.service.js';
 import { findCompanyByName, updateCompany } from '../services/companies.service.js';
+import { createContact, linkContact, logInteraction } from '../services/contacts.service.js';
 
 interface SeedRow {
   company: string;
@@ -106,11 +110,67 @@ const STANDALONE_NOTES = [
   },
 ];
 
+interface SeedPerson {
+  name: string;
+  company: string;
+  headline: string;
+  relationship: Relationship;
+  reconnectOn?: string;
+  about?: string;
+  conversations?: { on: string; channel: Channel; direction: Direction; summary: string }[];
+  /** The application this person played a part in, by company and exact title. */
+  linkedTo?: { title: string; role: ContactRole };
+}
+
+const PEOPLE: SeedPerson[] = [
+  {
+    name: 'Maria Lindqvist',
+    company: 'Spotify',
+    headline: 'Engineering Manager',
+    relationship: 'colleague',
+    reconnectOn: '2026-09-01',
+    about: 'Worked together at Ericsson for three years. Runs one of the backend teams now.',
+    conversations: [
+      { on: '2026-08-09', channel: 'linkedin', direction: 'outbound', summary: 'Asked about the Engineering Manager opening. She offered to pass my CV to the hiring manager.' },
+      { on: '2026-08-12', channel: 'email', direction: 'inbound', summary: 'Confirmed she sent it on, and said to check back in a couple of weeks.' },
+    ],
+    linkedTo: { title: 'Engineering Manager', role: 'referral' },
+  },
+  {
+    name: 'Sara Nyström',
+    company: 'Anthropic',
+    headline: 'Staff Software Engineer',
+    relationship: 'alumni',
+    about: 'Same class at KTH. Works on the inference platform.',
+    conversations: [
+      { on: '2026-07-30', channel: 'meeting', direction: 'outbound', summary: 'Coffee in Stockholm. Agreed to refer me for the infrastructure role.' },
+    ],
+    linkedTo: { title: 'Infrastructure Engineer', role: 'referral' },
+  },
+  {
+    name: 'Johan Berg',
+    company: 'Klarna',
+    headline: 'Senior Technical Recruiter',
+    relationship: 'recruiter',
+    reconnectOn: '2026-10-15',
+    conversations: [
+      { on: '2026-05-20', channel: 'linkedin', direction: 'inbound', summary: 'Reached out about platform roles opening in the autumn.' },
+    ],
+  },
+  {
+    name: 'Erik Holm',
+    company: 'Tibber',
+    headline: 'Product Designer',
+    relationship: 'connection',
+  },
+];
+
 export interface SeedResult {
   applications: number;
   companies: number;
   tags: number;
   notes: number;
+  contacts: number;
 }
 
 /**
@@ -157,10 +217,47 @@ export async function seedDemoData(repos: Repos): Promise<SeedResult> {
     });
   }
 
+  for (const person of PEOPLE) {
+    const contact = await createContact(repos, {
+      name: person.name,
+      companyName: person.company,
+      headline: person.headline,
+      email: null,
+      phone: null,
+      linkedinUrl: null,
+      relationship: person.relationship,
+      about: person.about ?? null,
+      reconnectOn: person.reconnectOn ?? null,
+    });
+    for (const conversation of person.conversations ?? []) {
+      await logInteraction(repos, contact.id, {
+        occurredOn: conversation.on,
+        channel: conversation.channel,
+        direction: conversation.direction,
+        summary: conversation.summary,
+        applicationId: null,
+      });
+    }
+    if (person.linkedTo) {
+      const company = await findCompanyByName(repos, person.company);
+      const application = company
+        ? await repos.applications.findOne({ where: { companyId: company.id, jobTitle: person.linkedTo.title } })
+        : null;
+      if (application) {
+        await linkContact(repos, contact.id, {
+          targetType: 'application',
+          targetId: application.id,
+          role: person.linkedTo.role,
+        });
+      }
+    }
+  }
+
   return {
     applications: ROWS.length,
     companies: await repos.companies.count(),
     tags: await repos.tags.count(),
     notes: await repos.notes.count(),
+    contacts: PEOPLE.length,
   };
 }

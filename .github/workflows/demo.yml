@@ -28,7 +28,12 @@ jobs:
           node-version: 24
           cache: npm
 
+      # onnxruntime-node's install script otherwise downloads its CUDA and TensorRT provider
+      # libraries from Microsoft's NuGet feed on every Linux x64 install. Nothing here uses a
+      # GPU, and a timeout on that feed fails the whole run.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
 
       - run: npm run build --workspace=@jobtrack/shared
 

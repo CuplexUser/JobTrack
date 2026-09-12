@@ -181,6 +181,7 @@ async function verdictFor(
       priorCount: 0,
       company: null,
       semanticUsed: false,
+      contacts: [],
     };
   }
   return checkDuplicates(repos, search, { company: draft.companyName, title: draft.jobTitle });

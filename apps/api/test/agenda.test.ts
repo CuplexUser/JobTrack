@@ -25,7 +25,7 @@ beforeEach(() => {
 describe('getAgenda', () => {
   it('is empty for an empty database', async () => {
     const agenda = await getAgenda(deps.repos);
-    expect(agenda).toEqual({ today: todayDateOnly(), followUps: [], goneQuiet: [], idleOpenings: [] });
+    expect(agenda).toEqual({ today: todayDateOnly(), followUps: [], goneQuiet: [], idleOpenings: [], reconnect: [] });
   });
 
   it('lists due follow-ups and quiet applications, the same lists the dashboard shows', async () => {

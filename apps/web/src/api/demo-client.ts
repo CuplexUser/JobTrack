@@ -31,18 +31,25 @@ import {
   bulkDeleteSchema,
   changeStatusSchema,
   companyKey,
+  contactFilterSchema,
+  contactLinkTargetSchema,
   convertJobOpeningSchema,
+  createContactSchema,
+  createInteractionSchema,
   createApplicationSchema,
   createJobOpeningSchema,
   createNoteSchema,
   duplicateCheckSchema,
   exportQuerySchema,
+  linkContactSchema,
+  linkedInImportSchema,
   monthName,
   noteTargetSchema,
   openingFilterSchema,
   parseDateOnly,
   patchApplicationSchema,
   patchCompanySchema,
+  patchContactSchema,
   patchJobOpeningSchema,
   parsePostingText,
   patchNoteSchema,
@@ -55,9 +62,8 @@ import {
 
 import { createMemoryRepos } from '@jobtrack/api/db/memory-repos';
 import type { Repos, RepoBundle } from '@jobtrack/api/db/repos';
-import { hydrateApplications } from '@jobtrack/api/db/hydrate';
-import { toCompany, toNote } from '@jobtrack/api/db/mappers';
 import { SearchIndex } from '@jobtrack/api/search';
+import { resolveHits } from '@jobtrack/api/search/results';
 import { FakeEmbedder } from '@jobtrack/api/search/embedder';
 import {
   changeStatus,
@@ -77,6 +83,20 @@ import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/dup
 import { createNote, deleteNote, listNotes, updateNote } from '@jobtrack/api/services/notes';
 import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
+import {
+  commitLinkedInImport,
+  contactsForTarget,
+  createContact,
+  deleteContact,
+  deleteInteraction,
+  getContact,
+  linkContact,
+  listContacts,
+  logInteraction,
+  previewLinkedInImport,
+  unlinkContact,
+  updateContact,
+} from '@jobtrack/api/services/contacts';
 import {
   convertOpening,
   createOpening,
@@ -521,35 +541,110 @@ export const demoApi: typeof httpApi = {
       return getDashboard(repos);
     }),
 
+  listContacts: (params = {}) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return { contacts: await listContacts(repos, contactFilterSchema.parse(params)) };
+    }),
+
+  getContact: (id) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const contact = await getContact(repos, id);
+      if (!contact) throw notFound('No such person');
+      return contact;
+    }),
+
+  createContact: (body) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const created = await createContact(repos, createContactSchema.parse(body));
+      search.markStale();
+      await persist(repos);
+      return created;
+    }),
+
+  updateContact: (id, body) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const updated = await updateContact(repos, id, patchContactSchema.parse(body));
+      if (!updated) throw notFound('No such person');
+      search.markStale();
+      await persist(repos);
+      return updated;
+    }),
+
+  deleteContact: (id) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      if (!(await deleteContact(repos, id))) throw notFound('No such person');
+      search.markStale();
+      await persist(repos);
+    }),
+
+  logInteraction: (contactId, body) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const interaction = await logInteraction(repos, contactId, createInteractionSchema.parse(body));
+      if (!interaction) throw notFound('No such person');
+      search.markStale();
+      await persist(repos);
+      return interaction;
+    }),
+
+  deleteInteraction: (id) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      if (!(await deleteInteraction(repos, id))) throw notFound('No such interaction');
+      search.markStale();
+      await persist(repos);
+    }),
+
+  linkedContacts: (targetType, targetId) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return { contacts: await contactsForTarget(repos, contactLinkTargetSchema.parse(targetType), targetId) };
+    }),
+
+  linkContact: (contactId, body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const link = await linkContact(repos, contactId, linkContactSchema.parse(body));
+      if (!link) throw notFound('No such person');
+      await persist(repos);
+      return link;
+    }),
+
+  unlinkContact: (linkId) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      if (!(await unlinkContact(repos, linkId))) throw notFound('No such link');
+      await persist(repos);
+    }),
+
+  previewLinkedInImport: (csv) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const input = linkedInImportSchema.parse({ csv });
+      return { mode: 'preview' as const, ...(await previewLinkedInImport(repos, input.csv)) };
+    }),
+
+  commitLinkedInImport: (csv) =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const input = linkedInImportSchema.parse({ csv });
+      const result = await commitLinkedInImport(repos, input.csv);
+      if (result.created > 0) search.markStale();
+      await persist(repos);
+      return { mode: 'commit' as const, ...result };
+    }),
+
   search: (q, types) =>
     guarded(async () => {
       const { repos, search } = await getState();
       const query = searchQuerySchema.parse({ q, limit: 25, types });
       const outcome = await search.search(query.q, { limit: query.limit, ...(query.types ? { types: query.types } : {}) });
-
-      const idsOf = (type: string) => outcome.hits.filter((h) => h.type === type).map((h) => h.entityId);
-      const applicationIds = idsOf('application');
-      const companyIds = idsOf('company');
-      const noteIds = idsOf('note');
-
-      const [applicationRows, companyRows, noteRows] = await Promise.all([
-        applicationIds.length ? repos.applications.findMany({ where: [{ field: 'id', op: 'in', value: applicationIds }] }) : Promise.resolve([]),
-        companyIds.length ? repos.companies.findMany({ where: [{ field: 'id', op: 'in', value: companyIds }] }) : Promise.resolve([]),
-        noteIds.length ? repos.notes.findMany({ where: [{ field: 'id', op: 'in', value: noteIds }] }) : Promise.resolve([]),
-      ]);
-
-      const applications = new Map((await hydrateApplications(repos, applicationRows)).map((a) => [a.id, a]));
-      const companies = new Map(companyRows.map((c) => [c.id, toCompany(c)]));
-      const notes = new Map(noteRows.map((n) => [n.id, toNote(n)]));
-
-      const results = outcome.hits
-        .map((hit) => {
-          const record =
-            hit.type === 'application' ? applications.get(hit.entityId) : hit.type === 'company' ? companies.get(hit.entityId) : notes.get(hit.entityId);
-          return record ? { ...hit, record } : null;
-        })
-        .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
-
+      const results = await resolveHits(repos, outcome.hits);
       return { results, semanticReady: outcome.semanticReady, query: query.q };
     }),
 
@@ -680,6 +775,7 @@ export const demoApi: typeof httpApi = {
               priorCount: 0,
               company: null,
               semanticUsed: false,
+              contacts: [],
             }
           : await checkDuplicates(repos, search, { company: draft.companyName, title: draft.jobTitle });
       return { draft, duplicate };

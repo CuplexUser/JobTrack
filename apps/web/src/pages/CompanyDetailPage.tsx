@@ -35,6 +35,7 @@ import type { JobApplicationView, Note } from '@jobtrack/shared';
 import { useCompany, useDeleteNote, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { NoteModal } from '../components/NoteModal.js';
+import { CompanyPeopleCard } from '../components/PeopleCard.js';
 import { palette } from '../theme.js';
 
 export function CompanyDetailPage() {
@@ -136,6 +137,8 @@ export function CompanyDetailPage() {
           })}
         />
       </Card>
+
+      <CompanyPeopleCard companyName={company.name} />
 
       <Card
         title={`Notes about ${company.name}`}

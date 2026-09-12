@@ -22,11 +22,12 @@ import {
   Skeleton,
   Space,
   Statistic,
+  Tag,
   Timeline,
   Typography,
 } from 'antd';
 import { ClockCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { STATUS_LABELS, monthName, toPeriod, todayDateOnly } from '@jobtrack/shared';
+import { RELATIONSHIP_LABELS, STATUS_LABELS, monthName, toPeriod, todayDateOnly } from '@jobtrack/shared';
 import { useDashboard } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { PreApplyCheck } from '../components/PreApplyCheck.js';
@@ -42,14 +43,14 @@ const TREND_MONTHS = 12;
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [attention, setAttention] = useState<'follow-ups' | 'quiet'>('follow-ups');
+  const [attention, setAttention] = useState<'follow-ups' | 'quiet' | 'reconnect'>('follow-ups');
   const period = toPeriod(todayDateOnly());
 
   if (isLoading || !data) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
   }
 
-  const { stats, followUps, recentActivity, funnel, volume, stale } = data;
+  const { stats, followUps, recentActivity, funnel, volume, stale, reconnect } = data;
 
   if (stats.total === 0) {
     return (
@@ -90,7 +91,7 @@ export function DashboardPage() {
       : 0;
   const againstAverage = stats.thisMonth - monthlyAverage;
 
-  const attentionCount = attention === 'follow-ups' ? followUps.length : stale.length;
+  const attentionCount = { 'follow-ups': followUps.length, quiet: stale.length, reconnect: reconnect.length }[attention];
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
@@ -159,10 +160,11 @@ export function DashboardPage() {
               <Segmented
                 size="small"
                 value={attention}
-                onChange={(value) => setAttention(value as 'follow-ups' | 'quiet')}
+                onChange={(value) => setAttention(value as 'follow-ups' | 'quiet' | 'reconnect')}
                 options={[
                   { label: `Follow-ups (${followUps.length})`, value: 'follow-ups' },
                   { label: `Gone quiet (${stale.length})`, value: 'quiet' },
+                  { label: `Reconnect (${reconnect.length})`, value: 'reconnect' },
                 ]}
               />
             }
@@ -174,7 +176,9 @@ export function DashboardPage() {
                 description={
                   attention === 'follow-ups'
                     ? 'Nothing due. All caught up.'
-                    : 'Nothing has gone quiet'
+                    : attention === 'quiet'
+                      ? 'Nothing has gone quiet'
+                      : 'Nobody is due a reconnect'
                 }
               />
             ) : attention === 'follow-ups' ? (
@@ -193,6 +197,25 @@ export function DashboardPage() {
                       }
                     />
                     <StatusTag status={item.status} />
+                  </List.Item>
+                )}
+              />
+            ) : attention === 'reconnect' ? (
+              <List
+                size="small"
+                dataSource={reconnect}
+                renderItem={(person) => (
+                  <List.Item>
+                    <List.Item.Meta
+                      title={<Link to={`/people/${person.id}`}>{person.name}</Link>}
+                      description={
+                        <Flex justify="space-between" wrap gap={8}>
+                          <span>{[person.headline, person.companyName].filter(Boolean).join(' at ')}</span>
+                          <Typography.Text type="danger">due {person.reconnectOn}</Typography.Text>
+                        </Flex>
+                      }
+                    />
+                    <Tag>{RELATIONSHIP_LABELS[person.relationship]}</Tag>
                   </List.Item>
                 )}
               />

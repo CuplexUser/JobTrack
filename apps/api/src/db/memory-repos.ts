@@ -19,6 +19,9 @@ import type { RepoBundle } from './repos.js';
 import {
   applicationSchema,
   companySchema,
+  contactLinkSchema,
+  contactSchema,
+  interactionSchema,
   jobOpeningSchema,
   noteSchema,
   searchVectorSchema,
@@ -47,6 +50,9 @@ export function createMemoryRepos(): RepoBundle {
     statusEvents: new MemoryRepo({ ...common, table: 'status_events', schema: statusEventSchema }),
     searchVectors: new MemoryRepo({ ...common, table: 'search_vectors', schema: searchVectorSchema }),
     jobOpenings: new MemoryRepo({ ...common, table: 'job_openings', schema: jobOpeningSchema }),
+    contacts: new MemoryRepo({ ...common, table: 'contacts', schema: contactSchema }),
+    interactions: new MemoryRepo({ ...common, table: 'interactions', schema: interactionSchema }),
+    contactLinks: new MemoryRepo({ ...common, table: 'contact_links', schema: contactLinkSchema }),
   } as unknown as RepoBundle;
 
   return { ...repos, close: async () => {} };

@@ -31,6 +31,7 @@ import { toCompany, toOpening } from '../db/mappers.js';
 import { missingCompany } from '../db/hydrate.js';
 import { findCompanyByName, resolveCompany } from './companies.service.js';
 import { createApplication, type CreateApplicationData } from './applications.service.js';
+import { detachTarget } from './contacts.service.js';
 
 async function hydrateOpening(repos: Repos, row: JobOpeningRow): Promise<JobOpeningView> {
   const companyRow = await repos.companies.findById(row.companyId);
@@ -230,7 +231,11 @@ export async function updateOpening(
 export async function deleteOpening(repos: Repos, id: string): Promise<boolean> {
   const existing = await repos.jobOpenings.findById(id);
   if (!existing) return false;
-  await repos.jobOpenings.delete(id);
+  await repos.jobOpenings.withTransaction(async (_tx, ctx: TxContext) => {
+    const scoped = scopedRepos(repos, ctx);
+    await detachTarget(scoped, 'opening', id);
+    await scoped.jobOpenings.delete(id);
+  });
   return true;
 }
 

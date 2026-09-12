@@ -18,7 +18,7 @@ import {
 } from '@jobtrack/api/services/ingest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
-import { openingSummary } from '../views.js';
+import { contactSummary, openingSummary } from '../views.js';
 
 /**
  * How much of a posting's description comes back. Enough to judge the role and write a
@@ -26,13 +26,15 @@ import { openingSummary } from '../views.js';
  */
 const DESCRIPTION_CHARS = 4000;
 
-function trimDraft(result: IngestResult): IngestResult & { notesTruncated?: true } {
+/** The draft with its description capped, and the duplicate verdict's people summarized. */
+function trimDraft(result: IngestResult) {
   const notes = result.draft.notes;
-  if (!notes || notes.length <= DESCRIPTION_CHARS) return result;
+  const duplicate = { ...result.duplicate, contacts: result.duplicate.contacts.map(contactSummary) };
+  if (!notes || notes.length <= DESCRIPTION_CHARS) return { draft: result.draft, duplicate };
   return {
-    ...result,
     draft: { ...result.draft, notes: `${notes.slice(0, DESCRIPTION_CHARS)}…` },
-    notesTruncated: true,
+    duplicate,
+    notesTruncated: true as const,
   };
 }
 
@@ -77,7 +79,7 @@ export function registerCaptureTool(server: McpServer, deps: Deps): void {
         return jsonResult({
           saved: true,
           opening: openingSummary(clipped.opening),
-          duplicate: clipped.duplicate,
+          duplicate: { ...clipped.duplicate, contacts: clipped.duplicate.contacts.map(contactSummary) },
         });
       } catch (error) {
         if (error instanceof DuplicateOpeningError) {

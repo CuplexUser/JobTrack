@@ -10,10 +10,15 @@ import type {
   ApplicationStatus,
   Company,
   CompanyWithStats,
+  ContactDetail,
+  ContactLink,
+  ContactView,
   DuplicateCheck,
+  Interaction,
   JobApplicationDetail,
   JobApplicationView,
   JobOpeningView,
+  LinkedContact,
   Note,
   NoteWithTarget,
   PostingDraft,
@@ -110,6 +115,8 @@ export interface PeriodNode {
 export interface DuplicateCheckResponse extends DuplicateCheck {
   company: Company | null;
   semanticUsed: boolean;
+  /** People the user knows at this employer, closest first. */
+  contacts: ContactView[];
 }
 
 /** One cluster from the duplicates sweep: the record to keep first, then the repeats. */
@@ -161,6 +168,33 @@ export interface DashboardResponse {
   volume: { year: number; month: number; count: number }[];
   /** Live applications nothing has happened to in a while, longest silence first. */
   stale: (JobApplicationView & { silentSince: string; silentDays: number })[];
+  /** People whose reconnect date has arrived, soonest first. */
+  reconnect: ContactView[];
+}
+
+export interface LinkedInPreviewRow {
+  rowNumber: number;
+  name: string;
+  companyName: string | null;
+  headline: string | null;
+  connectedOn: string | null;
+  verdict: 'new' | 'duplicate' | 'error';
+  reason: string | null;
+  knownCompany: boolean;
+}
+
+export interface LinkedInPreviewResponse {
+  mode: 'preview';
+  fileErrors: string[];
+  totals: { new: number; duplicate: number; error: number; atKnownCompanies: number };
+  rows: LinkedInPreviewRow[];
+}
+
+export interface LinkedInCommitResponse {
+  mode: 'commit';
+  fileErrors: string[];
+  created: number;
+  skipped: number;
 }
 
 export interface ImportPreviewRow {
@@ -232,16 +266,21 @@ export interface SeedDatabaseResponse {
   companies: number;
   tags: number;
   notes: number;
+  contacts: number;
 }
 
+type SearchResultRecord =
+  | { type: 'application'; record: JobApplicationView }
+  | { type: 'company'; record: Company }
+  | { type: 'note'; record: Note }
+  | { type: 'contact'; record: ContactView };
+
 export interface SearchResponse {
-  results: {
-    type: 'application' | 'company' | 'note';
+  results: ({
     entityId: string;
     score: number;
     matchedBy: ('lexical' | 'semantic')[];
-    record: JobApplicationView | Company | Note;
-  }[];
+  } & SearchResultRecord)[];
   semanticReady: boolean;
   query: string;
 }
@@ -383,6 +422,44 @@ export const httpApi = {
   deleteNote: (id: string) => request<void>(`/api/notes/${id}`, { method: 'DELETE' }),
 
   dashboard: () => request<DashboardResponse>('/api/dashboard'),
+
+  listContacts: (params: Record<string, unknown> = {}) =>
+    request<{ contacts: ContactView[] }>(`/api/contacts${toQuery(params)}`),
+
+  getContact: (id: string) => request<ContactDetail>(`/api/contacts/${id}`),
+
+  createContact: (body: unknown) =>
+    request<ContactView>('/api/contacts', { method: 'POST', body: JSON.stringify(body) }),
+
+  updateContact: (id: string, body: unknown) =>
+    request<ContactView>(`/api/contacts/${id}`, { method: 'PATCH', body: JSON.stringify(body) }),
+
+  deleteContact: (id: string) => request<void>(`/api/contacts/${id}`, { method: 'DELETE' }),
+
+  logInteraction: (contactId: string, body: unknown) =>
+    request<Interaction>(`/api/contacts/${contactId}/interactions`, { method: 'POST', body: JSON.stringify(body) }),
+
+  deleteInteraction: (id: string) => request<void>(`/api/interactions/${id}`, { method: 'DELETE' }),
+
+  linkedContacts: (targetType: 'application' | 'opening', targetId: string) =>
+    request<{ contacts: LinkedContact[] }>(`/api/contacts/linked/${targetType}/${targetId}`),
+
+  linkContact: (contactId: string, body: unknown) =>
+    request<ContactLink>(`/api/contacts/${contactId}/links`, { method: 'POST', body: JSON.stringify(body) }),
+
+  unlinkContact: (linkId: string) => request<void>(`/api/contact-links/${linkId}`, { method: 'DELETE' }),
+
+  previewLinkedInImport: (csv: string) =>
+    request<LinkedInPreviewResponse>('/api/contacts/import/linkedin?mode=preview', {
+      method: 'POST',
+      body: JSON.stringify({ csv }),
+    }),
+
+  commitLinkedInImport: (csv: string) =>
+    request<LinkedInCommitResponse>('/api/contacts/import/linkedin?mode=commit', {
+      method: 'POST',
+      body: JSON.stringify({ csv }),
+    }),
 
   search: (q: string, types?: string[]) =>
     request<SearchResponse>(`/api/search${toQuery({ q, types, limit: 25 })}`),

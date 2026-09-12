@@ -76,7 +76,12 @@ jobs:
           npm install -g "npm@^11.5.1"
           npm --version
 
+      # onnxruntime-node's install script otherwise downloads its CUDA and TensorRT provider
+      # libraries from Microsoft's NuGet feed on every Linux x64 install. Nothing here uses a
+      # GPU, and a timeout on that feed fails the whole run.
       - run: npm ci
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
 
       # The same checks CI runs on every push. Inlined rather than reused via
       # `workflow_call`, because trusted publishing validates the *calling* workflow's

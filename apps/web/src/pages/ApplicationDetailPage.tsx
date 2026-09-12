@@ -50,6 +50,7 @@ import {
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { NoteModal } from '../components/NoteModal.js';
+import { ApplicationPeopleCard } from '../components/PeopleCard.js';
 
 export function ApplicationDetailPage() {
   const { id } = useParams<{ id: string }>();
@@ -129,46 +130,50 @@ export function ApplicationDetailPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
-          <Card title="Details">
-            <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
-              <Descriptions.Item label="Company">{data.company.name}</Descriptions.Item>
-              <Descriptions.Item label="Applied on">{data.appliedOn}</Descriptions.Item>
-              <Descriptions.Item label="Location">{data.location ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Work mode">
-                {WORK_MODE_LABELS[data.workMode]}
-              </Descriptions.Item>
-              <Descriptions.Item label="Source">{data.sourceName ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Follow up">{data.followUpOn ?? '—'}</Descriptions.Item>
-              <Descriptions.Item label="Salary" span={2}>
-                {data.salaryMin || data.salaryMax
-                  ? `${data.salaryMin?.toLocaleString() ?? '?'} – ${data.salaryMax?.toLocaleString() ?? '?'} ${data.salaryCurrency ?? ''}`
-                  : '—'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Posting" span={2}>
-                {data.jobUrl ? (
-                  <a href={data.jobUrl} target="_blank" rel="noreferrer">
-                    <Space size={4}>
-                      <LinkOutlined />
-                      {data.jobUrl}
+          <Space direction="vertical" size={16} style={{ width: '100%' }}>
+            <Card title="Details">
+              <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
+                <Descriptions.Item label="Company">{data.company.name}</Descriptions.Item>
+                <Descriptions.Item label="Applied on">{data.appliedOn}</Descriptions.Item>
+                <Descriptions.Item label="Location">{data.location ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Work mode">
+                  {WORK_MODE_LABELS[data.workMode]}
+                </Descriptions.Item>
+                <Descriptions.Item label="Source">{data.sourceName ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Follow up">{data.followUpOn ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label="Salary" span={2}>
+                  {data.salaryMin || data.salaryMax
+                    ? `${data.salaryMin?.toLocaleString() ?? '?'} – ${data.salaryMax?.toLocaleString() ?? '?'} ${data.salaryCurrency ?? ''}`
+                    : '—'}
+                </Descriptions.Item>
+                <Descriptions.Item label="Posting" span={2}>
+                  {data.jobUrl ? (
+                    <a href={data.jobUrl} target="_blank" rel="noreferrer">
+                      <Space size={4}>
+                        <LinkOutlined />
+                        {data.jobUrl}
+                      </Space>
+                    </a>
+                  ) : (
+                    '—'
+                  )}
+                </Descriptions.Item>
+                <Descriptions.Item label="Tags" span={2}>
+                  {data.tags.length > 0 ? (
+                    <Space size={4} wrap>
+                      {data.tags.map((tag) => (
+                        <Tag key={tag.id}>{tag.name}</Tag>
+                      ))}
                     </Space>
-                  </a>
-                ) : (
-                  '—'
-                )}
-              </Descriptions.Item>
-              <Descriptions.Item label="Tags" span={2}>
-                {data.tags.length > 0 ? (
-                  <Space size={4} wrap>
-                    {data.tags.map((tag) => (
-                      <Tag key={tag.id}>{tag.name}</Tag>
-                    ))}
-                  </Space>
-                ) : (
-                  '—'
-                )}
-              </Descriptions.Item>
-            </Descriptions>
-          </Card>
+                  ) : (
+                    '—'
+                  )}
+                </Descriptions.Item>
+              </Descriptions>
+            </Card>
+
+            <ApplicationPeopleCard application={data} />
+          </Space>
         </Col>
 
         <Col xs={24} lg={10}>
