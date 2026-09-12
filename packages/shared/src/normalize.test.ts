@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { companyKey, displayName, locationKey, normalizeText, tagKey, titleKey } from './normalize.js';
+import {
+  companyKey,
+  displayName,
+  locationKey,
+  matchesAnyLocation,
+  normalizeText,
+  tagKey,
+  titleKey,
+} from './normalize.js';
 
 describe('normalizeText', () => {
   it('lowercases and collapses whitespace', () => {
@@ -71,6 +79,22 @@ describe('locationKey', () => {
 
   it('keeps punctuation, so a contains match cannot straddle a comma', () => {
     expect(locationKey('Stockholm, Sweden')).toBe('stockholm, sweden');
+  });
+});
+
+describe('matchesAnyLocation', () => {
+  it('matches when any term is contained in the location', () => {
+    expect(matchesAnyLocation('Malmö, Sweden', ['Lund', 'malmo'])).toBe(true);
+    expect(matchesAnyLocation('Malmö, Sweden', ['Lund'])).toBe(false);
+  });
+
+  it('lets everything through when there are no usable terms', () => {
+    expect(matchesAnyLocation(null, undefined)).toBe(true);
+    expect(matchesAnyLocation(null, ['  '])).toBe(true);
+  });
+
+  it('never matches a record with no location against a real term', () => {
+    expect(matchesAnyLocation(null, ['Stockholm'])).toBe(false);
   });
 });
 

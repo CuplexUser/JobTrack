@@ -33,6 +33,9 @@ import { registerTagTools } from './tools/tags.js';
 import { registerOpeningTools } from './tools/openings.js';
 import { registerSearchTool } from './tools/search.js';
 import { registerDashboardTool } from './tools/dashboard.js';
+import { registerAgendaTool } from './tools/agenda.js';
+import { registerCaptureTool } from './tools/capture.js';
+import { registerPrompts } from './prompts.js';
 
 // Same `.env` the API and the tray read, so one file configures all three.
 loadEnvFile();
@@ -71,6 +74,9 @@ registerTagTools(server, deps);
 registerOpeningTools(server, deps);
 registerSearchTool(server, deps);
 registerDashboardTool(server, deps);
+registerAgendaTool(server, deps);
+registerCaptureTool(server, deps);
+registerPrompts(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);

@@ -4,7 +4,12 @@
  */
 
 import { z } from 'zod';
-import { convertJobOpeningSchema, createJobOpeningSchema, patchJobOpeningSchema } from '@jobtrack/shared';
+import {
+  convertJobOpeningSchema,
+  createJobOpeningSchema,
+  openingFilterSchema,
+  patchJobOpeningSchema,
+} from '@jobtrack/shared';
 import type { Deps } from '@jobtrack/api/deps';
 import {
   convertOpening,
@@ -15,6 +20,7 @@ import {
 } from '@jobtrack/api/services/openings';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
+import { openingSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
 
@@ -25,10 +31,10 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'list_openings',
     {
       description:
-        "List saved job openings: opportunities found but not yet applied to. Excludes converted/dismissed openings unless includeArchived is set.",
-      inputSchema: z.object({ includeArchived: z.boolean().optional() }),
+        "List saved job openings: opportunities found but not yet applied to, newest first. Excludes converted/dismissed openings unless includeArchived is set. Filter with `q` (words that must all appear in the title, company, location or notes), `location` (any of several, case- and accent-insensitive contains) and `source`. Notes come back cut to a preview; call get_opening for one in full.",
+      inputSchema: openingFilterSchema,
     },
-    async ({ includeArchived }) => jsonResult(await listOpenings(repos, { includeArchived })),
+    async (filter) => jsonResult((await listOpenings(repos, filter)).map(openingSummary)),
   );
 
   server.registerTool(

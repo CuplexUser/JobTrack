@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
 import {
   changeStatus,
+  changeStatuses,
   computeLocations,
   computePeriods,
   createApplication,
@@ -146,6 +147,28 @@ describe('changeStatus', () => {
       occurredOn: '2026-04-01',
       comment: 'Recruiter call booked',
     });
+  });
+});
+
+describe('changeStatuses', () => {
+  it('changes each one with its own event, and skips the ones already there', async () => {
+    const quiet = await createApplication(repos, applicationInput({ jobTitle: 'Quiet' }));
+    const already = await createApplication(repos, applicationInput({ jobTitle: 'Already', status: 'ghosted' }));
+    const missing = '00000000-0000-4000-8000-000000000000';
+
+    const result = await changeStatuses(repos, [quiet.id, already.id, missing, quiet.id], {
+      status: 'ghosted',
+      comment: 'No reply in a month',
+    });
+
+    expect(result.changed.map((a) => a.id)).toEqual([quiet.id]);
+    expect(result.unchanged).toEqual([already.id]);
+    expect(result.missing).toEqual([missing]);
+
+    const detail = await getApplication(repos, quiet.id);
+    expect(detail!.statusEvents.at(-1)).toMatchObject({ toStatus: 'ghosted', comment: 'No reply in a month' });
+    // No second event for the one that was already ghosted.
+    expect((await getApplication(repos, already.id))!.statusEvents).toHaveLength(1);
   });
 });
 

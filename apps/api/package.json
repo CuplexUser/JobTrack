@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/api",
-  "version": "1.0.8",
+  "version": "1.1.0",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -34,6 +34,8 @@
     "./services/duplicates": "./src/services/duplicates.service.ts",
     "./services/dashboard": "./src/services/dashboard.service.ts",
     "./services/openings": "./src/services/openings.service.ts",
+    "./services/ingest": "./src/services/ingest.service.ts",
+    "./services/agenda": "./src/services/agenda.service.ts",
     "./search": "./src/search/index.ts",
     "./search/embedder": "./src/search/embedder.ts",
     "./search/transformers-embedder": "./src/search/transformers-embedder.ts",

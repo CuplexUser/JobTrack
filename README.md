@@ -223,7 +223,11 @@ means something has to bring the process back up:
 
 ## Testing
 
-Vitest across three projects.
+Vitest across four projects: shared, API, MCP and web.
+
+The MCP suite (`apps/mcp/test`) connects a real MCP client to the server over an in-memory
+transport, so it checks what a client actually sees: that every tool's schema can be
+advertised, the prompts render, and results survive serialization.
 
 Service tests run against repolayer's `MemoryRepo` — no database, no fixtures, no cleanup —
 which is trustworthy only because it passes the same conformance suite as the SQLite
@@ -323,7 +327,27 @@ not `npm run dev` is running. The same SQLite connection settings apply, includi
 
 Tools cover create/update/status-change for applications, companies, notes, tags and job
 openings, plus every read (list/get/search/dashboard) — deliberately **no delete tools**, so
-an MCP client cannot destroy data, only add to or edit it.
+an MCP client cannot destroy data, only add to or edit it. On top of the plain records:
+
+| tool | what it is for |
+|---|---|
+| `capture_posting` | read a posting from a link or pasted text into a draft opening, with the duplicate verdict; `save: true` also saves it (refusing a posting that is already saved) |
+| `get_agenda` | what is waiting today: due follow-ups, applications gone quiet, openings left sitting for two weeks (also `GET /api/agenda`) |
+| `bulk_change_status` | one status change across several applications ("mark these ghosted"), each with its own dated event |
+| `find_duplicate_groups` | the Duplicates page's sweep, read-only |
+| `list_openings` | now filterable by `q`, `location` and `source` |
+
+**Prompts** turn the routine chores into one click in the client's prompt menu. Each is a
+script telling the model which tools to call in which order, and none changes anything
+without asking first:
+
+| prompt | does |
+|---|---|
+| `weekly_review` | walks the agenda: follow-up drafts, which quiet applications to mark ghosted, what to do with idle openings, a short summary |
+| `triage_openings` | recommends apply / research / archive for each saved opening, using your history with each company |
+| `log_email_update` | takes a pasted employer email, finds the application and records the status change, date and notes |
+| `prepare_application` | gathers an opening's posting and company history and drafts a cover letter, saved as a note |
+| `interview_prep` | builds a prep sheet from an application, its history and your notes |
 
 ```bash
 npm run mcp   # runs it directly, for manual testing (e.g. with @modelcontextprotocol/inspector)
@@ -477,9 +501,11 @@ leave on a page nobody but you can reach.
 `npm audit` is clean. Three transitive packages are pinned forward via `overrides` in the
 root `package.json`:
 
-- **sharp** `^0.35.3` — versions below 0.35.0 inherit four libvips CVEs. Arrives via
-  transformers for image pipelines this app never uses.
-- **adm-zip** `^0.6.0` — via onnxruntime-node.
+- **sharp** `^0.35.4` — versions below 0.35.0 inherit four libvips CVEs, and below 0.35.4 two
+  libheif ones (GHSA-rgj7-g3m4-5g8c). Arrives via transformers for image pipelines this app
+  never uses.
+- **adm-zip** `^0.6.1` — via onnxruntime-node; 0.6.0 and earlier follow destination symlinks
+  on extraction (GHSA-vwc7-r8mq-g2x9).
 - **uuid** `^11.1.1` — exceljs pins uuid@7 but only calls `require('uuid').v4`, which v11
   still exports from its CJS build.
 

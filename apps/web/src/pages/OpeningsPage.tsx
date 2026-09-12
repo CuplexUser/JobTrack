@@ -42,6 +42,8 @@ import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
   WORK_MODE_LABELS,
+  locationKey,
+  matchesAnyLocation,
   type JobOpeningView,
   type PostingDraft,
 } from '@jobtrack/shared';
@@ -75,10 +77,34 @@ export function OpeningsPage() {
   const convertOpening = useConvertOpening();
   const updateOpening = useUpdateOpening();
 
-  const rows = useMemo(() => {
+  const [locations, setLocations] = useState<string[]>([]);
+
+  const inView = useMemo(() => {
     const all = data?.openings ?? [];
     return view === 'archived' ? all.filter((o) => o.archived) : all;
   }, [data, view]);
+
+  // Filtered here rather than by the API: the page already holds every opening in this
+  // view, and `matchesAnyLocation` is the same rule the API applies.
+  const rows = useMemo(
+    () => inView.filter((opening) => matchesAnyLocation(opening.location, locations)),
+    [inView, locations],
+  );
+
+  /** The locations in this view, grouped like the applications filter, most used first. */
+  const locationOptions = useMemo(() => {
+    const groups = new Map<string, { label: string; count: number }>();
+    for (const opening of inView) {
+      const label = opening.location?.replace(/\s+/g, ' ').trim();
+      if (!label) continue;
+      const group = groups.get(locationKey(label)) ?? { label, count: 0 };
+      group.count += 1;
+      groups.set(locationKey(label), group);
+    }
+    return [...groups.values()]
+      .sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+      .map((group) => ({ value: group.label, label: `${group.label} (${group.count})` }));
+  }, [inView]);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [ingestOpen, setIngestOpen] = useState(false);
@@ -258,14 +284,27 @@ export function OpeningsPage() {
         </Space>
       </Flex>
 
-      <Segmented<OpeningsView>
-        value={view}
-        onChange={setView}
-        options={[
-          { label: 'Active', value: 'active' },
-          { label: 'Archived', value: 'archived' },
-        ]}
-      />
+      <Flex gap={12} wrap align="center">
+        <Segmented<OpeningsView>
+          value={view}
+          onChange={setView}
+          options={[
+            { label: 'Active', value: 'active' },
+            { label: 'Archived', value: 'archived' },
+          ]}
+        />
+        <Select
+          // `tags` mode: pick a location from this list, or type any fragment ("Sweden").
+          mode="tags"
+          allowClear
+          placeholder="Location"
+          style={{ minWidth: 220 }}
+          value={locations}
+          onChange={(value: string[]) => setLocations(value.map((v) => v.trim()).filter(Boolean))}
+          optionFilterProp="value"
+          options={locationOptions}
+        />
+      </Flex>
 
       <Card size="small">
         <Table<JobOpeningView>
@@ -279,7 +318,9 @@ export function OpeningsPage() {
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  view === 'active'
+                  locations.length > 0
+                    ? 'No openings in that location'
+                    : view === 'active'
                     ? "Nothing saved yet. Use “Save opening for later” for a role you're not ready to apply to."
                     : 'No archived openings.'
                 }

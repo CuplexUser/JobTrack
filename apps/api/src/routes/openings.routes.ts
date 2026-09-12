@@ -1,5 +1,10 @@
 import type { FastifyInstance } from 'fastify';
-import { convertJobOpeningSchema, createJobOpeningSchema, patchJobOpeningSchema } from '@jobtrack/shared';
+import {
+  convertJobOpeningSchema,
+  createJobOpeningSchema,
+  openingFilterSchema,
+  patchJobOpeningSchema,
+} from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
 import { notFound } from '../lib/errors.js';
 import {
@@ -15,8 +20,10 @@ export async function openingRoutes(app: FastifyInstance, deps: Deps): Promise<v
   const { repos } = deps;
 
   app.get('/api/openings', async (request) => {
-    const query = request.query as { archived?: string };
-    return { openings: await listOpenings(repos, { includeArchived: query.archived === 'true' }) };
+    // `archived=true` is the web app's name for `includeArchived`, kept so its links still work.
+    const { archived, ...query } = request.query as Record<string, unknown>;
+    const filter = openingFilterSchema.parse({ includeArchived: archived, ...query });
+    return { openings: await listOpenings(repos, filter) };
   });
 
   app.get('/api/openings/:id', async (request) => {

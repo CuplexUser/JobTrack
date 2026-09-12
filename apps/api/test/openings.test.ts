@@ -47,6 +47,29 @@ describe('listOpenings', () => {
     expect(await listOpenings(repos)).toEqual([]);
     expect(await listOpenings(repos, { includeArchived: true })).toHaveLength(1);
   });
+
+  it('matches q against title, company, location and notes, requiring every word', async () => {
+    await createOpening(repos, openingInput({ jobTitle: 'Backend Engineer', notes: 'Kotlin and Postgres' }));
+    await createOpening(repos, openingInput({ companyName: 'Klarna', jobTitle: 'Data Engineer', notes: null }));
+
+    const titles = async (q: string) => (await listOpenings(repos, { q })).map((o) => o.jobTitle);
+    expect(await titles('engineer')).toHaveLength(2);
+    expect(await titles('KLARNA engineer')).toEqual(['Data Engineer']);
+    expect(await titles('postgres backend')).toEqual(['Backend Engineer']);
+    expect(await titles('postgres klarna')).toEqual([]);
+  });
+
+  it('filters by any of several locations and by source', async () => {
+    await createOpening(repos, openingInput({ jobTitle: 'A', location: 'Malmö, Sweden', sourceName: 'Teamtailor' }));
+    await createOpening(repos, openingInput({ jobTitle: 'B', location: 'Lund', sourceName: 'LinkedIn' }));
+    await createOpening(repos, openingInput({ jobTitle: 'C', location: null, sourceName: null }));
+
+    const byLocation = await listOpenings(repos, { location: ['malmo', 'Lund'] });
+    expect(byLocation.map((o) => o.jobTitle).sort()).toEqual(['A', 'B']);
+
+    const bySource = await listOpenings(repos, { source: 'linked' });
+    expect(bySource.map((o) => o.jobTitle)).toEqual(['B']);
+  });
 });
 
 describe('findMatchingOpening', () => {

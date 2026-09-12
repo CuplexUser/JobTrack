@@ -121,19 +121,8 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     byStatus,
   };
 
-  // Due follow-ups: the date has arrived and the conversation is still live.
-  const dueRows = applications
-    .filter(
-      (row) =>
-        row.followUpOn !== null &&
-        formatDateOnly(row.followUpOn) <= today &&
-        (ACTIVE_STATUSES as readonly string[]).includes(row.status),
-    )
-    .sort((a, b) => (a.followUpOn!.getTime() - b.followUpOn!.getTime()))
-    .slice(0, 20);
-
   const [followUps, recentActivity, stale] = await Promise.all([
-    hydrateApplications(repos, dueRows),
+    hydrateApplications(repos, dueFollowUpRows(applications, today)),
     recentEvents(repos),
     staleApplications(repos, applications, events, today),
   ]);
@@ -146,6 +135,40 @@ export async function getDashboard(repos: Repos): Promise<DashboardPayload> {
     volume: buildVolume(monthly, currentPeriod),
     stale,
   };
+}
+
+/** Due follow-ups: the date has arrived and the conversation is still live. Soonest first. */
+function dueFollowUpRows(applications: ApplicationRow[], today: string): ApplicationRow[] {
+  return applications
+    .filter(
+      (row) =>
+        row.followUpOn !== null &&
+        formatDateOnly(row.followUpOn) <= today &&
+        (ACTIVE_STATUSES as readonly string[]).includes(row.status),
+    )
+    .sort((a, b) => a.followUpOn!.getTime() - b.followUpOn!.getTime())
+    .slice(0, 20);
+}
+
+export interface NeedsAttention {
+  followUps: JobApplicationView[];
+  stale: StaleApplication[];
+}
+
+/**
+ * The two lists that ask the user to act: follow-ups that have come due, and live
+ * applications gone quiet. The same lists the dashboard shows, for callers that want only
+ * these (the agenda) without computing the charts.
+ */
+export async function needsAttention(repos: Repos): Promise<NeedsAttention> {
+  const today = todayDateOnly();
+  const applications = await repos.applications.findMany({ where: { archived: false } });
+  const events = await repos.statusEvents.findMany({});
+  const [followUps, stale] = await Promise.all([
+    hydrateApplications(repos, dueFollowUpRows(applications, today)),
+    staleApplications(repos, applications, events, today),
+  ]);
+  return { followUps, stale };
 }
 
 /**

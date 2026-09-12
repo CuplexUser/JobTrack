@@ -145,3 +145,18 @@ export function displayName(input: string): string {
 export function locationKey(input: string): string {
   return normalizeText(input);
 }
+
+/**
+ * Whether `location` contains any of `terms`, ignoring case and accents. No terms means no
+ * filter, so everything matches; a record with no location matches only then.
+ *
+ * The one definition of the location filter, shared by the applications and openings
+ * services and the web app, so all three agree on what "in Stockholm" means.
+ */
+export function matchesAnyLocation(location: string | null, terms: readonly string[] | undefined): boolean {
+  const keys = (terms ?? []).map(locationKey).filter(Boolean);
+  if (keys.length === 0) return true;
+  if (!location) return false;
+  const key = locationKey(location);
+  return keys.some((term) => key.includes(term));
+}

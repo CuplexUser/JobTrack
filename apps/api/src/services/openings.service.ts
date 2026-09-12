@@ -15,12 +15,15 @@ import {
   canonicalJobUrl,
   companyKey,
   displayName,
+  matchesAnyLocation,
+  normalizeText,
   parseDateOnly,
   titleKey,
   todayDateOnly,
   type ApplicationStatus,
   type JobApplicationView,
   type JobOpeningView,
+  type OpeningFilter,
 } from '@jobtrack/shared';
 import { scopedRepos, type Repos } from '../db/repos.js';
 import type { JobOpeningRow } from '../db/schema.js';
@@ -34,12 +37,37 @@ async function hydrateOpening(repos: Repos, row: JobOpeningRow): Promise<JobOpen
   return { ...toOpening(row), company: companyRow ? toCompany(companyRow) : missingCompany(row.companyId) };
 }
 
+/**
+ * Saved openings, newest first, narrowed by `filter`.
+ *
+ * The text, location and source filters run in memory after the read: an opening list is
+ * short, the location match is an OR repolayer cannot express, and `q` spans the company
+ * name, which lives in another table.
+ */
 export async function listOpenings(
   repos: Repos,
-  options: { includeArchived?: boolean } = {},
+  filter: Partial<OpeningFilter> = {},
 ): Promise<JobOpeningView[]> {
+  const openings = await readOpenings(repos, filter.includeArchived ?? false);
+  const words = normalizeText(filter.q ?? '').split(' ').filter(Boolean);
+  const source = normalizeText(filter.source ?? '');
+
+  return openings.filter((opening) => {
+    if (!matchesAnyLocation(opening.location, filter.location)) return false;
+    if (source && !normalizeText(opening.sourceName ?? '').includes(source)) return false;
+    if (words.length > 0) {
+      const haystack = normalizeText(
+        [opening.jobTitle, opening.company.name, opening.location, opening.notes].filter(Boolean).join(' '),
+      );
+      if (!words.every((word) => haystack.includes(word))) return false;
+    }
+    return true;
+  });
+}
+
+async function readOpenings(repos: Repos, includeArchived: boolean): Promise<JobOpeningView[]> {
   const rows = await repos.jobOpenings.findMany({
-    ...(options.includeArchived ? {} : { where: { archived: false } }),
+    ...(includeArchived ? {} : { where: { archived: false } }),
     orderBy: [{ field: 'savedOn', direction: 'desc' }],
   });
   if (rows.length === 0) return [];

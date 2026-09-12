@@ -1,6 +1,6 @@
 /**
- * Application tools — list/get/check-duplicate (read) and create/update/change-status
- * (write; no delete, by design). Every tool's `inputSchema` is the exact zod schema its REST
+ * Application tools — list/get/check-duplicate/find-duplicates (read) and
+ * create/update/change-status/bulk-change-status (write; no delete, by design). Every tool's `inputSchema` is the exact zod schema its REST
  * counterpart validates against (`@jobtrack/shared`), so a tool call can never accept
  * something the web form would reject, or vice versa.
  */
@@ -8,6 +8,7 @@
 import { z } from 'zod';
 import {
   applicationFilterSchema,
+  bulkStatusChangeSchema,
   changeStatusSchema,
   createApplicationSchema,
   duplicateCheckSchema,
@@ -16,13 +17,14 @@ import {
 import type { Deps } from '@jobtrack/api/deps';
 import {
   changeStatus,
+  changeStatuses,
   computePeriods,
   createApplication,
   getApplication,
   listApplications,
   patchApplication,
 } from '@jobtrack/api/services/applications';
-import { checkDuplicates } from '@jobtrack/api/services/duplicates';
+import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/duplicates';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
 import { applicationSummary } from '../views.js';
@@ -79,6 +81,22 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
   );
 
   server.registerTool(
+    'find_duplicate_groups',
+    {
+      description:
+        "Sweep every stored application for repeats of each other, grouped by employer. 'exact' groups are the same normalized title at the same company; 'similar' groups match on wording or meaning and need judgment (two real applications a year apart can look alike). Each group names the record the scan recommends keeping. Read-only: removing duplicates is done by the user in the web app.",
+      inputSchema: z.object({}),
+    },
+    async () => {
+      const scan = await findDuplicateGroups(repos);
+      return jsonResult({
+        scanned: scan.scanned,
+        groups: scan.groups.map((group) => ({ ...group, members: group.members.map(applicationSummary) })),
+      });
+    },
+  );
+
+  server.registerTool(
     'create_application',
     {
       description:
@@ -118,6 +136,20 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
       if (!updated) return errorResult(`No application with id ${id}`);
       search.markStale();
       return jsonResult(updated);
+    },
+  );
+
+  server.registerTool(
+    'bulk_change_status',
+    {
+      description:
+        "Apply one status change to several applications at once, such as marking a batch of silent applications 'ghosted' after a weekly review. Each application gets its own dated status-history entry, the same as change_application_status. Applications already at that status are reported as unchanged and left alone. Confirm the list with the user before calling this.",
+      inputSchema: bulkStatusChangeSchema,
+    },
+    async ({ ids, ...change }) => {
+      const result = await changeStatuses(repos, ids, change);
+      if (result.changed.length > 0) search.markStale();
+      return jsonResult({ ...result, changed: result.changed.map(applicationSummary) });
     },
   );
 }

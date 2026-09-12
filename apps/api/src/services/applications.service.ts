@@ -14,6 +14,7 @@ import type { Filter, QueryOptions, TxContext } from 'repolayer';
 import {
   ACTIVE_STATUSES,
   locationKey,
+  matchesAnyLocation,
   parseDateOnly,
   titleKey as toTitleKey,
   toPeriod,
@@ -123,18 +124,12 @@ export async function applicationIdsMatchingLocations(
   repos: Repos,
   terms: readonly string[] | undefined,
 ): Promise<string[] | null> {
-  const keys = (terms ?? []).map(locationKey).filter(Boolean);
-  if (keys.length === 0) return null;
+  if (!(terms ?? []).some((term) => locationKey(term))) return null;
 
   const rows = await repos.applications.findMany({
     where: [{ field: 'location', op: 'isNull', value: false }],
   });
-  return rows
-    .filter((row) => {
-      const key = locationKey(row.location ?? '');
-      return keys.some((term) => key.includes(term));
-    })
-    .map((row) => row.id);
+  return rows.filter((row) => matchesAnyLocation(row.location, terms)).map((row) => row.id);
 }
 
 /**
@@ -478,6 +473,39 @@ export async function changeStatus(
   });
 
   return hydrateApplication(repos, updated);
+}
+
+export interface BulkStatusResult {
+  changed: JobApplicationView[];
+  /** Already at the requested status, so no event was written for them. */
+  unchanged: string[];
+  missing: string[];
+}
+
+/**
+ * Apply one status change to several applications, for requests like "mark these ghosted".
+ *
+ * Each goes through `changeStatus`, so each gets its own dated event. An application already
+ * at that status is left alone rather than given a second, meaningless event saying it moved
+ * from ghosted to ghosted.
+ */
+export async function changeStatuses(
+  repos: Repos,
+  ids: readonly string[],
+  input: { status: ApplicationStatus; occurredOn?: string; comment: string | null },
+): Promise<BulkStatusResult> {
+  const result: BulkStatusResult = { changed: [], unchanged: [], missing: [] };
+  for (const id of new Set(ids)) {
+    const existing = await repos.applications.findById(id);
+    if (!existing) {
+      result.missing.push(id);
+    } else if (existing.status === input.status) {
+      result.unchanged.push(id);
+    } else {
+      result.changed.push((await changeStatus(repos, id, input))!);
+    }
+  }
+  return result;
 }
 
 /**

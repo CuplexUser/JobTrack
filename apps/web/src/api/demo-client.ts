@@ -39,6 +39,7 @@ import {
   exportQuerySchema,
   monthName,
   noteTargetSchema,
+  openingFilterSchema,
   parseDateOnly,
   patchApplicationSchema,
   patchCompanySchema,
@@ -612,8 +613,9 @@ export const demoApi: typeof httpApi = {
   listOpenings: (params = {}) =>
     guarded(async () => {
       const { repos } = await getState();
-      const archived = typeof params.archived === 'string' && params.archived === 'true';
-      return { openings: await listOpenings(repos, { includeArchived: archived }) };
+      const { archived, ...query } = params;
+      const filter = openingFilterSchema.parse({ includeArchived: archived, ...query });
+      return { openings: await listOpenings(repos, filter) };
     }),
 
   getOpening: (id) =>

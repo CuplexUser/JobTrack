@@ -176,6 +176,43 @@ export const bulkDeleteSchema = z.object({
   ids: z.array(z.uuid()).min(1).max(500),
 });
 
+/**
+ * One status change applied to several applications, such as "mark these ghosted". Each one
+ * still gets its own dated status event, exactly as a single change would.
+ */
+export const bulkStatusChangeSchema = z.object({
+  ids: z.array(z.uuid()).min(1).max(100),
+  status: statusSchema,
+  occurredOn: dateOnly.optional(),
+  comment: z
+    .string()
+    .trim()
+    .max(2000)
+    .nullish()
+    .transform((v) => v ?? null),
+});
+
+/** `true`/`false` from a URL, or a real boolean from JSON (an MCP tool call). */
+const booleanish = z
+  .union([z.boolean(), z.enum(['true', 'false']).transform((v) => v === 'true')])
+  .optional();
+
+/**
+ * The openings list filter. Everything here is optional, and an empty filter lists what the
+ * page always has: every opening not yet archived.
+ */
+export const openingFilterSchema = z.object({
+  /** Include converted and hand-archived openings alongside the active ones. */
+  includeArchived: booleanish,
+  /** Words that must all appear in the title, company, location or notes. */
+  q: z.string().trim().max(300).optional(),
+  /** Same any-of contains match as the applications filter. `|`-separated in a URL. */
+  location: pipeArray(z.string().max(200)),
+  source: z.string().trim().max(120).optional(),
+});
+
+export type OpeningFilter = z.output<typeof openingFilterSchema>;
+
 export const duplicateCheckSchema = z.object({
   company: z.string().trim().min(1).max(200),
   title: z.string().trim().max(200).optional().default(''),
@@ -313,6 +350,20 @@ export const ingestTextSchema = z.object({
   text: z.string().min(1).max(200000),
   url: optionalTrimmed(2000).optional(),
 });
+
+/**
+ * Capture from an MCP client: a link to read, or text to parse (with the link it came from,
+ * when there is one), optionally saved straight away as an opening.
+ */
+export const capturePostingSchema = z
+  .object({
+    url: z.string().trim().min(1).max(2000).optional(),
+    text: z.string().min(1).max(200000).optional(),
+    save: z.boolean().default(false),
+  })
+  .refine((v) => v.url !== undefined || v.text !== undefined, {
+    message: 'Give a url to read, or the posting text',
+  });
 
 export const postingDraftSchema = z
   .object({

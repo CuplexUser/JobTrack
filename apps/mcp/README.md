@@ -13,6 +13,12 @@ server running. Tools cover create/update/status-change for applications, compan
 tags and job openings, plus every read (list/get/search/dashboard) — deliberately **no
 delete tools**, so an MCP client can only add to or edit data, never destroy it.
 
+Beyond the plain records it can capture a posting from a link or pasted text
+(`capture_posting`), list what is waiting on you today (`get_agenda`), change several
+statuses at once (`bulk_change_status`) and sweep for duplicates (`find_duplicate_groups`).
+It also ships prompts for the routine chores: `weekly_review`, `triage_openings`,
+`log_email_update`, `prepare_application` and `interview_prep`.
+
 ## Install
 
 ```bash

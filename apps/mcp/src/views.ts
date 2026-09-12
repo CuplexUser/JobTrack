@@ -14,7 +14,7 @@
  * breadth, detail on request.
  */
 
-import type { JobApplicationView, Note, NoteTarget } from '@jobtrack/shared';
+import type { JobApplicationView, JobOpeningView, Note, NoteTarget } from '@jobtrack/shared';
 
 /** Drop keys that carry nothing, so an unset field costs zero characters instead of six. */
 function compact<T extends object>(value: T): T {
@@ -24,7 +24,7 @@ function compact<T extends object>(value: T): T {
 }
 
 /** `50000-70000 USD`, or whichever half of it exists — `null` when neither does. */
-function formatSalary(app: JobApplicationView): string | null {
+function formatSalary(app: Pick<JobApplicationView, 'salaryMin' | 'salaryMax' | 'salaryCurrency'>): string | null {
   const { salaryMin: min, salaryMax: max, salaryCurrency: currency } = app;
   if (min === null && max === null) return null;
   const range = min !== null && max !== null ? `${min}-${max}` : `${min ?? max}`;
@@ -106,5 +106,48 @@ export function noteSummary(note: Note & { targetLabel?: string | null }): NoteS
     targetLabel: note.targetLabel ?? undefined,
     pinned: note.pinned ? true : undefined,
     updatedAt: note.updatedAt,
+  });
+}
+
+/**
+ * How much of an opening's notes a list row carries. Captured openings keep the whole
+ * posting text in `notes`, which is exactly what makes a list of them too big to return.
+ */
+export const OPENING_NOTES_PREVIEW_CHARS = 300;
+
+export interface OpeningSummary {
+  id: string;
+  company: string;
+  jobTitle: string;
+  savedOn: string;
+  workMode?: string;
+  location?: string;
+  source?: string;
+  salary?: string;
+  jobUrl?: string;
+  notes?: string;
+  /** Present only when `notes` was cut. Call `get_opening` for the rest. */
+  notesTruncated?: boolean;
+  archived?: boolean;
+  convertedApplicationId?: string;
+}
+
+export function openingSummary(opening: JobOpeningView): OpeningSummary {
+  const notes = opening.notes ?? '';
+  const truncated = notes.length > OPENING_NOTES_PREVIEW_CHARS;
+  return compact({
+    id: opening.id,
+    company: opening.company.name,
+    jobTitle: opening.jobTitle,
+    savedOn: opening.savedOn,
+    workMode: opening.workMode === 'unspecified' ? undefined : opening.workMode,
+    location: opening.location ?? undefined,
+    source: opening.sourceName ?? undefined,
+    salary: formatSalary(opening) ?? undefined,
+    jobUrl: opening.jobUrl ?? undefined,
+    notes: notes ? (truncated ? `${notes.slice(0, OPENING_NOTES_PREVIEW_CHARS)}…` : notes) : undefined,
+    notesTruncated: truncated ? true : undefined,
+    archived: opening.archived ? true : undefined,
+    convertedApplicationId: opening.convertedApplicationId ?? undefined,
   });
 }
