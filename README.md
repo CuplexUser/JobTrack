@@ -96,6 +96,13 @@ interviewed you. The duplicate check names who you know at a company before you 
 company you have never applied to, and you can import your whole network from LinkedIn's own
 data export. See [`docs/networking.md`](docs/networking.md).
 
+**Ranked by fit, and kept tidy for you.** Fill in a profile (a CV summary, the titles and
+places you want, a salary floor, words to look for or avoid) and saved openings are scored 0
+to 100 with the reasons shown. Two opt-in rules take chores off your hands: a default
+follow-up date for new applications, and marking long-silent applications as ghosted, with a
+preview of exactly what would change. The Windows tray app notifies you when a follow-up or a
+reconnect comes due. See [`docs/automation.md`](docs/automation.md).
+
 **Everything else.** Applications divided by year and month, full status pipeline with a
 dated history, companies as first-class records, a free-form tag vocabulary attachable to
 both companies and applications, notes that link to either, CSV/Excel export and import, and
@@ -121,7 +128,7 @@ apps/tray/         background process + Windows tray icon, publishable as `jobtr
 apps/extension/    browser extension that clips a posting into an opening (not published)
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
-docs/              longer reference docs (web capture, networking, npm publishing, ...)
+docs/              longer reference docs (web capture, networking, automation, npm publishing, ...)
 ```
 
 npm workspaces — one `npm install` at the root covers everything.
@@ -343,6 +350,7 @@ an MCP client cannot destroy data, only add to or edit it. On top of the plain r
 | `bulk_change_status` | one status change across several applications ("mark these ghosted"), each with its own dated event |
 | `find_duplicate_groups` | the Duplicates page's sweep, read-only |
 | `list_openings` | now filterable by `q`, `location` and `source` |
+| `get_profile`, `update_profile`, `rank_openings` | what you are looking for, and your openings scored against it best first, with reasons (see [`docs/automation.md`](docs/automation.md)) |
 | `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `log_interaction`, `link_contact`, `list_linked_contacts` | the network: who works where, conversations, reconnect dates, and who played a part in which application (see [`docs/networking.md`](docs/networking.md)) |
 
 **Prompts** turn the routine chores into one click in the client's prompt menu. Each is a

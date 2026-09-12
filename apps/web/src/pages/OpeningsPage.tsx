@@ -44,7 +44,7 @@ import {
   WORK_MODE_LABELS,
   locationKey,
   matchesAnyLocation,
-  type JobOpeningView,
+  type RankedOpening,
   type PostingDraft,
 } from '@jobtrack/shared';
 import {
@@ -56,6 +56,7 @@ import {
 } from '../api/hooks.js';
 import { OpeningDrawer } from '../components/OpeningDrawer.js';
 import { PostingIngestModal } from '../components/PostingIngestModal.js';
+import { FitBadge } from '../components/FitBadge.js';
 
 interface ConvertFormValues {
   appliedOn: Dayjs;
@@ -78,6 +79,7 @@ export function OpeningsPage() {
   const updateOpening = useUpdateOpening();
 
   const [locations, setLocations] = useState<string[]>([]);
+  const [order, setOrder] = useState<'newest' | 'fit'>('newest');
 
   const inView = useMemo(() => {
     const all = data?.openings ?? [];
@@ -86,10 +88,14 @@ export function OpeningsPage() {
 
   // Filtered here rather than by the API: the page already holds every opening in this
   // view, and `matchesAnyLocation` is the same rule the API applies.
-  const rows = useMemo(
-    () => inView.filter((opening) => matchesAnyLocation(opening.location, locations)),
-    [inView, locations],
-  );
+  const rows = useMemo(() => {
+    const matching = inView.filter((opening) => matchesAnyLocation(opening.location, locations));
+    // The API already scored every opening; ranking is only a different order of the same rows.
+    return order === 'fit' ? [...matching].sort((a, b) => (b.fit?.score ?? -1) - (a.fit?.score ?? -1)) : matching;
+  }, [inView, locations, order]);
+
+  /** Fit is null on every opening when the user has not filled in a profile yet. */
+  const hasProfile = inView.some((opening) => opening.fit !== null);
 
   /** The locations in this view, grouped like the applications filter, most used first. */
   const locationOptions = useMemo(() => {
@@ -110,11 +116,11 @@ export function OpeningsPage() {
   const [ingestOpen, setIngestOpen] = useState(false);
   /** Set when the drawer was opened from a captured posting rather than from scratch. */
   const [draft, setDraft] = useState<PostingDraft | undefined>(undefined);
-  const [editing, setEditing] = useState<JobOpeningView | undefined>(undefined);
-  const [converting, setConverting] = useState<JobOpeningView | null>(null);
+  const [editing, setEditing] = useState<RankedOpening | undefined>(undefined);
+  const [converting, setConverting] = useState<RankedOpening | null>(null);
   const [form] = Form.useForm<ConvertFormValues>();
 
-  function openConvert(opening: JobOpeningView): void {
+  function openConvert(opening: RankedOpening): void {
     setConverting(opening);
     form.setFieldsValue({ appliedOn: dayjs(), status: 'applied', tags: [] });
   }
@@ -138,7 +144,7 @@ export function OpeningsPage() {
     }
   }
 
-  async function handleRestore(row: JobOpeningView): Promise<void> {
+  async function handleRestore(row: RankedOpening): Promise<void> {
     try {
       await updateOpening.mutateAsync({ id: row.id, body: { archived: false } });
       message.success('Opening restored');
@@ -147,7 +153,10 @@ export function OpeningsPage() {
     }
   }
 
-  const baseColumns: ColumnsType<JobOpeningView> = [
+  const baseColumns: ColumnsType<RankedOpening> = [
+    ...(hasProfile
+      ? [{ title: 'Fit', key: 'fit', width: 70, render: (_: unknown, row: RankedOpening) => <FitBadge fit={row.fit} /> }]
+      : []),
     { title: 'Company', dataIndex: ['company', 'name'] },
     { title: 'Job title', dataIndex: 'jobTitle' },
     { title: 'Found on', dataIndex: 'savedOn', width: 120 },
@@ -162,7 +171,7 @@ export function OpeningsPage() {
     { title: 'Source', dataIndex: 'sourceName', render: (v: string | null) => v ?? '—' },
   ];
 
-  const jobUrlButton = (row: JobOpeningView) =>
+  const jobUrlButton = (row: RankedOpening) =>
     row.jobUrl && (
       <Tooltip title="Open job posting">
         <Button
@@ -175,7 +184,7 @@ export function OpeningsPage() {
       </Tooltip>
     );
 
-  const deleteButton = (row: JobOpeningView) => (
+  const deleteButton = (row: RankedOpening) => (
     <Popconfirm
       title="Delete this opening?"
       description="This removes it for good and cannot be undone."
@@ -189,7 +198,7 @@ export function OpeningsPage() {
     </Popconfirm>
   );
 
-  const activeColumns: ColumnsType<JobOpeningView> = [
+  const activeColumns: ColumnsType<RankedOpening> = [
     ...baseColumns,
     {
       title: '',
@@ -217,7 +226,7 @@ export function OpeningsPage() {
     },
   ];
 
-  const archivedColumns: ColumnsType<JobOpeningView> = [
+  const archivedColumns: ColumnsType<RankedOpening> = [
     ...baseColumns,
     {
       title: 'Archived because',
@@ -304,10 +313,26 @@ export function OpeningsPage() {
           optionFilterProp="value"
           options={locationOptions}
         />
+        {hasProfile ? (
+          <Segmented
+            value={order}
+            onChange={(value) => setOrder(value as 'newest' | 'fit')}
+            options={[
+              { label: 'Newest first', value: 'newest' },
+              { label: 'Best fit first', value: 'fit' },
+            ]}
+          />
+        ) : (
+          inView.length > 0 && (
+            <Typography.Text type="secondary">
+              <Link to="/settings">Fill in your profile</Link> to rank these by how well they fit.
+            </Typography.Text>
+          )
+        )}
       </Flex>
 
       <Card size="small">
-        <Table<JobOpeningView>
+        <Table<RankedOpening>
           rowKey="id"
           columns={view === 'archived' ? archivedColumns : activeColumns}
           dataSource={rows}

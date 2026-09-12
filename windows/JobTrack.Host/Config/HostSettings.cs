@@ -21,6 +21,12 @@ internal sealed class HostSettings
     /// </summary>
     [JsonPropertyName("firstRunShown")] public bool FirstRunShown { get; set; }
 
+    /// <summary>
+    /// Whether to show a balloon when a follow-up or a reconnect date comes due. On by default:
+    /// those dates were set by the user in order to be reminded, and a reminder only notifies.
+    /// </summary>
+    [JsonPropertyName("remindersEnabled")] public bool RemindersEnabled { get; set; } = true;
+
     public static HostSettings Load()
     {
         try

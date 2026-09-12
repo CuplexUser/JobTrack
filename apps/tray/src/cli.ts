@@ -36,7 +36,7 @@ if (home) process.env.JOBTRACK_HOME = resolve(home);
 
 const noTray = argv.includes('--no-tray') || process.env.JOBTRACK_NO_TRAY === '1';
 
-const { app, config, repos, search } = await startServer();
+const { app, config, repos, search, jobs } = await startServer();
 
 const url = `http://${config.host === '0.0.0.0' ? '127.0.0.1' : config.host}:${config.port}`;
 console.log(`JobTrack v${APP_VERSION} running at ${url} (driver: ${config.driver})`);
@@ -57,6 +57,7 @@ let shuttingDown = false;
 async function shutdown(): Promise<void> {
   if (shuttingDown) return;
   shuttingDown = true;
+  jobs.stop();
   search.stop();
   await app.close();
   await repos.close();

@@ -195,7 +195,20 @@ export const contactLinkSchema = defineSchema({
   ...timestampFields,
 });
 
+/**
+ * Small, whole documents keyed by name: the user's profile, their automation rules, and the
+ * bookkeeping background jobs keep. A key-value table rather than a table per document, so a
+ * new setting never needs a new table (and so never needs the backup format to learn one).
+ */
+export const appSettingSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  settingKey: { type: 'string', unique: true, column: 'setting_key' },
+  value: { type: 'json' },
+  ...timestampFields,
+});
+
 export type CompanyRow = Infer<typeof companySchema>;
+export type AppSettingRow = Infer<typeof appSettingSchema>;
 export type ContactRow = Infer<typeof contactSchema>;
 export type InteractionRow = Infer<typeof interactionSchema>;
 export type ContactLinkRow = Infer<typeof contactLinkSchema>;

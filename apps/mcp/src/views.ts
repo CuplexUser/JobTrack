@@ -14,7 +14,7 @@
  * breadth, detail on request.
  */
 
-import type { ContactView, JobApplicationView, JobOpeningView, Note, NoteTarget } from '@jobtrack/shared';
+import type { ContactView, FitResult, JobApplicationView, JobOpeningView, Note, NoteTarget } from '@jobtrack/shared';
 
 /** Drop keys that carry nothing, so an unset field costs zero characters instead of six. */
 function compact<T extends object>(value: T): T {
@@ -130,9 +130,11 @@ export interface OpeningSummary {
   notesTruncated?: boolean;
   archived?: boolean;
   convertedApplicationId?: string;
+  /** 0 to 100 against the user's profile, with the reasons; absent when there is no profile. */
+  fit?: { score: number; reasons: string[] };
 }
 
-export function openingSummary(opening: JobOpeningView): OpeningSummary {
+export function openingSummary(opening: JobOpeningView & { fit?: FitResult | null }): OpeningSummary {
   const notes = opening.notes ?? '';
   const truncated = notes.length > OPENING_NOTES_PREVIEW_CHARS;
   return compact({
@@ -149,6 +151,9 @@ export function openingSummary(opening: JobOpeningView): OpeningSummary {
     notesTruncated: truncated ? true : undefined,
     archived: opening.archived ? true : undefined,
     convertedApplicationId: opening.convertedApplicationId ?? undefined,
+    fit: opening.fit
+      ? { score: opening.fit.score, reasons: opening.fit.reasons.map((reason) => `${reason.effect === 'minus' ? '-' : '+'} ${reason.label}`) }
+      : undefined,
   });
 }
 

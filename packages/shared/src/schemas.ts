@@ -214,6 +214,10 @@ export const openingFilterSchema = z.object({
   /** Same any-of contains match as the applications filter. `|`-separated in a URL. */
   location: pipeArray(z.string().max(200)),
   source: z.string().trim().max(120).optional(),
+  /** `fit` ranks by how well each opening matches the profile; newest first otherwise. */
+  sort: z.enum(['savedOn', 'fit']).optional(),
+  /** Leave out openings scoring below this. Ignored when there is no profile to score against. */
+  minFit: z.coerce.number().int().min(0).max(100).optional(),
 });
 
 export type OpeningFilter = z.output<typeof openingFilterSchema>;
@@ -477,6 +481,78 @@ export const linkContactSchema = z.object({
   targetId: z.uuid(),
   role: contactRoleSchema.default('contact'),
 });
+
+// ---------------------------------------------------------------- profile and rules
+
+const shortList = (max: number) => z.array(z.string().trim().min(1).max(200)).max(max);
+
+/**
+ * What the user is looking for, used to rank openings by fit. Every part is optional, and a
+ * part left empty is simply not scored.
+ */
+export const profileSchema = z.object({
+  /** A CV or a few paragraphs about the user's experience, compared against posting text by meaning. */
+  summary: optionalTrimmed(50000),
+  targetTitles: shortList(20).default([]),
+  locations: shortList(20).default([]),
+  workModes: z.array(workModeSchema).max(4).default([]),
+  salaryFloor: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullish()
+    .transform((v) => v ?? null),
+  salaryCurrency: optionalTrimmed(8),
+  includeKeywords: shortList(30).default([]),
+  excludeKeywords: shortList(30).default([]),
+});
+
+export type Profile = z.output<typeof profileSchema>;
+
+/**
+ * Changing some of the profile. Fields left out keep their stored value.
+ *
+ * Spelled out rather than `profileSchema.partial()`: zod still applies a field's `.default()`
+ * inside `.partial()`, so a patch naming only `targetTitles` would come back with every list
+ * reset to empty and wipe them on save.
+ */
+export const profilePatchSchema = z.object({
+  summary: optionalTrimmed(50000).optional(),
+  targetTitles: shortList(20).optional(),
+  locations: shortList(20).optional(),
+  workModes: z.array(workModeSchema).max(4).optional(),
+  salaryFloor: z.number().int().nonnegative().nullish(),
+  salaryCurrency: optionalTrimmed(8).optional(),
+  includeKeywords: shortList(30).optional(),
+  excludeKeywords: shortList(30).optional(),
+});
+
+/**
+ * Automation the user opts into. Both are off (null) until switched on, because each one
+ * writes to records the user did not touch.
+ */
+export const rulesSchema = z.object({
+  /** Give a new application a follow-up date this many days after it was applied for. */
+  defaultFollowUpDays: z
+    .number()
+    .int()
+    .min(1)
+    .max(90)
+    .nullish()
+    .transform((v) => v ?? null),
+  /** Mark an application ghosted after this many days with no status change and nothing planned. */
+  autoGhostAfterDays: z
+    .number()
+    .int()
+    .min(14)
+    .max(365)
+    .nullish()
+    .transform((v) => v ?? null),
+});
+
+export type Rules = z.output<typeof rulesSchema>;
+
+export const rulesPatchSchema = rulesSchema.partial();
 
 /** LinkedIn's `Connections.csv`, sent as text so the browser and the API parse the same bytes. */
 export const linkedInImportSchema = z.object({

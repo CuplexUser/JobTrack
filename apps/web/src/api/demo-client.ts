@@ -50,6 +50,8 @@ import {
   patchApplicationSchema,
   patchCompanySchema,
   patchContactSchema,
+  profilePatchSchema,
+  rulesPatchSchema,
   patchJobOpeningSchema,
   parsePostingText,
   patchNoteSchema,
@@ -83,6 +85,9 @@ import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/dup
 import { createNote, deleteNote, listNotes, updateNote } from '@jobtrack/api/services/notes';
 import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
+import { rankOpenings } from '@jobtrack/api/services/fit';
+import { getProfile, getRules, updateProfile, updateRules } from '@jobtrack/api/services/settings';
+import { runAutoGhost } from '@jobtrack/api/services/rules';
 import {
   commitLinkedInImport,
   contactsForTarget,
@@ -102,7 +107,6 @@ import {
   createOpening,
   deleteOpening,
   getOpening,
-  listOpenings,
   updateOpening,
 } from '@jobtrack/api/services/openings';
 import {
@@ -707,10 +711,53 @@ export const demoApi: typeof httpApi = {
 
   listOpenings: (params = {}) =>
     guarded(async () => {
-      const { repos } = await getState();
+      const { repos, search } = await getState();
       const { archived, ...query } = params;
       const filter = openingFilterSchema.parse({ includeArchived: archived, ...query });
-      return { openings: await listOpenings(repos, filter) };
+      return { openings: await rankOpenings(repos, search, filter) };
+    }),
+
+  getProfile: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getProfile(repos);
+    }),
+
+  updateProfile: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const profile = await updateProfile(repos, profilePatchSchema.parse(body));
+      await persist(repos);
+      return profile;
+    }),
+
+  getRules: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getRules(repos);
+    }),
+
+  updateRules: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const rules = await updateRules(repos, rulesPatchSchema.parse(body));
+      await persist(repos);
+      return rules;
+    }),
+
+  previewAutoGhost: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return runAutoGhost(repos, { dryRun: true });
+    }),
+
+  runAutoGhost: () =>
+    guarded(async () => {
+      const { repos, search } = await getState();
+      const result = await runAutoGhost(repos);
+      if (result.changed > 0) search.markStale();
+      await persist(repos);
+      return result;
     }),
 
   getOpening: (id) =>

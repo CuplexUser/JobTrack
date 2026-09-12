@@ -55,7 +55,7 @@ Keep it concise and do not change anything I have not agreed to.`),
     () =>
       userPrompt(`Help me triage my saved job openings in JobTrack.
 
-1. Call list_openings. For any opening whose notes were cut short, call get_opening when you need the full posting.
+1. Call list_openings with sort set to 'fit'. If the rows carry a fit score, work through them best first and use the reasons; if they do not, I have no profile yet, so mention that filling one in (Settings in JobTrack, or update_profile) would rank these for me. For any opening whose notes were cut short, call get_opening when you need the full posting.
 2. For each opening, call check_duplicate with its company and title so you know whether I have applied there before and how that went (get_application on a prior match if it matters).
 3. Give me a table: company, title, location, how long it has been saved, prior history at the company, who I know there (the contacts check_duplicate returns), and your recommendation (apply / research first / archive) with a one-line reason.
 4. Then ask me what to do. For the ones I want to apply to, call convert_opening_to_application. For the ones I want gone, call update_opening with archived: true. Do nothing without my go-ahead.`),

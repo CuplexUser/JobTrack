@@ -12,6 +12,7 @@ import { buildApp } from './app.js';
 import { SearchIndex } from './search/index.js';
 import { DisabledEmbedder, type Embedder } from './search/embedder.js';
 import { TransformersEmbedder } from './search/transformers-embedder.js';
+import { startBackgroundJobs } from './jobs/scheduler.js';
 
 // `.env` first: nothing else reads it, and everything below is configured from it.
 loadEnvFile();
@@ -39,6 +40,7 @@ const app = await buildApp({ repos, search, config }, { logger: true });
 await search.start();
 
 await app.listen({ host: config.host, port: config.port });
+const jobs = startBackgroundJobs({ repos, search, config }, { log: (message, error) => console.warn(`[jobs] ${message}`, error ?? '') });
 console.log(`JobTrack API on http://${config.host}:${config.port} (driver: ${config.driver})`);
 if (config.semanticSearchEnabled) {
   console.log('[search] lexical index ready; embedding model loading in the background');
@@ -47,6 +49,7 @@ if (config.semanticSearchEnabled) {
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
     void (async () => {
+      jobs.stop();
       search.stop();
       await app.close();
       await repos.close();

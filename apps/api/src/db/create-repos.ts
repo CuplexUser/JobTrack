@@ -12,6 +12,7 @@ import { createRepo } from 'repolayer';
 import type { Config, DriverName } from '../config.js';
 import type { RepoBundle } from './repos.js';
 import {
+  appSettingSchema,
   applicationSchema,
   companySchema,
   contactLinkSchema,
@@ -23,6 +24,7 @@ import {
   statusEventSchema,
   tagLinkSchema,
   tagSchema,
+  type AppSettingRow,
   type ApplicationRow,
   type CompanyRow,
   type ContactLinkRow,
@@ -84,6 +86,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
   const contacts = await createRepo<ContactRow>({ ...common, table: 'contacts', schema: contactSchema });
   const interactions = await createRepo<InteractionRow>({ ...common, table: 'interactions', schema: interactionSchema });
   const contactLinks = await createRepo<ContactLinkRow>({ ...common, table: 'contact_links', schema: contactLinkSchema });
+  const appSettings = await createRepo<AppSettingRow>({ ...common, table: 'app_settings', schema: appSettingSchema });
 
   return {
     companies,
@@ -97,6 +100,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
     contacts,
     interactions,
     contactLinks,
+    appSettings,
     async close() {
       // Closing every repo is correct even when they share a pool: repolayer closes a pool
       // it created once, and leaves one that was passed in alone.
@@ -112,6 +116,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
         contacts.close(),
         interactions.close(),
         contactLinks.close(),
+        appSettings.close(),
       ]);
     },
   };

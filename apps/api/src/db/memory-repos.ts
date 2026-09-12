@@ -17,6 +17,7 @@
 import { MemoryRepo, MemoryStore } from 'repolayer/memory';
 import type { RepoBundle } from './repos.js';
 import {
+  appSettingSchema,
   applicationSchema,
   companySchema,
   contactLinkSchema,
@@ -53,6 +54,7 @@ export function createMemoryRepos(): RepoBundle {
     contacts: new MemoryRepo({ ...common, table: 'contacts', schema: contactSchema }),
     interactions: new MemoryRepo({ ...common, table: 'interactions', schema: interactionSchema }),
     contactLinks: new MemoryRepo({ ...common, table: 'contact_links', schema: contactLinkSchema }),
+    appSettings: new MemoryRepo({ ...common, table: 'app_settings', schema: appSettingSchema }),
   } as unknown as RepoBundle;
 
   return { ...repos, close: async () => {} };

@@ -34,6 +34,8 @@ internal sealed class TrayApplicationContext : ApplicationContext
     /// <summary>Marshals supervisor callbacks, which arrive on background threads, onto the UI thread.</summary>
     private readonly Control _sync = new();
 
+    private readonly ReminderPoller _reminders;
+
     private SettingsForm? _settingsForm;
     private bool _quitting;
 
@@ -103,6 +105,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _instance.QuitRequested += () => Post(() => _ = QuitAsync());
         _instance.BeginListening();
 
+        _reminders = new ReminderPoller(ReadApiToken, hostLog);
+        _reminders.RemindersDue += due => Post(() => ShowReminders(due));
+
         _supervisor.StateChanged += state => Post(() => OnStateChanged(state, launchedAtSignIn));
         _supervisor.Start();
 
@@ -141,6 +146,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         };
         if (ready is not null) _header.Text = $"JobTrack {ready.Version} ({ready.Driver})";
 
+        if (state == ServerState.Running && ready is not null && _settings.RemindersEnabled) _reminders.Start(ready.Port);
+        else if (state != ServerState.Running) _reminders.Stop();
+
         switch (state)
         {
             case ServerState.Running when _settings.OpenBrowserOnStart && !launchedAtSignIn:
@@ -162,7 +170,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
     }
 
-    private enum BalloonAction { None, ShowLog, OpenExistingServer }
+    private enum BalloonAction { None, ShowLog, OpenExistingServer, OpenDashboard }
 
     private BalloonAction _balloonAction = BalloonAction.None;
 
@@ -178,6 +186,9 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             case BalloonAction.ShowLog:
                 ShowLog();
+                break;
+            case BalloonAction.OpenDashboard:
+                if (_supervisor.Ready?.Url is { } url) Shell.OpenUrl($"{url.TrimEnd('/')}/dashboard");
                 break;
             case BalloonAction.OpenExistingServer:
                 // Whatever holds the port, this is the address it is on.
@@ -197,6 +208,25 @@ internal sealed class TrayApplicationContext : ApplicationContext
         // like it did nothing at all.
         Notify("JobTrack is running", "It lives in the notification area. You may want to pin it there.",
             ToolTipIcon.Info, BalloonAction.None);
+    }
+
+    private void ShowReminders(DueReminders due)
+    {
+        if (!_settings.RemindersEnabled || _quitting) return;
+        var (title, message) = due.Describe();
+        Notify(title, message, ToolTipIcon.Info, BalloonAction.OpenDashboard);
+    }
+
+    private void OnRemindersChanged(bool enabled)
+    {
+        if (!enabled) _reminders.Stop();
+        else if (_supervisor.State == ServerState.Running && _supervisor.Ready is { } ready) _reminders.Start(ready.Port);
+    }
+
+    private string? ReadApiToken()
+    {
+        var env = EnvFile.Load(Paths.EnvFile, _manifest.EnvExample is { } example ? Paths.Resolve(example) : null);
+        return ApiToken.Read(env);
     }
 
     private void OpenUi()
@@ -219,6 +249,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
             return;
         }
         _settingsForm = new SettingsForm(_supervisor, _manifest, _settings);
+        _settingsForm.RemindersChanged += enabled => Post(() => OnRemindersChanged(enabled));
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show();
     }
@@ -258,6 +289,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _quitting = true;
         _hostLog.Write("quitting");
         _icon.Text = "JobTrack: stopping...";
+        _reminders.Stop();
         await _supervisor.StopAsync();
         _icon.Visible = false;
         ExitThread();
@@ -269,6 +301,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         {
             _icon.Visible = false;
             _icon.Dispose();
+            _reminders.Dispose();
             _sync.Dispose();
         }
         base.Dispose(disposing);

@@ -191,12 +191,19 @@ Worth doing next:
 - An email-address match, so a pasted recruiter email in `log_email_update` finds the person
   as well as the application.
 
-## 12. Profile, fit ranking, rules and reminders
+## 12. Profile, fit ranking, rules and reminders — ✅ done
 
-Planned: a profile (CV text, preferred locations, work modes, salary floor, keywords) that
-ranks saved openings by fit using the local embedder; opt-in rules such as a default
-follow-up date and auto-ghosting after a long silence; and Windows tray notifications that
-poll the agenda.
+A profile on the Settings page ranks saved openings 0 to 100, with every point explained:
+title, location, work mode, salary floor and keywords by rule, plus how close a posting reads
+to the user's summary by meaning, using the local embedder. Two rules are opt-in, each with a
+preview: a default follow-up date for new applications, and auto-ghosting long-silent ones on
+an hourly, idempotent background job. The Windows tray host polls the agenda and notifies when
+follow-ups and reconnects come due. See [`docs/automation.md`](docs/automation.md).
+
+Worth doing next:
+
+- Notifications on macOS and Linux, where the npm tray app has no balloon support today.
+- Learning from outcomes: nudging the weights toward what actually led to interviews.
 
 ## 13. Automatic job feeds
 

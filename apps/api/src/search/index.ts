@@ -471,6 +471,19 @@ export class SearchIndex {
    * rather than a ranked list. Returns an empty map when the model is not ready, and
    * duplicate detection then falls back to text similarity alone.
    */
+  /**
+   * Cosine similarity between `query` and each of `texts`, none of which need to be indexed.
+   * Null while the model is not ready, which callers treat as "rank without meaning".
+   */
+  async similarityBetween(query: string, texts: readonly string[]): Promise<number[] | null> {
+    try {
+      return await similarityBetweenTexts(this.#embedder, query, texts);
+    } catch (error) {
+      this.#log('similarity between texts failed', error);
+      return null;
+    }
+  }
+
   async similarityTo(
     query: string,
     applicationIds: readonly string[],
@@ -492,6 +505,51 @@ export class SearchIndex {
     }
     return result;
   }
+}
+
+/** How many ad hoc vectors `similarityBetween` keeps before starting its cache over. */
+const AD_HOC_CACHE_LIMIT = 2000;
+
+/** Long text says little more to a sentence embedder past this, and costs more to embed. */
+const AD_HOC_TEXT_CHARS = 2000;
+
+/**
+ * Vectors for text that is not in the index, such as a profile summary and the openings
+ * being ranked against it. Keyed by content hash and model, so an unchanged posting is
+ * embedded once however often the openings page is loaded.
+ */
+const adHocVectors = new Map<string, Float32Array>();
+
+async function similarityBetweenTexts(
+  embedder: Embedder,
+  query: string,
+  texts: readonly string[],
+): Promise<number[] | null> {
+  if (!embedder.ready || !query.trim()) return null;
+
+  const all = [query, ...texts].map((text) => text.slice(0, AD_HOC_TEXT_CHARS));
+  const keyOf = (text: string) => `${embedder.model}:${hashText(text)}`;
+  const missing = [...new Set(all.filter((text) => !adHocVectors.has(keyOf(text))))];
+
+  if (missing.length > 0) {
+    if (adHocVectors.size + missing.length > AD_HOC_CACHE_LIMIT) adHocVectors.clear();
+    const BATCH = 32;
+    for (let i = 0; i < missing.length; i += BATCH) {
+      const batch = missing.slice(i, i + BATCH);
+      const vectors = await embedder.embed(batch);
+      batch.forEach((text, index) => {
+        const vector = vectors[index];
+        if (vector) adHocVectors.set(keyOf(text), vector);
+      });
+    }
+  }
+
+  const queryVector = adHocVectors.get(keyOf(all[0]!));
+  if (!queryVector) return null;
+  return all.slice(1).map((text) => {
+    const vector = adHocVectors.get(keyOf(text));
+    return vector && vector.length === queryVector.length ? cosineSimilarity(queryVector, vector) : 0;
+  });
 }
 
 /**

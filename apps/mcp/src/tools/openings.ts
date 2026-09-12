@@ -15,9 +15,9 @@ import {
   convertOpening,
   createOpening,
   getOpening,
-  listOpenings,
   updateOpening,
 } from '@jobtrack/api/services/openings';
+import { rankOpenings } from '@jobtrack/api/services/fit';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
 import { openingSummary } from '../views.js';
@@ -31,10 +31,10 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'list_openings',
     {
       description:
-        "List saved job openings: opportunities found but not yet applied to, newest first. Excludes converted/dismissed openings unless includeArchived is set. Filter with `q` (words that must all appear in the title, company, location or notes), `location` (any of several, case- and accent-insensitive contains) and `source`. Notes come back cut to a preview; call get_opening for one in full.",
+        "List saved job openings: opportunities found but not yet applied to, newest first. Excludes converted/dismissed openings unless includeArchived is set. Filter with `q` (words that must all appear in the title, company, location or notes), `location` (any of several, case- and accent-insensitive contains) and `source`. When the user has a profile, each row carries `fit` (0 to 100, with the reasons that raised or lowered it); `sort: 'fit'` ranks by it and `minFit` drops weak matches. Notes come back cut to a preview; call get_opening for one in full.",
       inputSchema: openingFilterSchema,
     },
-    async (filter) => jsonResult((await listOpenings(repos, filter)).map(openingSummary)),
+    async (filter) => jsonResult((await rankOpenings(repos, search, filter)).map(openingSummary)),
   );
 
   server.registerTool(

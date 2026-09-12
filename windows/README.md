@@ -59,7 +59,12 @@ Two pieces are worth knowing about:
   each, so setting a key *uncomments the existing line in place* rather than appending a bare
   `KEY=value` at the bottom. Comments, ordering, blank lines and line endings all survive.
 
-Everything in the dialog is read by the server once, at boot (`apps/api/src/config.ts`), so the
+The host also polls `GET /api/agenda` every half hour (`Hosting/ReminderPoller.cs`) and shows a
+balloon when a follow-up or a person's reconnect date comes due, once per item and due date.
+Clicking it opens the dashboard. It is a host preference (`remindersEnabled` in `host.json`,
+on by default), toggled under General in the settings dialog, and it applies without a restart.
+
+Everything else in the dialog is read by the server once, at boot (`apps/api/src/config.ts`), so the
 footer says changes need a restart instead of pretending they are live. Autostart is the exception:
 it is a registry value this application owns.
 

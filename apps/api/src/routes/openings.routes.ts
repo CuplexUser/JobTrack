@@ -7,12 +7,12 @@ import {
 } from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
 import { notFound } from '../lib/errors.js';
+import { rankOpenings } from '../services/fit.service.js';
 import {
   convertOpening,
   createOpening,
   deleteOpening,
   getOpening,
-  listOpenings,
   updateOpening,
 } from '../services/openings.service.js';
 
@@ -23,7 +23,7 @@ export async function openingRoutes(app: FastifyInstance, deps: Deps): Promise<v
     // `archived=true` is the web app's name for `includeArchived`, kept so its links still work.
     const { archived, ...query } = request.query as Record<string, unknown>;
     const filter = openingFilterSchema.parse({ includeArchived: archived, ...query });
-    return { openings: await listOpenings(repos, filter) };
+    return { openings: await rankOpenings(repos, deps.search, filter) };
   });
 
   app.get('/api/openings/:id', async (request) => {

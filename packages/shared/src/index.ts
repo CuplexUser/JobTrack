@@ -8,3 +8,5 @@ export * from './schemas.js';
 export * from './duplicates.js';
 export * from './posting.js';
 export * from './linkedin.js';
+export * from './fit.js';
+export * from './rules.js';

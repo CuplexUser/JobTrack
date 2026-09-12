@@ -23,6 +23,7 @@ import { registerDashboardTool } from '../src/tools/dashboard.js';
 import { registerAgendaTool } from '../src/tools/agenda.js';
 import { registerCaptureTool } from '../src/tools/capture.js';
 import { registerContactTools } from '../src/tools/contacts.js';
+import { registerProfileTools } from '../src/tools/profile.js';
 import { PROMPT_NAMES, registerPrompts } from '../src/prompts.js';
 
 let deps: Deps;
@@ -41,6 +42,7 @@ beforeEach(async () => {
   registerAgendaTool(server, deps);
   registerCaptureTool(server, deps);
   registerContactTools(server, deps);
+  registerProfileTools(server, deps);
   registerPrompts(server);
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -97,6 +99,9 @@ describe('discovery', () => {
       'log_interaction',
       'link_contact',
       'list_linked_contacts',
+      'get_profile',
+      'update_profile',
+      'rank_openings',
     ]) {
       expect(names).toContain(name);
     }
@@ -242,5 +247,31 @@ describe('people', () => {
     const message = rendered.messages[0]!.content as { type: string; text: string };
     expect(message.text).toContain('Spotify');
     expect(message.text).toContain('list_contacts');
+  });
+});
+
+describe('profile and fit', () => {
+  it('updates part of the profile without touching the rest', async () => {
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    const { body } = await call('update_profile', { salaryFloor: 700000 });
+    expect(body).toMatchObject({ targetTitles: ['Backend Engineer'], locations: ['Stockholm'], salaryFloor: 700000 });
+    expect((await call('get_profile')).body.locations).toEqual(['Stockholm']);
+  });
+
+  it('ranks openings best first with readable reasons, and says when there is no profile', async () => {
+    await call('create_opening', { companyName: 'Axis', jobTitle: 'Graphic Designer', location: 'Lund' });
+    await call('create_opening', { companyName: 'Spotify', jobTitle: 'Senior Backend Engineer', location: 'Stockholm' });
+
+    const before = await call('rank_openings');
+    expect(before.body.hasProfile).toBe(false);
+
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    const after = await call('rank_openings', { limit: 5 });
+    expect(after.body.hasProfile).toBe(true);
+    expect(after.body.openings[0]).toMatchObject({ company: 'Spotify', fit: { score: 100 } });
+    expect(after.body.openings[0].fit.reasons).toContain('+ In Stockholm');
+
+    const listed = await call('list_openings', { sort: 'fit', minFit: 90 });
+    expect(listed.body.map((o: { company: string }) => o.company)).toEqual(['Spotify']);
   });
 });

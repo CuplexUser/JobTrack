@@ -13,6 +13,7 @@
 import type { Filter, QueryOptions, TxContext } from 'repolayer';
 import {
   ACTIVE_STATUSES,
+  defaultFollowUpDate,
   locationKey,
   matchesAnyLocation,
   parseDateOnly,
@@ -32,6 +33,7 @@ import { hydrateApplication, hydrateApplications } from '../db/hydrate.js';
 import { resolveCompany, escapeLike } from './companies.service.js';
 import { applyTagNames, applicationIdsWithAllTags } from './tags.service.js';
 import { detachTarget } from './contacts.service.js';
+import { getRules } from './settings.service.js';
 
 export interface LocationOption {
   /** The most common spelling among the applications grouped under this location. */
@@ -327,6 +329,12 @@ export async function createApplication(
   repos: Repos,
   data: CreateApplicationData,
 ): Promise<JobApplicationView> {
+  // An explicit date always wins; the rule only fills in a blank. See `defaultFollowUpDate`
+  // for why an application applied for long ago gets none.
+  const followUpOn =
+    data.followUpOn ??
+    defaultFollowUpDate((await getRules(repos)).defaultFollowUpDays, data.appliedOn, data.status, todayDateOnly());
+
   const created = await repos.applications.withTransaction(async (_tx, ctx: TxContext) => {
     const scoped = scopedRepos(repos, ctx);
     const company = await resolveCompany(scoped, data.companyName);
@@ -344,7 +352,7 @@ export async function createApplication(
       salaryMin: data.salaryMin,
       salaryMax: data.salaryMax,
       salaryCurrency: data.salaryCurrency,
-      followUpOn: data.followUpOn ? parseDateOnly(data.followUpOn) : null,
+      followUpOn: followUpOn ? parseDateOnly(followUpOn) : null,
       archived: false,
     });
 

@@ -14,6 +14,7 @@
 
 import type { Repo, TxContext } from 'repolayer';
 import type {
+  AppSettingRow,
   ApplicationRow,
   CompanyRow,
   ContactLinkRow,
@@ -39,6 +40,7 @@ export interface Repos {
   contacts: Repo<ContactRow>;
   interactions: Repo<InteractionRow>;
   contactLinks: Repo<ContactLinkRow>;
+  appSettings: Repo<AppSettingRow>;
 }
 
 export interface RepoBundle extends Repos {
@@ -68,5 +70,6 @@ export function scopedRepos(repos: Repos, ctx: TxContext | undefined): Repos {
     contacts: repos.contacts.with(ctx),
     interactions: repos.interactions.with(ctx),
     contactLinks: repos.contactLinks.with(ctx),
+    appSettings: repos.appSettings.with(ctx),
   };
 }

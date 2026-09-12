@@ -1,0 +1,238 @@
+/**
+ * How well a posting fits what the user is looking for.
+ *
+ * Deliberately a transparent sum of named parts rather than a single opaque number: every
+ * point a posting earns or loses comes with a reason the UI can show ("hybrid, as you want",
+ * "salary tops out below your floor"), so a surprising rank can be understood and the
+ * profile corrected. A score nobody can explain is a score nobody trusts.
+ *
+ * Only what the profile actually specifies counts. A profile with no preferred locations
+ * neither rewards nor penalizes any location, and the score is a share of the points the
+ * profile made available, so a sparse profile still produces a spread from 0 to 100.
+ *
+ * Pure and browser-safe. The semantic part (how close the posting reads to the user's own
+ * summary) needs embeddings, so the API computes it and passes it in; without it the other
+ * parts still rank, which is what happens while the model is loading.
+ */
+
+import { locationKey, titleKey } from './normalize.js';
+import { diceCoefficient } from './similarity.js';
+import type { JobOpeningView, WorkMode } from './types.js';
+
+export interface FitProfile {
+  summary: string | null;
+  targetTitles: readonly string[];
+  locations: readonly string[];
+  workModes: readonly WorkMode[];
+  salaryFloor: number | null;
+  salaryCurrency: string | null;
+  includeKeywords: readonly string[];
+  excludeKeywords: readonly string[];
+}
+
+export interface FitPosting {
+  jobTitle: string;
+  location: string | null;
+  workMode: WorkMode;
+  salaryMin: number | null;
+  salaryMax: number | null;
+  salaryCurrency: string | null;
+  notes: string | null;
+}
+
+export type FitFactor = 'title' | 'location' | 'workMode' | 'salary' | 'keywords' | 'excluded' | 'summary';
+
+export interface FitReason {
+  factor: FitFactor;
+  /** Whether this part helped or hurt. `neutral` when the posting did not say. */
+  effect: 'plus' | 'minus' | 'neutral';
+  label: string;
+}
+
+export interface FitResult {
+  /** 0 to 100. */
+  score: number;
+  reasons: FitReason[];
+  /** False when the summary comparison was unavailable, so the score rests on the rules alone. */
+  semanticUsed: boolean;
+}
+
+/** Points each part is worth when the profile makes it count. */
+export const FIT_WEIGHTS = {
+  title: 30,
+  summary: 25,
+  location: 15,
+  workMode: 10,
+  salary: 10,
+  keywords: 10,
+} as const;
+
+/** Taken off the earned share for each excluded keyword found: one is usually a dealbreaker. */
+export const EXCLUDED_PENALTY = 40;
+
+/**
+ * Cosine similarity below this reads as unrelated and earns nothing; at or above the ceiling
+ * it earns everything. MiniLM puts unrelated text pairs around 0.1 to 0.2 and a posting that
+ * matches a CV's field around 0.5 to 0.6.
+ */
+const SEMANTIC_FLOOR = 0.2;
+const SEMANTIC_CEILING = 0.55;
+
+const WORK_MODE_WORDS: Record<WorkMode, string> = {
+  remote: 'remote',
+  hybrid: 'hybrid',
+  onsite: 'on-site',
+  unspecified: 'unspecified',
+};
+
+/** True when the profile gives the scorer anything to go on. */
+export function hasFitCriteria(profile: FitProfile): boolean {
+  return (
+    Boolean(profile.summary?.trim()) ||
+    profile.targetTitles.length > 0 ||
+    profile.locations.length > 0 ||
+    profile.workModes.length > 0 ||
+    profile.salaryFloor !== null ||
+    profile.includeKeywords.length > 0 ||
+    profile.excludeKeywords.length > 0
+  );
+}
+
+/**
+ * How closely a title matches one the user is after: Dice similarity, or full marks when
+ * every word of the target appears in the title, so "Senior Backend Engineer, Payments"
+ * matches a target of "Backend Engineer" as well as it should.
+ */
+export function titleMatch(title: string, target: string): number {
+  const titleWords = titleKey(title);
+  const targetWords = titleKey(target);
+  if (!titleWords || !targetWords) return 0;
+  const words = new Set(titleWords.split(' '));
+  if (targetWords.split(' ').every((word) => words.has(word))) return 1;
+  return diceCoefficient(titleWords, targetWords);
+}
+
+/** Whole-word, case- and accent-insensitive: "Go" should not match "Google". */
+function containsKeyword(text: string, keyword: string): boolean {
+  const needle = titleKey(keyword);
+  if (!needle) return false;
+  return ` ${titleKey(text)} `.includes(` ${needle} `);
+}
+
+export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimilarity: number | null = null): FitResult | null {
+  if (!hasFitCriteria(profile)) return null;
+
+  const reasons: FitReason[] = [];
+  let earned = 0;
+  let possible = 0;
+  const text = [posting.jobTitle, posting.notes].filter(Boolean).join(' ');
+
+  if (profile.targetTitles.length > 0) {
+    possible += FIT_WEIGHTS.title;
+    const best = Math.max(...profile.targetTitles.map((target) => titleMatch(posting.jobTitle, target)));
+    const bestTarget = profile.targetTitles.find((target) => titleMatch(posting.jobTitle, target) === best)!;
+    if (best >= 0.75) {
+      earned += FIT_WEIGHTS.title * best;
+      reasons.push({ factor: 'title', effect: 'plus', label: `Title matches "${bestTarget}"` });
+    } else if (best >= 0.5) {
+      earned += FIT_WEIGHTS.title * best * 0.6;
+      reasons.push({ factor: 'title', effect: 'plus', label: `Title is close to "${bestTarget}"` });
+    } else {
+      reasons.push({ factor: 'title', effect: 'minus', label: 'Title is not one you are looking for' });
+    }
+  }
+
+  if (profile.summary?.trim()) {
+    if (semanticSimilarity !== null) {
+      possible += FIT_WEIGHTS.summary;
+      const share = Math.min(1, Math.max(0, (semanticSimilarity - SEMANTIC_FLOOR) / (SEMANTIC_CEILING - SEMANTIC_FLOOR)));
+      earned += FIT_WEIGHTS.summary * share;
+      if (share >= 0.6) reasons.push({ factor: 'summary', effect: 'plus', label: 'Reads close to your profile' });
+      else if (share <= 0.2) reasons.push({ factor: 'summary', effect: 'minus', label: 'Reads far from your profile' });
+    }
+  }
+
+  if (profile.locations.length > 0) {
+    possible += FIT_WEIGHTS.location;
+    const where = posting.location ? locationKey(posting.location) : '';
+    const matched = profile.locations.find((place) => where.includes(locationKey(place)));
+    if (matched) {
+      earned += FIT_WEIGHTS.location;
+      reasons.push({ factor: 'location', effect: 'plus', label: `In ${matched}` });
+    } else if (posting.workMode === 'remote' && profile.workModes.includes('remote')) {
+      // A remote role is in every location the user is willing to work remotely from.
+      earned += FIT_WEIGHTS.location;
+      reasons.push({ factor: 'location', effect: 'plus', label: 'Remote, so location does not matter' });
+    } else if (!posting.location) {
+      earned += FIT_WEIGHTS.location / 2;
+      reasons.push({ factor: 'location', effect: 'neutral', label: 'Location not stated' });
+    } else {
+      reasons.push({ factor: 'location', effect: 'minus', label: `In ${posting.location}, not a place you listed` });
+    }
+  }
+
+  if (profile.workModes.length > 0) {
+    possible += FIT_WEIGHTS.workMode;
+    if (posting.workMode === 'unspecified') {
+      earned += FIT_WEIGHTS.workMode / 2;
+      reasons.push({ factor: 'workMode', effect: 'neutral', label: 'Work mode not stated' });
+    } else if (profile.workModes.includes(posting.workMode)) {
+      earned += FIT_WEIGHTS.workMode;
+      reasons.push({ factor: 'workMode', effect: 'plus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, as you want` });
+    } else {
+      reasons.push({ factor: 'workMode', effect: 'minus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, which you did not pick` });
+    }
+  }
+
+  if (profile.salaryFloor !== null) {
+    possible += FIT_WEIGHTS.salary;
+    const comparable =
+      !profile.salaryCurrency ||
+      !posting.salaryCurrency ||
+      profile.salaryCurrency.toUpperCase() === posting.salaryCurrency.toUpperCase();
+    const top = posting.salaryMax ?? posting.salaryMin;
+    if (top === null || !comparable) {
+      earned += FIT_WEIGHTS.salary / 2;
+      reasons.push({
+        factor: 'salary',
+        effect: 'neutral',
+        label: top === null ? 'Salary not stated' : `Salary is in ${posting.salaryCurrency}, not ${profile.salaryCurrency}`,
+      });
+    } else if (top < profile.salaryFloor) {
+      reasons.push({ factor: 'salary', effect: 'minus', label: 'Salary tops out below your floor' });
+    } else {
+      earned += FIT_WEIGHTS.salary;
+      reasons.push({ factor: 'salary', effect: 'plus', label: 'Salary reaches your floor' });
+    }
+  }
+
+  if (profile.includeKeywords.length > 0) {
+    possible += FIT_WEIGHTS.keywords;
+    const hits = profile.includeKeywords.filter((keyword) => containsKeyword(text, keyword));
+    earned += FIT_WEIGHTS.keywords * Math.min(1, hits.length / Math.min(3, profile.includeKeywords.length));
+    if (hits.length > 0) reasons.push({ factor: 'keywords', effect: 'plus', label: `Mentions ${hits.join(', ')}` });
+  }
+
+  let score = possible > 0 ? (earned / possible) * 100 : 50;
+
+  const excluded = profile.excludeKeywords.filter((keyword) => containsKeyword(text, keyword));
+  if (excluded.length > 0) {
+    score -= EXCLUDED_PENALTY * excluded.length;
+    reasons.unshift({ factor: 'excluded', effect: 'minus', label: `Mentions ${excluded.join(', ')}, which you want to avoid` });
+  }
+
+  return {
+    score: Math.round(Math.min(100, Math.max(0, score))),
+    reasons,
+    semanticUsed: semanticSimilarity !== null,
+  };
+}
+
+function capitalize(value: string): string {
+  return value.charAt(0).toUpperCase() + value.slice(1);
+}
+
+/** An opening with its fit against the profile, or null when there is no profile to score against. */
+export interface RankedOpening extends JobOpeningView {
+  fit: FitResult | null;
+}

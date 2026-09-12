@@ -20,6 +20,9 @@ import type {
   JobOpeningView,
   LinkedContact,
   Note,
+  Profile,
+  RankedOpening,
+  Rules,
   NoteWithTarget,
   PostingDraft,
   StatusEvent,
@@ -170,6 +173,12 @@ export interface DashboardResponse {
   stale: (JobApplicationView & { silentSince: string; silentDays: number })[];
   /** People whose reconnect date has arrived, soonest first. */
   reconnect: ContactView[];
+}
+
+export interface AutoGhostResponse {
+  afterDays: number | null;
+  candidates: (JobApplicationView & { silentSince: string; silentDays: number })[];
+  changed: number;
 }
 
 export interface LinkedInPreviewRow {
@@ -475,7 +484,20 @@ export const httpApi = {
     importRequest<ImportCommitResponse>(file, format, 'commit'),
 
   listOpenings: (params: Record<string, unknown> = {}) =>
-    request<{ openings: JobOpeningView[] }>(`/api/openings${toQuery(params)}`),
+    request<{ openings: RankedOpening[] }>(`/api/openings${toQuery(params)}`),
+
+  getProfile: () => request<Profile>('/api/profile'),
+
+  updateProfile: (body: unknown) =>
+    request<Profile>('/api/profile', { method: 'PUT', body: JSON.stringify(body) }),
+
+  getRules: () => request<Rules>('/api/rules'),
+
+  updateRules: (body: unknown) => request<Rules>('/api/rules', { method: 'PUT', body: JSON.stringify(body) }),
+
+  previewAutoGhost: () => request<AutoGhostResponse>('/api/rules/auto-ghost'),
+
+  runAutoGhost: () => request<AutoGhostResponse>('/api/rules/auto-ghost/run', { method: 'POST' }),
 
   getOpening: (id: string) => request<JobOpeningView>(`/api/openings/${id}`),
 

@@ -36,6 +36,7 @@ import { registerDashboardTool } from './tools/dashboard.js';
 import { registerAgendaTool } from './tools/agenda.js';
 import { registerCaptureTool } from './tools/capture.js';
 import { registerContactTools } from './tools/contacts.js';
+import { registerProfileTools } from './tools/profile.js';
 import { registerPrompts } from './prompts.js';
 
 // Same `.env` the API and the tray read, so one file configures all three.
@@ -78,6 +79,7 @@ registerDashboardTool(server, deps);
 registerAgendaTool(server, deps);
 registerCaptureTool(server, deps);
 registerContactTools(server, deps);
+registerProfileTools(server, deps);
 registerPrompts(server);
 
 const transport = new StdioServerTransport();

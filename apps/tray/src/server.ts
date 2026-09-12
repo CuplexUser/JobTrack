@@ -14,6 +14,7 @@ import type { RepoBundle } from '@jobtrack/api/db/repos';
 import { SearchIndex } from '@jobtrack/api/search';
 import { DisabledEmbedder, type Embedder } from '@jobtrack/api/search/embedder';
 import { TransformersEmbedder } from '@jobtrack/api/search/transformers-embedder';
+import { startBackgroundJobs, type BackgroundJobs } from '@jobtrack/api/jobs/scheduler';
 import { resolveWebDist } from './assets.js';
 import { APP_PACKAGE } from './version.js';
 
@@ -28,6 +29,7 @@ export interface RunningServer {
   config: Config;
   repos: RepoBundle;
   search: SearchIndex;
+  jobs: BackgroundJobs;
 }
 
 export async function startServer(): Promise<RunningServer> {
@@ -94,5 +96,11 @@ export async function startServer(): Promise<RunningServer> {
     process.exit(EXIT_PORT_IN_USE);
   }
 
-  return { app, config, repos, search };
+  // Only once listening: a second JobTrack that lost the port race exits above, and must not
+  // have started running rules against the shared database first.
+  const jobs = startBackgroundJobs({ repos, search, config }, {
+    log: (message, error) => console.warn(`[jobs] ${message}`, error ?? ''),
+  });
+
+  return { app, config, repos, search, jobs };
 }

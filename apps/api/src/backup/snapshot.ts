@@ -22,6 +22,7 @@
 import type { Repo, TxContext } from 'repolayer';
 import { scopedRepos, type Repos } from '../db/repos.js';
 import type {
+  AppSettingRow,
   ApplicationRow,
   CompanyRow,
   ContactLinkRow,
@@ -50,6 +51,7 @@ export const BACKUP_TABLES = [
   'contacts',
   'interactions',
   'contactLinks',
+  'appSettings',
 ] as const;
 
 export type BackupTable = (typeof BACKUP_TABLES)[number];
@@ -61,7 +63,7 @@ export type BackupTable = (typeof BACKUP_TABLES)[number];
  * older build reading a newer backup ignores tables it does not know, which is the same
  * forgiveness in the other direction.
  */
-const TABLES_ADDED_LATER: readonly BackupTable[] = ['contacts', 'interactions', 'contactLinks'];
+const TABLES_ADDED_LATER: readonly BackupTable[] = ['contacts', 'interactions', 'contactLinks', 'appSettings'];
 
 interface BackupRowTypes {
   companies: CompanyRow;
@@ -74,6 +76,7 @@ interface BackupRowTypes {
   contacts: ContactRow;
   interactions: InteractionRow;
   contactLinks: ContactLinkRow;
+  appSettings: AppSettingRow;
 }
 
 export interface BackupSnapshot {
@@ -95,6 +98,7 @@ const DATE_FIELDS: { [K in BackupTable]: (keyof BackupRowTypes[K])[] } = {
   contacts: ['reconnectOn', 'connectedOn', 'createdAt', 'updatedAt'],
   interactions: ['occurredOn', 'createdAt', 'updatedAt'],
   contactLinks: ['createdAt', 'updatedAt'],
+  appSettings: ['createdAt', 'updatedAt'],
 };
 
 export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
@@ -109,6 +113,7 @@ export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
     contacts,
     interactions,
     contactLinks,
+    appSettings,
   ] = await Promise.all([
     repos.companies.findMany({}),
     repos.applications.findMany({}),
@@ -120,6 +125,7 @@ export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
     repos.contacts.findMany({}),
     repos.interactions.findMany({}),
     repos.contactLinks.findMany({}),
+    repos.appSettings.findMany({}),
   ]);
 
   return {
@@ -137,6 +143,7 @@ export async function createSnapshot(repos: Repos): Promise<BackupSnapshot> {
       contacts,
       interactions,
       contactLinks,
+      appSettings,
     },
   };
 }
@@ -214,8 +221,13 @@ export async function currentCounts(repos: Repos): Promise<Record<BackupTable, n
   return counts;
 }
 
+/**
+ * Whether the database holds any job search data. Settings do not count: a saved profile is
+ * not a reason to refuse seeding demo data or restoring a backup into an otherwise empty
+ * database.
+ */
 export function isEmpty(counts: Record<BackupTable, number>): boolean {
-  return Object.values(counts).every((count) => count === 0);
+  return BACKUP_TABLES.every((table) => table === 'appSettings' || (counts[table] ?? 0) === 0);
 }
 
 export interface ClearResult {

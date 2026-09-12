@@ -33,6 +33,9 @@ export const keys = {
   search: (q: string) => ['search', q] as const,
   openings: (params: unknown) => ['openings', params] as const,
   contacts: (params: unknown) => ['contacts', params] as const,
+  profile: () => ['profile'] as const,
+  rules: () => ['rules'] as const,
+  autoGhostPreview: () => ['rules', 'auto-ghost'] as const,
   contact: (id: string) => ['contact', id] as const,
   linkedContacts: (targetType: string, targetId: string) => ['contacts', 'linked', targetType, targetId] as const,
   opening: (id: string) => ['opening', id] as const,
@@ -409,5 +412,49 @@ export function useUnlinkContact() {
   return useMutation({
     mutationFn: (linkId: string) => api.unlinkContact(linkId),
     onSuccess: () => invalidatePeople(client),
+  });
+}
+
+export function useProfile() {
+  return useQuery({ queryKey: keys.profile(), queryFn: () => api.getProfile() });
+}
+
+/** A new profile changes every opening's fit, so the openings are refetched too. */
+export function useSaveProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateProfile(body),
+    onSuccess: (profile) => {
+      client.setQueryData(keys.profile(), profile);
+      void client.invalidateQueries({ queryKey: ['openings'] });
+    },
+  });
+}
+
+export function useRules() {
+  return useQuery({ queryKey: keys.rules(), queryFn: () => api.getRules() });
+}
+
+export function useSaveRules() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateRules(body),
+    onSuccess: () => void client.invalidateQueries({ queryKey: ['rules'] }),
+  });
+}
+
+/** What the auto-ghost rule would change now. Only fetched while the rule is switched on. */
+export function useAutoGhostPreview(enabled: boolean) {
+  return useQuery({ queryKey: keys.autoGhostPreview(), queryFn: () => api.previewAutoGhost(), enabled });
+}
+
+export function useRunAutoGhost() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.runAutoGhost(),
+    onSuccess: () => {
+      invalidateApplicationScope(client);
+      void client.invalidateQueries({ queryKey: ['rules'] });
+    },
   });
 }
