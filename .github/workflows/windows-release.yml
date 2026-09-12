@@ -74,9 +74,23 @@ jobs:
         shell: pwsh
         run: |
           $version = '${{ steps.version.outputs.version }}'
-          try {
-            Invoke-RestMethod "https://registry.npmjs.org/jobtrack/$version" -ErrorAction Stop | Out-Null
-          } catch {
+
+          # A fresh publish takes a minute or two to show up on the registry, and this run starts
+          # seconds after the publish finishes. Checking once skipped both the 1.1.0 and 1.2.0
+          # builds, so keep asking for up to five minutes before deciding the version really is not
+          # there. A push that bumped nothing finds its version at once, because it was published
+          # earlier, and then stops at the release check below.
+          $found = $false
+          foreach ($attempt in 1..10) {
+            try {
+              Invoke-RestMethod "https://registry.npmjs.org/jobtrack/$version" -Headers @{ 'Cache-Control' = 'no-cache' } -ErrorAction Stop | Out-Null
+              $found = $true
+              break
+            } catch {
+              if ($attempt -lt 10) { Start-Sleep -Seconds 30 }
+            }
+          }
+          if (-not $found) {
             Write-Host "::notice::jobtrack@$version is not on the registry - nothing to package."
             "skip=true" >> $env:GITHUB_OUTPUT
             exit 0
