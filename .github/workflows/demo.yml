@@ -3,8 +3,15 @@ name: Deploy demo to GitHub Pages
 # The demo is fully static and client-side — apps/web/src/api/demo-client.ts runs the real
 # @jobtrack/api services against repolayer/memory, persisted to each visitor's own
 # localStorage. There is no server here to build or deploy, just the Vite build.
+#
+# The same site also hosts the Firefox add-on under /clipper/ (the install file and the update
+# manifest installed copies poll), so this runs again whenever a Firefox add-on release finishes.
 on:
   push:
+    branches: [main]
+  workflow_run:
+    workflows: ["Firefox add-on"]
+    types: [completed]
     branches: [main]
   workflow_dispatch: {}
 
@@ -19,6 +26,7 @@ concurrency:
 
 jobs:
   build:
+    if: ${{ github.event_name != 'workflow_run' || github.event.workflow_run.conclusion == 'success' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -43,6 +51,13 @@ jobs:
           # not a custom domain or a <user>.github.io root repo — drop this line if that
           # ever changes, since a root/custom-domain deploy wants base: '/' instead.
           GITHUB_PAGES_BASE: /JobTrack/
+
+      # Copies the newest signed add-on from its GitHub release and writes updates.json next to
+      # it. Writes nothing, and succeeds, when there is no signed release yet.
+      - name: Add the Firefox add-on
+        run: node apps/extension/scripts/firefox-updates.mjs apps/web/dist
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
 
       - uses: actions/upload-pages-artifact@v3
         with:

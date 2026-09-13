@@ -118,3 +118,19 @@ button:disabled { opacity: 0.55; cursor: default; }
 .status.ok { border-color: var(--success); color: var(--success); }
 /* Nothing went wrong and nothing was lost — the posting is simply already in JobTrack. */
 .status.warn { border-color: var(--warning); color: var(--warning); }
+
+/* The line under the Connect button explains it, so it sits close to the button. */
+.hint.below { margin-top: 6px; }
+
+details {
+  margin-top: 18px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+
+summary {
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 12px;
+  margin-bottom: 10px;
+}

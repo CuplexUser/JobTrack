@@ -26,6 +26,7 @@ import { ingestRoutes } from './routes/ingest.routes.js';
 import { backupRoutes } from './routes/backup.routes.js';
 import { dbRoutes } from './routes/db.routes.js';
 import { metaRoutes } from './routes/meta.routes.js';
+import { extensionRoutes } from './routes/extension.routes.js';
 import { API_PACKAGE, type PackageIdentity } from './version.js';
 
 export interface BuildAppOptions {
@@ -88,6 +89,7 @@ export async function buildApp(deps: Deps, options: BuildAppOptions = {}): Promi
   await app.register(async (instance) => ingestRoutes(instance, deps));
   await app.register(async (instance) => backupRoutes(instance, deps));
   await app.register(async (instance) => dbRoutes(instance, deps));
+  await app.register(async (instance) => extensionRoutes(instance, deps));
   await app.register(async (instance) => metaRoutes(instance, deps, options.app ?? API_PACKAGE));
 
   return app;

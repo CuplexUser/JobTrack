@@ -14,6 +14,7 @@
 import type { FastifyInstance } from 'fastify';
 import type { Deps } from '../deps.js';
 import type { PackageIdentity } from '../version.js';
+import { CONNECT_PAGE_PATH } from './extension.routes.js';
 
 export async function metaRoutes(
   app: FastifyInstance,
@@ -24,6 +25,9 @@ export async function metaRoutes(
     name: pkg.name,
     version: pkg.version,
     driver: deps.config.driver,
+    // Present from 1.3.0. The browser extension looks for it before opening the page, so an
+    // older JobTrack gets a clear "update, or paste the token" instead of a dead tab.
+    connectPage: CONNECT_PAGE_PATH,
   }));
 
   /**

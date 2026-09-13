@@ -10,6 +10,7 @@
 import type { PostingDraft } from '@jobtrack/shared/posting';
 // Types only, so the root entry point (and the zod it carries) never reaches this bundle.
 import type { DuplicateCheck } from '@jobtrack/shared';
+import { canReachJobTrack, ext, NO_ACCESS_MESSAGE } from './browser-api.js';
 import { buildDraft } from './extract.js';
 import { readPage, type PageSnapshot } from './page-reader.js';
 import { rulesFor } from './sites.js';
@@ -22,7 +23,7 @@ interface ClipResponse {
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
 
-const NO_TOKEN = 'No token set yet. Open Settings and paste the one from JobTrack.';
+const NO_TOKEN = 'Not connected to JobTrack yet. Open Settings and press Connect to JobTrack.';
 
 let settings: Settings;
 let draft: PostingDraft | null = null;
@@ -79,7 +80,7 @@ function describeDuplicate(check: ClipResponse['duplicate']): string {
 }
 
 async function readCurrentTab(): Promise<void> {
-  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const [tab] = await ext.tabs.query({ active: true, currentWindow: true });
   if (!tab?.id) {
     setStatus('No page to read.', 'error');
     return;
@@ -95,7 +96,7 @@ async function readCurrentTab(): Promise<void> {
 
   let snapshot: PageSnapshot;
   try {
-    const [injection] = await chrome.scripting.executeScript({
+    const [injection] = await ext.scripting.executeScript({
       target: { tabId: tab.id },
       func: readPage,
       args: [
@@ -110,7 +111,7 @@ async function readCurrentTab(): Promise<void> {
     });
     snapshot = injection!.result;
   } catch {
-    // Chrome refuses injection on its own pages, the Web Store, and PDF viewers.
+    // Browsers refuse injection on their own pages, their add-on stores, and PDF viewers.
     setStatus('This page cannot be read by an extension. Try the posting’s own page.', 'error');
     return;
   }
@@ -161,7 +162,7 @@ async function save(): Promise<void> {
       return;
     }
     if (error instanceof ApiCallError && error.status === 403) {
-      setStatus('JobTrack did not accept the token. Open Settings and paste the current one.', 'error');
+      setStatus('JobTrack did not accept the saved token. Open Settings and press Connect to JobTrack again.', 'error');
     } else {
       setStatus(error instanceof Error ? error.message : 'Could not save', 'error');
     }
@@ -171,11 +172,15 @@ async function save(): Promise<void> {
 
 async function main(): Promise<void> {
   settings = await loadSettings();
-  $('options').addEventListener('click', () => void chrome.runtime.openOptionsPage());
+  $('options').addEventListener('click', () => void ext.runtime.openOptionsPage());
   $('save').addEventListener('click', () => void save());
 
   if (!settings.token) setStatus(NO_TOKEN, 'error');
   await readCurrentTab();
+
+  // Checked after reading the page, which needs no access to JobTrack, and shown over any
+  // other status: without access, saving fails in a way that looks like JobTrack is down.
+  if (!(await canReachJobTrack())) setStatus(NO_ACCESS_MESSAGE, 'error');
 }
 
 void main();

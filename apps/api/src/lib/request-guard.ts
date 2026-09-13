@@ -48,6 +48,19 @@ const PUBLIC_PATHS = new Set(['/api/meta']);
  */
 const TOKEN_ONLY_PATHS = new Set(['/api/auth/check']);
 
+/**
+ * Routes only this app's own pages may call: an `Origin` header naming a known origin is
+ * required, and neither a missing one nor the token stands in for it.
+ *
+ * There is one, and it hands out the token, for the connect page the browser extension opens
+ * (`routes/extension.routes.ts`). The "no Origin, therefore not a browser" rule must not apply
+ * to it: a hostile site whose hostname has been re-pointed at 127.0.0.1 (DNS rebinding) is
+ * same-origin with this server as far as its browser is concerned, and its GETs carry no
+ * `Origin` at all. So the route is a POST, which browsers always send `Origin` on, and that
+ * `Origin` has to be one of ours. The rebound site's says its own hostname, and is refused.
+ */
+const OWN_PAGE_ONLY_PATHS = new Set(['/api/extension/token']);
+
 export interface GuardOptions {
   allowedOrigins: readonly string[];
   token: string;
@@ -103,6 +116,12 @@ export function registerRequestGuard(app: FastifyInstance, options: GuardOptions
     // right?" unanswerable — and answered it wrongly for every GET.
     if (presented !== null && !tokenOk) {
       throw new HttpError(403, 'That is not this server’s API token.', undefined, 'bad_token');
+    }
+
+    if (OWN_PAGE_ONLY_PATHS.has(path)) {
+      const origin = request.headers.origin;
+      if (origin && isAllowedOrigin(origin, options.allowedOrigins)) return;
+      throw new HttpError(403, 'Only JobTrack’s own pages can ask for the API token.');
     }
 
     if (TOKEN_ONLY_PATHS.has(path)) {

@@ -161,3 +161,64 @@ describe('GET /api/auth/check', () => {
     expect(response.statusCode).toBe(200);
   });
 });
+
+describe('connecting the browser extension', () => {
+  it('serves the connect page, with only its own script and style allowed to run', async () => {
+    const response = await app.inject({ method: 'GET', url: '/connect-extension' });
+    expect(response.statusCode).toBe(200);
+    expect(response.headers['content-type']).toMatch(/text\/html/);
+
+    const policy = String(response.headers['content-security-policy']);
+    expect(policy).toContain("default-src 'none'");
+    expect(policy).toContain("frame-ancestors 'none'");
+    expect(policy).not.toContain('unsafe-inline');
+
+    // The hashes in the policy have to be of the exact script and style in the page, or the
+    // browser blocks both and the Allow button does nothing.
+    const { createHash } = await import('node:crypto');
+    const hash = (text: string) => `'sha256-${createHash('sha256').update(text).digest('base64')}'`;
+    const script = /<script>([\s\S]*?)<\/script>/.exec(response.body)![1]!;
+    const style = /<style>([\s\S]*?)<\/style>/.exec(response.body)![1]!;
+    expect(policy).toContain(`script-src ${hash(script)}`);
+    expect(policy).toContain(`style-src ${hash(style)}`);
+  });
+
+  it('says where the page is in GET /api/meta, so the extension can tell an older JobTrack apart', async () => {
+    const response = await app.inject({ method: 'GET', url: '/api/meta' });
+    expect(response.json().connectPage).toBe('/connect-extension');
+  });
+
+  it('hands the token to JobTrack’s own pages', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/extension/token',
+      headers: { origin: 'http://localhost:5173' },
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toEqual({ token: 'test-token' });
+  });
+
+  it('refuses any other site, including one DNS-rebound onto this address', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/extension/token',
+      headers: { origin: 'http://rebound.example:3001' },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+
+  // Unlike the rest of the API, a missing Origin is not taken to mean "not a browser" here.
+  it('refuses a request with no Origin', async () => {
+    const response = await app.inject({ method: 'POST', url: '/api/extension/token' });
+    expect(response.statusCode).toBe(403);
+  });
+
+  it('refuses an extension, even one holding the token already', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/extension/token',
+      headers: { origin: 'chrome-extension://abcdef', authorization: 'Bearer test-token' },
+    });
+    expect(response.statusCode).toBe(403);
+  });
+});

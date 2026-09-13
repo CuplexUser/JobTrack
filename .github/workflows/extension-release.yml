@@ -1,0 +1,148 @@
+name: Firefox add-on
+
+# Signs JobTrack Clipper for Firefox and attaches it to a GitHub release (clipper-v<version>).
+# The Pages deploy then publishes it where Firefox installs and updates it from; see
+# apps/extension/scripts/firefox-updates.mjs.
+#
+# Same release gesture as npm and the Windows installer: bump the version, here in
+# apps/extension/package.json, and push to main. A push that changes the extension without a bump
+# finds that version already released and does nothing.
+#
+# "Unlisted" is Mozilla's name for signing without a public addons.mozilla.org listing: Mozilla
+# still signs it, so it installs permanently in regular Firefox, but it is distributed from here.
+#
+# Needs two repository secrets, from https://addons.mozilla.org/developers/addon/api/key/ :
+#   AMO_API_KEY     the "JWT issuer"
+#   AMO_API_SECRET  the "JWT secret"
+# Without them the run says so and stops, rather than failing every push. docs/publishing.md has
+# the full setup.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'apps/extension/**'
+      - 'packages/shared/src/**'
+      - '.github/workflows/extension-release.yml'
+  workflow_dispatch: {}
+
+permissions:
+  contents: write # to create the release
+
+concurrency:
+  group: extension-release
+  cancel-in-progress: false
+
+env:
+  # Pinned: this is the tool that talks to Mozilla's signing API, and a new major version should
+  # be a deliberate change rather than something a release picks up by surprise.
+  WEB_EXT_VERSION: 10.6.0
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Decide the version
+        id: version
+        run: echo "version=$(node -p "require('./apps/extension/package.json').version")" >> "$GITHUB_OUTPUT"
+
+      - name: Is there anything to do?
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+          HAS_KEYS: ${{ secrets.AMO_API_KEY != '' && secrets.AMO_API_SECRET != '' }}
+        run: |
+          version='${{ steps.version.outputs.version }}'
+          if gh release view "clipper-v$version" --json assets --jq '.assets[].name' 2>/dev/null | grep -q '\.xpi$'; then
+            echo "::notice::JobTrack Clipper $version is already released. Bump apps/extension/package.json to release a new one."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if [ "$HAS_KEYS" != "true" ]; then
+            echo "::warning::AMO_API_KEY and AMO_API_SECRET are not set, so JobTrack Clipper $version cannot be signed. See docs/publishing.md."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          echo "skip=false" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.skip == 'false'
+        with:
+          node-version: 24
+          cache: npm
+
+      # onnxruntime-node's install script otherwise downloads GPU provider libraries nothing here
+      # uses, and a timeout on that feed fails the run.
+      - run: npm ci
+        if: steps.check.outputs.skip == 'false'
+        env:
+          ONNXRUNTIME_NODE_INSTALL: skip
+
+      - run: npm run build --workspace=@jobtrack/shared
+        if: steps.check.outputs.skip == 'false'
+
+      - run: npm test -- --project extension
+        if: steps.check.outputs.skip == 'false'
+
+      - name: Package
+        if: steps.check.outputs.skip == 'false'
+        run: npm run package --workspace=@jobtrack/extension
+
+      # The same checks Mozilla runs on an unlisted upload (it passes --self-hosted too), so a
+      # problem shows up here with a readable report instead of as a rejected submission.
+      - name: Lint as Mozilla will
+        if: steps.check.outputs.skip == 'false'
+        run: npx --yes "web-ext@$WEB_EXT_VERSION" lint --source-dir apps/extension/release/firefox --self-hosted --warnings-as-errors
+
+      # The package is bundled by Vite, so Mozilla's policy asks for the source it was built from.
+      # Only what the build reads: the extension, the shared package it imports, and the lockfile.
+      - name: Collect the source for review
+        if: steps.check.outputs.skip == 'false'
+        run: git archive --format=zip -o source.zip HEAD apps/extension packages/shared package.json package-lock.json tsconfig.base.json
+
+      - name: Sign with Mozilla
+        if: steps.check.outputs.skip == 'false'
+        env:
+          WEB_EXT_API_KEY: ${{ secrets.AMO_API_KEY }}
+          WEB_EXT_API_SECRET: ${{ secrets.AMO_API_SECRET }}
+        run: >
+          npx --yes "web-ext@$WEB_EXT_VERSION" sign
+          --channel unlisted
+          --source-dir apps/extension/release/firefox
+          --artifacts-dir signed
+          --upload-source-code source.zip
+
+      - name: Publish the release
+        if: steps.check.outputs.skip == 'false'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          version='${{ steps.version.outputs.version }}'
+          signed=$(find signed -name '*.xpi' | head -n 1)
+          if [ -z "$signed" ]; then
+            echo "::error::web-ext sign finished without writing a signed .xpi"
+            exit 1
+          fi
+          xpi="jobtrack-clipper-$version.xpi"
+          mv "$signed" "$xpi"
+          sha256sum "$xpi" | cut -d' ' -f1 > "$xpi.sha256"
+
+          cat > release-notes.md <<EOF
+          JobTrack Clipper $version for Firefox 140 or newer, signed by Mozilla.
+
+          **Install:** open https://cuplexuser.github.io/JobTrack/clipper/jobtrack-clipper.xpi in Firefox and allow the
+          installation. Installed copies update on their own. Then open the add-on's settings and press
+          **Connect to JobTrack** (JobTrack 1.3.0 or newer).
+
+          SHA-256: \`$(cat "$xpi.sha256")\`
+          EOF
+
+          # --latest=false: "Latest" on this repository means the Windows installer, and that is
+          # what its download links rely on.
+          gh release create "clipper-v$version" "$xpi" "$xpi.sha256" \
+            --title "JobTrack Clipper $version for Firefox" \
+            --notes-file release-notes.md \
+            --target '${{ github.sha }}' \
+            --latest=false

@@ -1,10 +1,13 @@
 /**
  * Where the extension keeps the two things it needs to reach JobTrack.
  *
- * The token is the reason the API lets an extension in at all: its
- * `chrome-extension://<id>` origin is not on any allowlist and cannot be, because the id is
- * not knowable until the extension is installed. See `apps/api/src/lib/request-guard.ts`.
+ * The token is the reason the API lets an extension in at all: its origin
+ * (`chrome-extension://<id>`, or `moz-extension://<uuid>` in Firefox, which picks a random one
+ * per install) is not on any allowlist and cannot be, because it is not knowable until the
+ * extension is installed. See `apps/api/src/lib/request-guard.ts`.
  */
+
+import { ext } from './browser-api.js';
 
 export interface Settings {
   /** The API's address, e.g. http://127.0.0.1:3001 — no trailing slash. */
@@ -16,7 +19,7 @@ export interface Settings {
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:3001';
 
 export async function loadSettings(): Promise<Settings> {
-  const stored = await chrome.storage.local.get(['baseUrl', 'token']);
+  const stored = await ext.storage.local.get(['baseUrl', 'token']);
   return {
     baseUrl: typeof stored.baseUrl === 'string' && stored.baseUrl ? stored.baseUrl : DEFAULT_BASE_URL,
     token: typeof stored.token === 'string' ? stored.token : '',
@@ -24,7 +27,7 @@ export async function loadSettings(): Promise<Settings> {
 }
 
 export async function saveSettings(settings: Settings): Promise<void> {
-  await chrome.storage.local.set({
+  await ext.storage.local.set({
     baseUrl: settings.baseUrl.replace(/\/+$/, ''),
     token: settings.token.trim(),
   });

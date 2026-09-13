@@ -48,30 +48,47 @@ the posting is already rendered on your screen, and pressing the button copies i
 
 ## The extension
 
-`apps/extension` — Manifest V3, not published to a store, loaded unpacked.
+`apps/extension`, Manifest V3. The released build is for **Firefox 140 or newer**, signed by
+Mozilla and distributed from this repository rather than listed on addons.mozilla.org.
+
+### Install it in Firefox
+
+1. Open **https://cuplexuser.github.io/JobTrack/clipper/jobtrack-clipper.xpi** in Firefox.
+   Firefox asks whether to allow the site to install an add-on; allow it, then **Add**.
+   (If the file downloads instead, drag it onto a Firefox window, or use **Install Add-on From
+   File** from the gear menu on `about:addons`.)
+2. Open the add-on's settings (the **Settings** button in its popup), leave the address at
+   `http://127.0.0.1:3001` and press **Connect to JobTrack**.
+3. A JobTrack page opens in a new tab. Press **Allow** there. The tab closes and the settings
+   page says it is connected.
+
+It stays installed, and new versions arrive on their own through Firefox's normal add-on
+updates.
+
+Connecting needs JobTrack 1.3.0 or newer. Against an older one, the settings page says so and
+opens **Enter the token by hand**, where the token from `data/api-token` goes instead (the
+Windows tray menu has **Copy API token**).
+
+**`npm run dev` runs the API on `3002`**, not 3001, so point the address there when testing
+against a dev server. A repo clone and an installed `jobtrack` keep separate data directories
+and therefore separate tokens; connecting always gets the token of the JobTrack the address
+points at.
+
+### Chrome and Edge
+
+The same code runs in Chromium browsers, but there is no store listing for them yet, so they
+can only load it unpacked, which needs developer mode:
 
 ```bash
 npm run build --workspace=@jobtrack/extension
 ```
 
-Then in Chrome or Edge: **Extensions → Developer mode → Load unpacked →**
-`apps/extension/dist`. Open its **Settings** (the button in the popup) and fill in:
+Then **Extensions → Developer mode → Load unpacked →** `apps/extension/dist`, and connect as
+above.
 
-- **JobTrack address** — `http://127.0.0.1:3001` for the tray app or a standalone
-  `jobtrack` install. **`npm run dev` runs the API on `3002`**, not 3001, so point this at
-  `http://127.0.0.1:3002` when testing against a dev server — otherwise the test reports
-  that JobTrack is not reachable, which is true, just not of the one you are running.
-- **API token** — from the `data/api-token` file of *that* JobTrack. A repo clone and a
-  globally installed `jobtrack` keep separate data directories and therefore separate
-  tokens, so make sure the token comes from the instance the address points at.
-  The Windows installer saves you the trip: its tray menu has **Copy API token**, and so does
-  the **Access** tab of its settings dialog.
+### Using it
 
-**Save and test** is one button on purpose: it stores what you typed and *then* checks it,
-so a page that says "connected" is always a page that has saved. It reports "not reachable"
-and "token not accepted" as two different answers, because they have two different fixes.
-
-Now open any job posting and click the extension. It shows what it read and from where;
+Open any job posting and click the extension. It shows what it read and from where;
 correct anything, press **Save opening**, and it lands in JobTrack.
 
 ### How it reads a page
@@ -94,8 +111,10 @@ hostname; fix the line and rebuild. The other two routes keep working regardless
 `activeTab` and `scripting`, not a content script — the extension can read a page **only in
 the moment you press its button**, and never runs on pages you merely visit.
 `host_permissions` names your local JobTrack and nothing else, so it cannot talk to any
-other server. It stores two things (the address and the token) and sends the posting to your
-own machine.
+other server. The one other page it ever runs in is JobTrack's own connect page, and only
+after you press **Connect to JobTrack**. It stores two things (the address and the token) and
+sends the posting to your own machine. The privacy policy is
+[`apps/extension/PRIVACY.md`](../apps/extension/PRIVACY.md).
 
 ---
 
@@ -115,8 +134,9 @@ Requests are judged in four steps (`apps/api/src/lib/request-guard.ts`):
 2. **A known origin** → allowed. The tray's own address, the `:5173` dev server, and
    anything in `CORS_ORIGINS`.
 3. **Anything else** → must present the token, as `Authorization: Bearer <token>` or
-   `X-JobTrack-Token`. This is the extension's door, because its
-   `chrome-extension://<id>` origin cannot be known until it is installed.
+   `X-JobTrack-Token`. This is the extension's door, because its origin
+   (`moz-extension://<uuid>` in Firefox, `chrome-extension://<id>` in Chromium) cannot be
+   known until it is installed.
 
 Rule 1 is narrower than it sounds, and worth stating exactly: browsers send `Origin` on
 cross-origin **POSTs** (form posts included) but **not on GETs**, so a hostile page's
@@ -136,18 +156,36 @@ Two routes sit outside the ordinary rules:
   credentials. It reports a version and a driver name, nothing about your data.
 - `GET /api/auth/check` is the opposite: **only** a valid token opens it, whatever the
   origin rules would otherwise allow. It exists so "is this token right?" has an answer that
-  does not depend on anything else, and it is what the extension's **Save and test** button
-  calls.
+  does not depend on anything else, and it is what the extension calls to confirm a
+  connection.
+- `POST /api/extension/token` hands out the token, and only to JobTrack's own pages: it needs
+  an `Origin` header naming one of them, and neither a missing `Origin` nor the token itself
+  opens it. It is a POST because browsers always send `Origin` on one, which is what defeats
+  DNS rebinding (a hostile site re-pointing its own hostname at 127.0.0.1, whose GETs would
+  otherwise arrive with no `Origin` at all).
+
+### How connecting works
+
+**Connect to JobTrack** opens `GET /connect-extension`, a page JobTrack serves itself, in a new
+tab, and injects a small listener into that tab (the extension already has access to
+127.0.0.1 and localhost, so this needs no new permission). The page asks you to **Allow**; on
+that click it fetches the token from `POST /api/extension/token` and posts it to the listener
+with `window.postMessage`, addressed to its own origin only. The extension saves it, confirms
+it with `/api/auth/check`, and closes the tab.
+
+Two details keep this narrow. The extension opened the tab and chose its address, so another
+local page cannot pose as JobTrack. And the page allows no script or style but its own, pinned
+by hash in its `Content-Security-Policy`, and refuses to be framed, so another site cannot put
+the Allow button inside its own page.
 
 The token is generated on first run and lives in **`data/api-token`** inside the app data
 directory — `%APPDATA%\jobtrack\data\api-token` for a globally installed `jobtrack`, or
 `data/api-token` in the repo when running from a clone. Deleting the file makes a new one on
-next start; the extension then needs the new value.
+next start; press **Connect to JobTrack** again afterwards.
 
 **Or set `API_TOKEN` in `.env`** (in that same data directory) to choose the token yourself.
 That value wins outright and is never written to disk, which also means any `data/api-token`
-left over from before is ignored — so when `API_TOKEN` is set, the `.env` value is the one to
-paste into the extension.
+left over from before is ignored. Connecting hands the extension whichever token is in effect.
 
 ---
 

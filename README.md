@@ -125,7 +125,7 @@ apps/web/          React 19 + Vite + Ant Design 6      :5173
 apps/api/          Fastify + repolayer + search        :3001
 apps/mcp/          MCP server (stdio) over the same repos, publishable as `@jobtrack/mcp`
 apps/tray/         background process + Windows tray icon, publishable as `jobtrack`
-apps/extension/    browser extension that clips a posting into an opening (not published)
+apps/extension/    browser extension that clips a posting into an opening (signed for Firefox)
 packages/shared/   domain types, zod schemas, pure logic
 data/jobtrack.db   SQLite (gitignored)
 docs/              longer reference docs (web capture, networking, automation, npm publishing, ...)
@@ -232,6 +232,7 @@ means something has to bring the process back up:
 | `npm run clean` | remove build output and caches |
 | `npm run icons --workspace=@jobtrack/web` | regenerate favicon.ico / apple-touch-icon from the SVG sources |
 | `npm run build --workspace=@jobtrack/extension` | build the browser clipper into `apps/extension/dist` (load unpacked) |
+| `npm run package --workspace=@jobtrack/extension` | build and package the clipper for release into `apps/extension/release` |
 
 ---
 
@@ -315,14 +316,15 @@ Paste a link, paste the text, or click a browser extension on the posting you ar
 All three produce a job opening through the same path the form uses, with the same duplicate
 check attached.
 
-```bash
-npm run build --workspace=@jobtrack/extension   # then load apps/extension/dist unpacked
-```
+The browser extension is released for Firefox: open
+[the add-on file](https://cuplexuser.github.io/JobTrack/clipper/jobtrack-clipper.xpi) in Firefox,
+allow the install, and press **Connect to JobTrack** in its settings. It updates itself. Chrome
+and Edge can load a local build unpacked.
 
 Which route works where is not a detail — LinkedIn, Indeed and Glassdoor block servers from
 reading postings, so the link route cannot work there and the extension is the answer, since
 it reads the page already rendered in your own browser. The full write-up, the extension's
-setup and the API token it needs are in [`docs/capture.md`](docs/capture.md).
+install and how connecting hands it the API token are in [`docs/capture.md`](docs/capture.md).
 
 ---
 

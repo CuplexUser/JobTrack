@@ -24,3 +24,12 @@ for (const size of [16, 48, 128]) {
   await writeFile(join(root, 'public', `icon-${size}.png`), png);
   console.log(`icon-${size}.png`);
 }
+
+// The store listing logo: Microsoft asks for a 300 x 300 image. Not part of the package, so it
+// lives in store/ rather than public/.
+const logo = await sharp(source, { density: 1024 })
+  .resize(300, 300, { fit: 'contain', background: { r: 0, g: 0, b: 0, alpha: 0 } })
+  .png({ compressionLevel: 9 })
+  .toBuffer();
+await writeFile(join(root, 'store', 'logo-300.png'), logo);
+console.log('store/logo-300.png');

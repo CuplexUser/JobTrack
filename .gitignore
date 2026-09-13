@@ -38,3 +38,6 @@ obj/
 Thumbs.db
 .vscode/
 .idea/
+
+# Extension packages, rebuilt by `npm run package --workspace=@jobtrack/extension`.
+apps/extension/release/

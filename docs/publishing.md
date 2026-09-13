@@ -144,6 +144,45 @@ Nothing under `windows/` affects `scripts/check-publishable.mjs`: it iterates a 
 outside every `files` list. The two traps named above still apply, though — editing
 `apps/tray/README.md` or `.env.example` needs a `jobtrack` version bump in the same commit range.
 
+## The Firefox add-on
+
+The browser extension is not an npm package (`@jobtrack/extension` is private). It is released
+by `.github/workflows/extension-release.yml`, named **Firefox add-on** in the Actions tab:
+
+- **Gesture:** bump `apps/extension/package.json` and push to main. The manifest version comes
+  from that file, so there is no second number. A push that changes the extension without a
+  bump finds that version already released and does nothing.
+- **What it does:** runs the extension tests, packages the Firefox build
+  (`npm run package --workspace=@jobtrack/extension`), lints it the way Mozilla will, has Mozilla
+  sign it as an **unlisted** add-on (signed, but not listed on addons.mozilla.org), and attaches
+  `jobtrack-clipper-<version>.xpi` to a `clipper-v<version>` release. That release is created with
+  `--latest=false`, so "Latest" keeps meaning the Windows installer.
+- **Then Pages:** the release finishing triggers the Pages deploy (`demo.yml`), which copies the
+  newest signed add-on to `https://cuplexuser.github.io/JobTrack/clipper/` together with the
+  `updates.json` installed copies poll (`apps/extension/scripts/firefox-updates.mjs`).
+- **Source for review:** the package is bundled, so the workflow uploads the source it was built
+  from (`git archive` of the extension, `packages/shared` and the lockfile) with the submission.
+  Reviewers build it with `npm ci`, `npm run build --workspace=@jobtrack/shared` and
+  `npm run package --workspace=@jobtrack/extension`; `apps/extension/README.md` says the same.
+
+### One-time setup
+
+1. Sign in at https://addons.mozilla.org/developers/ with a Firefox account and accept the
+   developer agreement. There is no fee.
+2. Create API credentials at https://addons.mozilla.org/developers/addon/api/key/.
+3. Add them as repository secrets (**Settings → Secrets and variables → Actions**):
+   `AMO_API_KEY` is the **JWT issuer**, `AMO_API_SECRET` the **JWT secret**.
+
+Without the secrets the workflow writes a warning and stops instead of failing. The first signed
+release creates the add-on at Mozilla under the id in `apps/extension/scripts/manifest.mjs`
+(`GECKO_ID`). **Never change that id**: installed copies only accept updates carrying it.
+
+A version counts as released only once its `.xpi` is attached, so a failed run can be run
+again from the Actions tab. One exception: if Mozilla had already accepted the upload before the
+run failed (a timeout waiting for signing, say), Mozilla will not take the same version twice.
+Then either download the signed file from the add-on's page in the Developer Hub and attach it
+to the `clipper-v<version>` release by hand, or bump the version.
+
 ## Publishing by hand
 
 `publish-all.ps1`, at the repo root, still works and is handy for a local dry run — but it

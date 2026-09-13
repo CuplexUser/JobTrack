@@ -64,9 +64,13 @@ What's left:
 - Site selectors (`apps/extension/src/sites.ts`) are pinned to LinkedIn's, Indeed's and
   Glassdoor's current markup and will break when those change. Kept in one table so a break
   is a one-line fix; the JSON-LD and text routes are unaffected either way.
-- Firefox is untested — the extension uses `chrome.*` directly rather than a polyfill.
-- No Chrome Web Store listing (developer account, review, a privacy policy URL). Load
-  unpacked for now.
+- ~~Firefox is untested~~ Released for Firefox, signed by Mozilla and self-distributed, with
+  automatic updates from GitHub Pages and a **Connect to JobTrack** button instead of pasting
+  the token (see item 14).
+- No Chromium store listing. The Chrome Web Store now charges a $25 registration fee, and
+  Microsoft's Partner Center blocked the Edge registration without a reason. Chromium users
+  load it unpacked for now; `npm run package` already builds a Chromium zip for when a listing
+  exists.
 
 ## 4. A dashboard that reads the history — ✅ done
 
@@ -211,3 +215,20 @@ Planned: saved searches that poll public, terms-friendly sources (Arbetsförmedl
 JobTech API, Greenhouse/Lever/Ashby boards for companies you watch) and drop new matches in
 as openings, deduplicated against what is already saved. No LinkedIn scraping, for the same
 reasons given in item 3.
+
+## 14. The browser extension, installed like any other add-on — ✅ done
+
+Loading the clipper unpacked meant developer mode, and a browser that keeps switching such
+extensions off. It is now released for Firefox 140 or newer: signed by Mozilla through
+`web-ext sign --channel unlisted` (no public listing, no fee), attached to a `clipper-v*` GitHub
+release by `.github/workflows/extension-release.yml`, and served with its update manifest from
+GitHub Pages, so installed copies update themselves. The same push-a-version-bump gesture as
+npm and the Windows installer releases it.
+
+Setup no longer involves copying a token out of a file: **Connect to JobTrack** opens a page
+JobTrack serves, the user presses **Allow**, and the token passes to the extension through a
+route only JobTrack's own pages can call. See [`docs/capture.md`](docs/capture.md).
+
+Worth doing next:
+
+- A Chromium store listing, once there is an account to publish from (see item 3).

@@ -247,6 +247,8 @@ export interface MetaResponse {
   name: string;
   version: string;
   driver: string;
+  /** Where the browser extension's connect page is served; absent before 1.3.0. */
+  connectPage?: string;
 }
 
 export interface BackupPreviewResponse {

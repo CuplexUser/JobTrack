@@ -17,7 +17,7 @@ finished:
 | Second launch | Unhandled `EADDRINUSE` | Opens the running instance |
 | A crash, or a database switch | Stays down — nothing supervises it | Restarted, with backoff and a log |
 | Settings | Notepad on `.env` | A typed dialog that writes the same `.env` |
-| Extension token | Copy it out of `data/api-token` by hand | Copy button |
+| Extension token | Copy it out of `data/api-token` by hand | Copy button (and from JobTrack 1.3.0 the extension connects without it) |
 | Uninstall | `npm uninstall -g` | Add/Remove Programs, and it asks before deleting your database |
 
 The important constraint: **the installer is a repackaging of the published npm release, never a
