@@ -65,6 +65,30 @@ const runNpm = (npmArgs, options = {}) => (existsSync(npmCli)
   : execFileSync(process.platform === 'win32' ? 'npm.cmd' : 'npm', npmArgs, { stdio: 'inherit', shell: true, ...options }));
 
 const REGISTRY = 'https://registry.npmjs.org';
+
+/**
+ * `npm install` from the registry, waiting out a release that is still arriving there.
+ *
+ * A push that bumps several packages publishes them seconds apart, and each one shows up on the
+ * registry on its own schedule. Step 1 only proves `jobtrack` itself is there, so the install can
+ * still ask for a sibling it depends on (`@jobtrack/api@^1.3.0`) before that one is visible, and
+ * npm answers ETARGET. That failed the 1.3.0 installer build a minute after a successful publish.
+ * Only that error is retried: anything else is a real failure and should stop the build at once.
+ */
+async function installFromRegistry(npmArgs, attempts = 10, delayMs = 30_000) {
+  for (let attempt = 1; ; attempt += 1) {
+    try {
+      runNpm(npmArgs, { stdio: ['inherit', 'inherit', 'pipe'] });
+      return;
+    } catch (error) {
+      const stderr = error.stderr?.toString() ?? '';
+      process.stderr.write(stderr);
+      if (!/\bETARGET\b|notarget/.test(stderr) || attempt === attempts) throw error;
+      console.log(`  A dependency is not on the registry yet; trying again in ${delayMs / 1000} s (attempt ${attempt + 1} of ${attempts}).`);
+      await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMs));
+    }
+  }
+}
 const summary = [];
 
 const step = (message) => console.log(`\n=== ${message}`);
@@ -168,7 +192,9 @@ writeFileSync(
 );
 
 const specs = local ? packLocalTarballs() : [`jobtrack@${version}`, ...(withMcp ? ['@jobtrack/mcp@latest'] : [])];
-runNpm(['install', '--prefix', appDir, '--omit=dev', '--no-audit', '--no-fund', ...specs]);
+const installArgs = ['install', '--prefix', appDir, '--omit=dev', '--no-audit', '--no-fund', ...specs];
+if (local) runNpm(installArgs);
+else await installFromRegistry(installArgs);
 
 /**
  * `npm pack` every workspace package, in dependency order, and return the tarball paths.
