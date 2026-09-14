@@ -102,6 +102,7 @@ describe('discovery', () => {
       'get_profile',
       'update_profile',
       'rank_openings',
+      'score_postings',
     ]) {
       expect(names).toContain(name);
     }
@@ -273,5 +274,37 @@ describe('profile and fit', () => {
 
     const listed = await call('list_openings', { sort: 'fit', minFit: 90 });
     expect(listed.body.map((o: { company: string }) => o.company)).toEqual(['Spotify']);
+  });
+
+  it('scores postings best first without saving them', async () => {
+    const before = await call('score_postings', { postings: [{ jobTitle: 'Backend Engineer' }] });
+    expect(before.body).toEqual({ hasProfile: false, postings: [{ index: 0, jobTitle: 'Backend Engineer' }] });
+
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'], excludeKeywords: ['crypto'] });
+    const { body } = await call('score_postings', {
+      postings: [
+        { companyName: 'Axis', jobTitle: 'Graphic Designer', location: 'Lund' },
+        { companyName: 'Coinly', jobTitle: 'Backend Engineer', location: 'Stockholm', description: 'Build our crypto exchange.' },
+        { companyName: 'Spotify', jobTitle: 'Senior Backend Engineer', location: 'Stockholm' },
+      ],
+    });
+
+    expect(body.hasProfile).toBe(true);
+    expect(body.postings.map((p: { index: number }) => p.index)).toEqual([2, 1, 0]);
+    expect(body.postings[0]).toMatchObject({ company: 'Spotify', fit: { score: 100 } });
+    expect(body.postings[1].fit.reasons[0]).toMatch(/^- Mentions crypto/);
+    expect((await call('list_openings')).body).toEqual([]);
+  });
+
+  it('carries fit on a captured draft and on a single opening', async () => {
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+
+    const captured = await call('capture_posting', { text: POSTING });
+    expect(captured.body.saved).toBe(false);
+    expect(captured.body.fit.score).toBeGreaterThan(50);
+
+    const created = await call('create_opening', { companyName: 'Axis', jobTitle: 'Graphic Designer', location: 'Lund' });
+    expect(created.body.fit.reasons).toContain('- Title is not one you are looking for');
+    expect((await call('get_opening', { id: created.body.id })).body.fit).toEqual(created.body.fit);
   });
 });

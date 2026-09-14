@@ -72,17 +72,17 @@ it is a registry value this application owns.
 
 ```powershell
 # The payload: pinned node.exe + jobtrack from the registry, pruned, then launched and tested
-node windows/scripts/build-payload.mjs --version 1.0.11 --with-mcp
+node windows/scripts/build-payload.mjs --version 1.3.0 --with-mcp
 
 # The host, self-contained, into the same payload tree
 dotnet publish windows/JobTrack.Host/JobTrack.Host.csproj -c Release -r win-x64 `
   --self-contained true -o windows/installer/payload/host
 
 # The installer
-& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.11 windows\installer\JobTrack.iss
+& "${env:ProgramFiles(x86)}\Inno Setup 6\ISCC.exe" /DAppVersion=1.3.0 windows\installer\JobTrack.iss
 
 # The installer (from local user install/winget)
-& "${env:LOCALAPPDATA}\programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.0.11 windows\installer\JobTrack.iss
+& "${env:LOCALAPPDATA}\programs\Inno Setup 6\ISCC.exe" /DAppVersion=1.3.0 windows\installer\JobTrack.iss
 ```
 
 To test a change before publishing it, `--local` packs this checkout with `npm pack` instead of
@@ -138,7 +138,7 @@ the SmartScreen prompt.
 - **The icon tops out at 48px.** `apps/web/public/favicon.ico` carries 16/20/32/48 only, so the
   installer wizard and Explorer's large-icon view upscale it. The fix belongs in
   `apps/web/scripts/make-icons.mjs`, which should emit a 256px frame too.
-- **Cold start is slow.** Measured on the 1.0.11 payload: **31 s** on a completely cold tsx cache,
+- **Cold start is slow.** Measured on the 1.3.0 payload: **31 s** on a completely cold tsx cache,
   **3 s** warm. tsx shells out to `esbuild.exe` to transpile the TypeScript sources, and the first
   run has nothing cached. The tray icon appears immediately in a "starting" state so it is visible
   rather than mysterious, but 31 seconds is too long for a first impression. Running esbuild at

@@ -9,6 +9,7 @@ import {
   createJobOpeningSchema,
   openingFilterSchema,
   patchJobOpeningSchema,
+  type JobOpeningView,
 } from '@jobtrack/shared';
 import type { Deps } from '@jobtrack/api/deps';
 import {
@@ -17,15 +18,21 @@ import {
   getOpening,
   updateOpening,
 } from '@jobtrack/api/services/openings';
-import { rankOpenings } from '@jobtrack/api/services/fit';
+import { rankOpenings, scorePostings } from '@jobtrack/api/services/fit';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
-import { openingSummary } from '../views.js';
+import { fitSummary, openingSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
 
 export function registerOpeningTools(server: McpServer, deps: Deps): void {
   const { repos, search } = deps;
+
+  /** The opening with its fit alongside, so saving or editing one says how well it matches. */
+  async function withFit(opening: JobOpeningView) {
+    const [fit] = await scorePostings(repos, search, [{ ...opening, companyName: opening.company.name }]);
+    return fit ? { ...opening, fit: fitSummary(fit) } : opening;
+  }
 
   server.registerTool(
     'list_openings',
@@ -39,10 +46,13 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
 
   server.registerTool(
     'get_opening',
-    { description: 'Get one saved job opening by id.', inputSchema: idOnly },
+    {
+      description: "Get one saved job opening by id, in full. Carries `fit` (0 to 100, with reasons) when the user has a profile.",
+      inputSchema: idOnly,
+    },
     async ({ id }) => {
       const opening = await getOpening(repos, id);
-      return opening ? jsonResult(opening) : errorResult(`No opening with id ${id}`);
+      return opening ? jsonResult(await withFit(opening)) : errorResult(`No opening with id ${id}`);
     },
   );
 
@@ -50,10 +60,10 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'create_opening',
     {
       description:
-        "Save a job opportunity for later, when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags.",
+        "Save a job opportunity for later, when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags. The saved opening comes back with its `fit` when the user has a profile. To judge a posting before saving it, use score_postings.",
       inputSchema: createJobOpeningSchema,
     },
-    async (input) => jsonResult(await createOpening(repos, input)),
+    async (input) => jsonResult(await withFit(await createOpening(repos, input))),
   );
 
   server.registerTool(
@@ -64,7 +74,7 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     },
     async ({ id, patch }) => {
       const opening = await updateOpening(repos, id, patch);
-      return opening ? jsonResult(opening) : errorResult(`No opening with id ${id}`);
+      return opening ? jsonResult(await withFit(opening)) : errorResult(`No opening with id ${id}`);
     },
   );
 

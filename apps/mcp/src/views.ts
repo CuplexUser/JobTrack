@@ -131,7 +131,7 @@ export interface OpeningSummary {
   archived?: boolean;
   convertedApplicationId?: string;
   /** 0 to 100 against the user's profile, with the reasons; absent when there is no profile. */
-  fit?: { score: number; reasons: string[] };
+  fit?: FitSummary;
 }
 
 export function openingSummary(opening: JobOpeningView & { fit?: FitResult | null }): OpeningSummary {
@@ -151,10 +151,22 @@ export function openingSummary(opening: JobOpeningView & { fit?: FitResult | nul
     notesTruncated: truncated ? true : undefined,
     archived: opening.archived ? true : undefined,
     convertedApplicationId: opening.convertedApplicationId ?? undefined,
-    fit: opening.fit
-      ? { score: opening.fit.score, reasons: opening.fit.reasons.map((reason) => `${reason.effect === 'minus' ? '-' : '+'} ${reason.label}`) }
-      : undefined,
+    fit: opening.fit ? fitSummary(opening.fit) : undefined,
   });
+}
+
+export interface FitSummary {
+  score: number;
+  /** Each prefixed `+` or `-` by whether it raised or lowered the score. */
+  reasons: string[];
+}
+
+/** A fit with its reasons flattened to readable lines. */
+export function fitSummary(fit: FitResult): FitSummary {
+  return {
+    score: fit.score,
+    reasons: fit.reasons.map((reason) => `${reason.effect === 'minus' ? '-' : '+'} ${reason.label}`),
+  };
 }
 
 /** How much of the free-text notes about a person a list row carries. */

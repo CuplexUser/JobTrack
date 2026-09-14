@@ -87,7 +87,15 @@ General.
 `get_profile` and `update_profile` read and change the profile. An update changes only the
 fields it names, so adding a target title cannot wipe your locations. `rank_openings` returns
 openings best first with their scores and reasons, and `list_openings` accepts `sort: 'fit'`
-and `minFit`. The `triage_openings` prompt works through openings best first.
+and `minFit`. `get_opening`, `create_opening` and `update_opening` return the opening's fit
+too. The `triage_openings` prompt works through openings best first.
+
+Fit does not need a saved opening. `score_postings` takes up to 25 postings (a title, plus
+whatever else is known: company, location, work mode, salary, description) and returns them
+best first with scores and reasons, saving nothing. That lets Claude search for jobs, score
+what it found, and suggest only the ones worth adding. `capture_posting` also returns the
+fit of the posting it read, whether or not it saves it. Nothing about a scored posting is
+stored; only what you then save becomes an opening.
 
 The rules are not exposed to MCP: switching on something that changes records on its own stays
 a choice you make in Settings.

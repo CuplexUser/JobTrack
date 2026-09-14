@@ -347,12 +347,12 @@ an MCP client cannot destroy data, only add to or edit it. On top of the plain r
 
 | tool | what it is for |
 |---|---|
-| `capture_posting` | read a posting from a link or pasted text into a draft opening, with the duplicate verdict; `save: true` also saves it (refusing a posting that is already saved) |
+| `capture_posting` | read a posting from a link or pasted text into a draft opening, with the duplicate verdict and its fit; `save: true` also saves it (refusing a posting that is already saved) |
 | `get_agenda` | what is waiting today: due follow-ups, applications gone quiet, openings left sitting for two weeks (also `GET /api/agenda`) |
 | `bulk_change_status` | one status change across several applications ("mark these ghosted"), each with its own dated event |
 | `find_duplicate_groups` | the Duplicates page's sweep, read-only |
 | `list_openings` | now filterable by `q`, `location` and `source` |
-| `get_profile`, `update_profile`, `rank_openings` | what you are looking for, and your openings scored against it best first, with reasons (see [`docs/automation.md`](docs/automation.md)) |
+| `get_profile`, `update_profile`, `rank_openings`, `score_postings` | what you are looking for, your openings scored against it best first with reasons, and postings scored before they are saved (see [`docs/automation.md`](docs/automation.md)) |
 | `list_contacts`, `get_contact`, `create_contact`, `update_contact`, `log_interaction`, `link_contact`, `list_linked_contacts` | the network: who works where, conversations, reconnect dates, and who played a part in which application (see [`docs/networking.md`](docs/networking.md)) |
 
 **Prompts** turn the routine chores into one click in the client's prompt menu. Each is a
