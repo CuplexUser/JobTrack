@@ -374,6 +374,41 @@ export const capturePostingSchema = z
     message: 'Give a url to read, or the posting text',
   });
 
+/** How many postings one scoring request takes: a page of search results, not a crawl. */
+export const MAX_POSTINGS_TO_SCORE = 25;
+
+/**
+ * A posting to score against the profile without saving it, such as one an assistant found
+ * while searching. Only the title is required; whatever else is known sharpens the score.
+ */
+export const postingToScoreSchema = z.object({
+  companyName: optionalTrimmed(200),
+  jobTitle: z.string().trim().min(1, 'Job title is required').max(200),
+  location: optionalTrimmed(200),
+  workMode: workModeSchema.default('unspecified'),
+  salaryMin: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullish()
+    .transform((v) => v ?? null),
+  salaryMax: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullish()
+    .transform((v) => v ?? null),
+  salaryCurrency: optionalTrimmed(8),
+  /** The posting text, or as much of it as is known. */
+  description: optionalTrimmed(20000),
+});
+
+export type PostingToScore = z.output<typeof postingToScoreSchema>;
+
+export const scorePostingsSchema = z.object({
+  postings: z.array(postingToScoreSchema).min(1).max(MAX_POSTINGS_TO_SCORE),
+});
+
 export const postingDraftSchema = z
   .object({
     companyName: z.string().trim().min(1, 'Company is required').max(200),

@@ -40,6 +40,17 @@ says so; everything else still ranks.
 
 The scoring is pure code in `packages/shared/src/fit.ts`, with the weights at the top.
 
+### Over HTTP
+
+`GET /api/openings` carries each opening's `fit` (null without a profile) and accepts
+`sort=fit` and `minFit`. `GET`, `POST` and `PATCH` on a single opening return its `fit` too.
+
+`POST /api/openings/score` scores postings that are not saved. Send `{ "postings": [...] }`
+with up to 25 postings, each needing only a `jobTitle` and optionally `companyName`,
+`location`, `workMode`, `salaryMin`, `salaryMax`, `salaryCurrency` and `description`. The
+reply is `{ hasProfile, summaryCompared, postings }`, best first, where each posting keeps
+its `index` in the request alongside its `fit`. Nothing is stored.
+
 ---
 
 ## Rules

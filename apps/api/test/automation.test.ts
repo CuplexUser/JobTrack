@@ -8,7 +8,7 @@ import { changeStatus, createApplication, getApplication } from '../src/services
 import { convertOpening, createOpening } from '../src/services/openings.service.js';
 import { getProfile, getRules, updateProfile, updateRules } from '../src/services/settings.service.js';
 import { autoGhostComment, runAutoGhost } from '../src/services/rules.service.js';
-import { rankOpenings } from '../src/services/fit.service.js';
+import { rankOpenings, rankPostings } from '../src/services/fit.service.js';
 import { startBackgroundJobs } from '../src/jobs/scheduler.js';
 import { createSnapshot, currentCounts, isEmpty, restoreSnapshot, validateSnapshot } from '../src/backup/snapshot.js';
 import { applicationInput, openingInput, testDeps } from './support/repos.js';
@@ -172,6 +172,44 @@ describe('ranking openings by fit', () => {
   });
 });
 
+describe('scoring postings that are not saved', () => {
+  const posting = (over: Record<string, unknown>) => ({
+    companyName: null,
+    location: null,
+    workMode: 'unspecified' as const,
+    salaryMin: null,
+    salaryMax: null,
+    salaryCurrency: null,
+    description: null,
+    jobTitle: 'Backend Engineer',
+    ...over,
+  });
+
+  it('has no scores without a profile', async () => {
+    const result = await rankPostings(repos, deps.search, [posting({})]);
+    expect(result).toEqual({
+      hasProfile: false,
+      summaryCompared: false,
+      postings: [{ index: 0, companyName: null, jobTitle: 'Backend Engineer', fit: null }],
+    });
+  });
+
+  it('ranks best first, keeps each input position, and reads the description', async () => {
+    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locations: ['Stockholm'], excludeKeywords: ['crypto'] });
+    const result = await rankPostings(repos, deps.search, [
+      posting({ jobTitle: 'Graphic Designer', location: 'Malmö' }),
+      posting({ location: 'Stockholm', description: 'Build our crypto exchange.' }),
+      posting({ companyName: 'Spotify', location: 'Stockholm' }),
+    ]);
+
+    expect(result.hasProfile).toBe(true);
+    expect(result.postings.map((p) => p.index)).toEqual([2, 1, 0]);
+    expect(result.postings[0]!.fit!.score).toBe(100);
+    expect(result.postings[1]!.fit!.reasons[0]!.factor).toBe('excluded');
+    expect(await repos.jobOpenings.count()).toBe(0);
+  });
+});
+
 describe('over HTTP', () => {
   let app: FastifyInstance;
 
@@ -191,6 +229,29 @@ describe('over HTTP', () => {
     await createOpening(repos, openingInput({ jobTitle: 'Backend Engineer' }));
     const openings = await app.inject({ method: 'GET', url: '/api/openings?sort=fit' });
     expect(openings.json().openings[0].fit.score).toBeGreaterThan(0);
+  });
+
+  it('scores postings without saving them, and puts fit on a single opening', async () => {
+    const noProfile = await app.inject({ method: 'POST', url: '/api/openings/score', payload: { postings: [{ jobTitle: 'Backend Engineer' }] } });
+    expect(noProfile.json()).toMatchObject({ hasProfile: false, postings: [{ index: 0, fit: null }] });
+
+    await app.inject({ method: 'PUT', url: '/api/profile', payload: { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] } });
+    const scored = await app.inject({
+      method: 'POST',
+      url: '/api/openings/score',
+      payload: { postings: [{ jobTitle: 'Graphic Designer' }, { companyName: 'Spotify', jobTitle: 'Backend Engineer', location: 'Stockholm' }] },
+    });
+    expect(scored.statusCode).toBe(200);
+    expect(scored.json().postings[0]).toMatchObject({ index: 1, companyName: 'Spotify', fit: { score: 100 } });
+    expect((await app.inject({ method: 'GET', url: '/api/openings' })).json().openings).toEqual([]);
+
+    expect((await app.inject({ method: 'POST', url: '/api/openings/score', payload: { postings: [] } })).statusCode).toBe(400);
+
+    const created = await app.inject({ method: 'POST', url: '/api/openings', payload: { companyName: 'Axis', jobTitle: 'Backend Engineer', location: 'Lund' } });
+    expect(created.statusCode).toBe(201);
+    expect(created.json().fit.score).toBeGreaterThan(0);
+    const fetched = await app.inject({ method: 'GET', url: `/api/openings/${created.json().id}` });
+    expect(fetched.json().fit).toEqual(created.json().fit);
   });
 
   it('rejects a rule outside its range, and previews and runs auto-ghost', async () => {

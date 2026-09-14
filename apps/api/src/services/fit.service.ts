@@ -13,7 +13,9 @@ import {
   type FitPosting,
   type FitProfile,
   type FitResult,
+  type JobOpeningView,
   type OpeningFilter,
+  type PostingToScore,
   type RankedOpening,
 } from '@jobtrack/shared';
 import type { Repos } from '../db/repos.js';
@@ -58,6 +60,61 @@ export async function scorePostings(
   postings: readonly ScorablePosting[],
 ): Promise<(FitResult | null)[]> {
   return scoreAgainst(await getProfile(repos), search, postings);
+}
+
+/** One opening with its fit alongside, for the single-record reads and writes. */
+export async function fitOpening(
+  repos: Repos,
+  search: SimilaritySource,
+  opening: JobOpeningView,
+): Promise<RankedOpening> {
+  const [fit] = await scorePostings(repos, search, [{ ...opening, companyName: opening.company.name }]);
+  return { ...opening, fit: fit ?? null };
+}
+
+export interface ScoredPosting {
+  /** Where the posting sat in the request, since the results come back reordered. */
+  index: number;
+  companyName: string | null;
+  jobTitle: string;
+  fit: FitResult | null;
+}
+
+export interface PostingScores {
+  /** False when there is no profile to score against; every fit is then null. */
+  hasProfile: boolean;
+  /**
+   * Whether the posting text was compared to the profile summary. False without a summary,
+   * or while the model is loading, and the scores then rest on the rules alone.
+   */
+  summaryCompared: boolean;
+  /** Best first; equal scores keep the order they were sent in. */
+  postings: ScoredPosting[];
+}
+
+/** Postings that are not saved, scored and ranked best first. Nothing is stored. */
+export async function rankPostings(
+  repos: Repos,
+  search: SimilaritySource,
+  postings: readonly PostingToScore[],
+): Promise<PostingScores> {
+  const fits = await scorePostings(
+    repos,
+    search,
+    postings.map(({ description, ...posting }) => ({ ...posting, notes: description })),
+  );
+  const scored = postings.map((posting, index) => ({
+    index,
+    companyName: posting.companyName,
+    jobTitle: posting.jobTitle,
+    fit: fits[index] ?? null,
+  }));
+  scored.sort((a, b) => (b.fit?.score ?? -1) - (a.fit?.score ?? -1));
+  return {
+    hasProfile: fits.some((fit) => fit !== null),
+    summaryCompared: fits.some((fit) => fit?.semanticUsed === true),
+    postings: scored,
+  };
 }
 
 export async function rankOpenings(

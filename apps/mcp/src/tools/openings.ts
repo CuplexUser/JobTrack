@@ -18,7 +18,7 @@ import {
   getOpening,
   updateOpening,
 } from '@jobtrack/api/services/openings';
-import { rankOpenings, scorePostings } from '@jobtrack/api/services/fit';
+import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { errorResult, jsonResult } from '../helpers.js';
 import { fitSummary, openingSummary } from '../views.js';
@@ -30,7 +30,7 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
 
   /** The opening with its fit alongside, so saving or editing one says how well it matches. */
   async function withFit(opening: JobOpeningView) {
-    const [fit] = await scorePostings(repos, search, [{ ...opening, companyName: opening.company.name }]);
+    const { fit } = await fitOpening(repos, search, opening);
     return fit ? { ...opening, fit: fitSummary(fit) } : opening;
   }
 
