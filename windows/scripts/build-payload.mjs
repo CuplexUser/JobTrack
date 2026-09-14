@@ -167,8 +167,12 @@ if (reuseNodeExe) {
   mkdirSync(scratch, { recursive: true });
   writeFileSync(join(scratch, zipName), zipBytes);
   // bsdtar has shipped with Windows since 1803 and reads zip; it beats Expand-Archive by a wide
-  // margin on a 30 MB archive.
-  execFileSync('tar', ['-xf', zipName], { cwd: scratch, stdio: 'inherit' });
+  // margin on a 30 MB archive. Named by full path, because from Git Bash a bare `tar` is Git's GNU
+  // tar, which does not read zip at all.
+  const tar = process.platform === 'win32' && process.env.SystemRoot
+    ? join(process.env.SystemRoot, 'System32', 'tar.exe')
+    : 'tar';
+  execFileSync(tar, ['-xf', zipName], { cwd: scratch, stdio: 'inherit' });
   const extracted = join(scratch, `node-v${nodeVersion}-win-x64`);
   cpSync(join(extracted, 'node.exe'), nodeExe);
   cpSync(join(extracted, 'LICENSE'), join(nodeDir, 'LICENSE'));

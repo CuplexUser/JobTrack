@@ -100,6 +100,26 @@ it is a registry value this application owns.
 
 ## Building it
 
+`windows/build.ps1` runs all three steps below and prints the installer's path, size and SHA-256.
+It asks where the payload should come from, or takes `-Source`:
+
+```powershell
+# Asks: Registry (pinned node.exe + the latest jobtrack and @jobtrack/mcp from npm) or Local
+./windows/build.ps1
+
+# A published release, as CI builds it
+./windows/build.ps1 -Source Registry -Version 1.5.0
+
+# This checkout, before it is published (build-payload.mjs --local --with-mcp)
+./windows/build.ps1 -Source Local
+```
+
+It finds `ISCC.exe` through `$env:ISCC`, Inno Setup's uninstall registration, or the per-user and
+machine-wide install folders, so a winget install under `%LOCALAPPDATA%\Programs` works as well as
+a machine-wide one. `-SkipSmoke`, `-NodeExe` and `-KeepDml` pass through to `build-payload.mjs`.
+
+The same steps by hand:
+
 ```powershell
 # The payload: pinned node.exe + jobtrack from the registry, pruned, then launched and tested
 node windows/scripts/build-payload.mjs --version 1.3.0 --with-mcp
