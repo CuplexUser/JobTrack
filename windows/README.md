@@ -64,6 +64,36 @@ balloon when a follow-up or a person's reconnect date comes due, once per item a
 Clicking it opens the dashboard. It is a host preference (`remindersEnabled` in `host.json`,
 on by default), toggled under General in the settings dialog, and it applies without a restart.
 
+### Claude Desktop
+
+The payload bundles the MCP server, and the host keeps Claude Desktop pointed at it
+(`Config/ClaudeDesktop.cs`). On every start it writes a `jobtrack` entry into
+`claude_desktop_config.json` that runs the bundled `node.exe` on the bundled
+`@jobtrack/mcp`, with `JOBTRACK_HOME` set so it shares the tray's database. The paths carry no
+version, so the entry itself rarely changes; what changes is the server behind it, which moves
+with every installer. That is the point: a global `npm install -g @jobtrack/mcp` is never
+updated by upgrading the tray, and Claude Desktop would otherwise keep running whatever was
+installed first.
+
+The edit is careful with a file that belongs to another application:
+
+- Everything else in the file is kept, including other servers, Claude's own preferences, and any
+  variable the user added to the entry's `env`.
+- The file is only written when the entry changes, via a temporary file moved into place, and
+  never when it does not parse.
+- Only an installed Claude Desktop gets an entry: `%APPDATA%\Claude` for the classic install, and
+  the package's `LocalCache\Roaming\Claude` for the MSIX one. No directory, no file.
+
+When the entry changes, or an upgrade brings a new server version, a balloon says to restart
+Claude Desktop, since it only reads its config at launch. The installer stops any MCP server
+Claude Desktop started from `{app}\node\node.exe` before replacing files, because a running one
+locks `node.exe`, and the uninstaller runs `JobTrack.exe --disconnect-claude-desktop`, which
+removes the entry only where it runs this installation.
+
+It is a host preference (`connectClaudeDesktop` in `host.json`, on by default), under General in
+the settings dialog. Turning it off removes the entry. **Copy MCP client config** in the tray menu
+gives the same entry to any other MCP client.
+
 Everything else in the dialog is read by the server once, at boot (`apps/api/src/config.ts`), so the
 footer says changes need a restart instead of pretending they are live. Autostart is the exception:
 it is a registry value this application owns.

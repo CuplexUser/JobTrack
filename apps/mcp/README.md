@@ -25,9 +25,18 @@ the routine chores: `weekly_review`, `triage_openings`, `log_email_update`,
 
 ## Install
 
+On Windows, the [JobTrack installer](https://github.com/CuplexUser/JobTrack/releases/latest)
+already includes this server and connects Claude Desktop to it, updating it with every install.
+You do not need the steps below.
+
 ```bash
 npm install -g @jobtrack/mcp
 ```
+
+A global install is not updated by anything else, including updating the `jobtrack` tray app.
+Run `npm install -g @jobtrack/mcp@latest` to update it, then restart the MCP client. The server
+prints its version when it starts (`[jobtrack-mcp] 1.3.1 ready`), which MCP clients keep in
+their logs.
 
 Then point an MCP client at the installed `jobtrack-mcp` command:
 

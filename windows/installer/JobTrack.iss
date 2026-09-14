@@ -120,16 +120,53 @@ begin
   Sleep(1000);
 end;
 
+// Stops MCP servers that other programs started from this installation's node.exe.
+//
+// JobTrack connects Claude Desktop to the MCP server it bundles, so Claude Desktop runs
+// {app}\node\node.exe itself. Those processes are not JobTrack's children and --quit cannot reach
+// them, and while they run node.exe is locked and the upgrade cannot replace it. Matched by full
+// path, so a Node installed anywhere else is never touched. Claude Desktop shows the server as
+// disconnected until it is restarted, which it needs anyway to load the new version.
+procedure StopBundledNode();
+var
+  Node: string;
+  ResultCode: Integer;
+begin
+  Node := ExpandConstant('{app}\node\node.exe');
+  if not FileExists(Node) then
+    Exit;
+
+  // A single quote in the path (a user profile named O'Brien) is doubled for PowerShell.
+  StringChangeEx(Node, '''', '''''', True);
+  Exec(ExpandConstant('{sys}\WindowsPowerShell\v1.0\powershell.exe'),
+       '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | ' +
+       'Where-Object { $_.Path -eq ''' + Node + ''' } | Stop-Process -Force"',
+       '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
 function PrepareToInstall(var NeedsRestart: Boolean): String;
 begin
   NeedsRestart := False;
   StopRunningApp();
+  StopBundledNode();
   Result := '';
 end;
 
 function InitializeUninstall(): Boolean;
+var
+  Exe: string;
+  ResultCode: Integer;
 begin
   StopRunningApp();
+
+  // Take JobTrack's MCP server back out of Claude Desktop's config, or Claude Desktop keeps trying
+  // to start a server that is about to be deleted. Only an entry that runs this installation is
+  // removed.
+  Exe := ExpandConstant('{app}\JobTrack.exe');
+  if FileExists(Exe) then
+    Exec(Exe, '--disconnect-claude-desktop', '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+
+  StopBundledNode();
   Result := True;
 end;
 

@@ -11,6 +11,12 @@ internal static class Program
     /// </summary>
     private const string QuitSwitch = "--quit";
 
+    /// <summary>
+    /// Passed by the uninstaller, so Claude Desktop is not left starting a server that no longer
+    /// exists.
+    /// </summary>
+    private const string DisconnectClaudeDesktopSwitch = "--disconnect-claude-desktop";
+
     [STAThread]
     private static int Main(string[] args)
     {
@@ -19,6 +25,11 @@ internal static class Program
         if (args.Contains(QuitSwitch, StringComparer.OrdinalIgnoreCase))
         {
             return SingleInstance.SignalQuitAndWait(TimeSpan.FromSeconds(15)) ? 0 : 1;
+        }
+
+        if (args.Contains(DisconnectClaudeDesktopSwitch, StringComparer.OrdinalIgnoreCase))
+        {
+            return ClaudeDesktop.Unregister().Problems.Count == 0 ? 0 : 1;
         }
 
         // A second launch — someone clicked the Start Menu shortcut while it was already running —

@@ -27,6 +27,19 @@ internal sealed class HostSettings
     /// </summary>
     [JsonPropertyName("remindersEnabled")] public bool RemindersEnabled { get; set; } = true;
 
+    /// <summary>
+    /// Whether to keep Claude Desktop's <c>jobtrack</c> MCP server pointed at the one bundled here
+    /// (see <see cref="ClaudeDesktop"/>). On by default: it only touches Claude Desktop when it is
+    /// installed, and the alternative is a Claude that silently runs an outdated server.
+    /// </summary>
+    [JsonPropertyName("connectClaudeDesktop")] public bool ConnectClaudeDesktop { get; set; } = true;
+
+    /// <summary>
+    /// The MCP server version Claude Desktop was last told about, so an upgrade that brings a new
+    /// one says to restart Claude Desktop exactly once.
+    /// </summary>
+    [JsonPropertyName("claudeDesktopMcpVersion")] public string? ClaudeDesktopMcpVersion { get; set; }
+
     public static HostSettings Load()
     {
         try

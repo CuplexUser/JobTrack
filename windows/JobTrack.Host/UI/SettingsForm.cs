@@ -33,6 +33,7 @@ internal sealed class SettingsForm : Form
     private readonly CheckBox _autostart = new() { Text = "Start JobTrack when I sign in", AutoSize = true };
     private readonly CheckBox _openBrowser = new() { Text = "Open JobTrack in my browser when it starts", AutoSize = true };
     private readonly CheckBox _reminders = new() { Text = "Remind me when follow-ups and reconnects come due", AutoSize = true };
+    private readonly CheckBox _claudeDesktop = new() { Text = "Connect Claude Desktop to JobTrack's MCP server", AutoSize = true };
     private readonly Label _hostWarning = new() { AutoSize = false, Height = 32, ForeColor = Color.FromArgb(150, 90, 0) };
 
     private readonly ComboBox _driver = new() { DropDownStyle = ComboBoxStyle.DropDownList, Width = 140 };
@@ -60,6 +61,9 @@ internal sealed class SettingsForm : Form
 
     /// <summary>Raised on save with the reminders setting, so the tray can start or stop polling at once.</summary>
     public event Action<bool>? RemindersChanged;
+
+    /// <summary>Raised on save when the Claude Desktop setting changed, so the tray can apply it at once.</summary>
+    public event Action<bool>? ClaudeDesktopChanged;
 
     public SettingsForm(NodeSupervisor supervisor, LaunchManifest manifest, HostSettings hostSettings)
     {
@@ -184,7 +188,9 @@ internal sealed class SettingsForm : Form
             Hint("Applies immediately. It is a Windows setting, not part of the JobTrack configuration."),
             _openBrowser,
             _reminders,
-            Hint("Shows a notification for follow-up dates and people to get back in touch with, checked every half hour."));
+            Hint("Shows a notification for follow-up dates and people to get back in touch with, checked every half hour."),
+            _claudeDesktop,
+            Hint("Points the jobtrack server in Claude Desktop's config at the one installed with JobTrack, so it updates with every install. Your other servers and settings are left as they are. Claude Desktop picks up a change when it restarts."));
     }
 
     private TabPage BuildDatabaseTab()
@@ -293,6 +299,8 @@ internal sealed class SettingsForm : Form
         _autostart.Checked = Autostart.IsEnabled;
         _openBrowser.Checked = _hostSettings.OpenBrowserOnStart;
         _reminders.Checked = _hostSettings.RemindersEnabled;
+        _claudeDesktop.Checked = _hostSettings.ConnectClaudeDesktop;
+        _claudeDesktop.Enabled = McpConfig.IsBundled(_manifest);
 
         _driver.SelectedItem = Drivers.Contains(_env.GetOrDefault("DB_DRIVER", "sqlite")) ? _env.GetOrDefault("DB_DRIVER", "sqlite") : "sqlite";
         _dbFile.Text = _env.Get("DB_FILE") ?? string.Empty;
@@ -473,8 +481,11 @@ internal sealed class SettingsForm : Form
 
         _hostSettings.OpenBrowserOnStart = _openBrowser.Checked;
         _hostSettings.RemindersEnabled = _reminders.Checked;
+        var claudeDesktopChanged = _hostSettings.ConnectClaudeDesktop != _claudeDesktop.Checked;
+        _hostSettings.ConnectClaudeDesktop = _claudeDesktop.Checked;
         _hostSettings.Save();
         RemindersChanged?.Invoke(_reminders.Checked);
+        if (claudeDesktopChanged) ClaudeDesktopChanged?.Invoke(_claudeDesktop.Checked);
 
         Close();
         if (restart) await _supervisor.RestartAsync();

@@ -66,7 +66,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _copyMcp = new ToolStripMenuItem("Copy &MCP client config", Glyphs.Menu(Glyphs.Code, dpi), (_, _) => CopyMcpConfig())
         {
             // Only meaningful when the payload actually bundled the MCP server.
-            Available = manifest.McpEntry is { Length: > 0 },
+            Available = McpConfig.IsBundled(manifest),
         };
         _restart = new ToolStripMenuItem("&Restart server", Glyphs.Menu(Glyphs.Refresh, dpi), async (_, _) => await _supervisor.RestartAsync());
 
@@ -111,7 +111,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _supervisor.StateChanged += state => Post(() => OnStateChanged(state, launchedAtSignIn));
         _supervisor.Start();
 
-        ShowFirstRunHintIfNeeded();
+        ShowFirstRunHintIfNeeded(ConnectClaudeDesktop());
     }
 
     /// <summary>Runs an action on the UI thread, from wherever it was called.</summary>
@@ -199,15 +199,66 @@ internal sealed class TrayApplicationContext : ApplicationContext
         _balloonAction = BalloonAction.None;
     }
 
-    private void ShowFirstRunHintIfNeeded()
+    /// <param name="claudeDesktopNote">A restart hint from <see cref="ConnectClaudeDesktop"/>, if any.</param>
+    private void ShowFirstRunHintIfNeeded(string? claudeDesktopNote)
     {
-        if (_settings.FirstRunShown) return;
+        if (_settings.FirstRunShown)
+        {
+            if (claudeDesktopNote is not null)
+            {
+                Notify("Restart Claude Desktop", claudeDesktopNote, ToolTipIcon.Info, BalloonAction.None);
+            }
+            return;
+        }
         _settings.FirstRunShown = true;
         _settings.Save();
         // Windows 11 hides new notification-area icons by default, so without this the app looks
-        // like it did nothing at all.
-        Notify("JobTrack is running", "It lives in the notification area. You may want to pin it there.",
+        // like it did nothing at all. One balloon replaces another, so the Claude Desktop hint
+        // rides along rather than being shown and immediately covered.
+        Notify("JobTrack is running",
+            $"It lives in the notification area. You may want to pin it there.{(claudeDesktopNote is null ? string.Empty : " " + claudeDesktopNote)}",
             ToolTipIcon.Info, BalloonAction.None);
+    }
+
+    /// <summary>
+    /// Points Claude Desktop at the bundled MCP server, and says when Claude Desktop needs a
+    /// restart to notice: after the entry changed, or after an upgrade brought a new server.
+    /// </summary>
+    /// <returns>A sentence for a balloon, or null when there is nothing to tell.</returns>
+    private string? ConnectClaudeDesktop()
+    {
+        if (!_settings.ConnectClaudeDesktop || !McpConfig.IsBundled(_manifest)) return null;
+
+        var result = ClaudeDesktop.Register(_manifest);
+        foreach (var problem in result.Problems) _hostLog.Write($"Claude Desktop: {problem}");
+        // Not installed, or every config it has was left alone.
+        if (result.ConfigsFound == 0 || result.Problems.Count >= result.ConfigsFound) return null;
+        if (result.Changed > 0) _hostLog.Write($"Claude Desktop now runs the bundled MCP server {_manifest.McpVersion}");
+
+        if (result.Changed == 0 && _settings.ClaudeDesktopMcpVersion == _manifest.McpVersion) return null;
+        _settings.ClaudeDesktopMcpVersion = _manifest.McpVersion;
+        _settings.Save();
+        return $"Claude Desktop now uses JobTrack's MCP server {_manifest.McpVersion}. Quit and reopen Claude Desktop to load it.";
+    }
+
+    private void OnClaudeDesktopChanged(bool connect)
+    {
+        if (connect)
+        {
+            if (ConnectClaudeDesktop() is { } note) Notify("Restart Claude Desktop", note, ToolTipIcon.Info, BalloonAction.None);
+            return;
+        }
+
+        var result = ClaudeDesktop.Unregister();
+        foreach (var problem in result.Problems) _hostLog.Write($"Claude Desktop: {problem}");
+        _settings.ClaudeDesktopMcpVersion = null;
+        _settings.Save();
+        if (result.Changed > 0)
+        {
+            _hostLog.Write("removed the bundled MCP server from Claude Desktop");
+            Notify("Restart Claude Desktop", "JobTrack's MCP server was removed from Claude Desktop. Quit and reopen Claude Desktop to apply it.",
+                ToolTipIcon.Info, BalloonAction.None);
+        }
     }
 
     private void ShowReminders(DueReminders due)
@@ -250,6 +301,7 @@ internal sealed class TrayApplicationContext : ApplicationContext
         }
         _settingsForm = new SettingsForm(_supervisor, _manifest, _settings);
         _settingsForm.RemindersChanged += enabled => Post(() => OnRemindersChanged(enabled));
+        _settingsForm.ClaudeDesktopChanged += connect => Post(() => OnClaudeDesktopChanged(connect));
         _settingsForm.FormClosed += (_, _) => _settingsForm = null;
         _settingsForm.Show();
     }

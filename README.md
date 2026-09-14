@@ -373,8 +373,10 @@ npm run mcp   # runs it directly, for manual testing (e.g. with @modelcontextpro
 ```
 
 `apps/mcp` is also published standalone as [`@jobtrack/mcp`](https://www.npmjs.com/package/@jobtrack/mcp)
-— see [`docs/publishing.md`](docs/publishing.md). That's the easiest way to point an MCP
-client at it:
+— see [`docs/publishing.md`](docs/publishing.md). On Windows, the installer bundles it and
+connects Claude Desktop for you, updating it with every install (see
+[`windows/README.md`](windows/README.md#claude-desktop)). Elsewhere, a global install is the easiest
+way to point an MCP client at it, and it is updated only by installing it again:
 
 ```bash
 npm install -g @jobtrack/mcp

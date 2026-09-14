@@ -38,6 +38,7 @@ import { registerCaptureTool } from './tools/capture.js';
 import { registerContactTools } from './tools/contacts.js';
 import { registerProfileTools } from './tools/profile.js';
 import { registerPrompts } from './prompts.js';
+import { MCP_VERSION } from './version.js';
 
 // Same `.env` the API and the tray read, so one file configures all three.
 loadEnvFile();
@@ -67,7 +68,7 @@ const deps: Deps = { repos, search, config };
 // download the first time this runs on a machine.
 await search.start();
 
-const server = new McpServer({ name: 'jobtrack', version: '1.0.0' });
+const server = new McpServer({ name: 'jobtrack', version: MCP_VERSION });
 
 registerApplicationTools(server, deps);
 registerCompanyTools(server, deps);
@@ -84,7 +85,7 @@ registerPrompts(server);
 
 const transport = new StdioServerTransport();
 await server.connect(transport);
-console.error(`[jobtrack-mcp] ready (driver: ${config.driver})`);
+console.error(`[jobtrack-mcp] ${MCP_VERSION} ready (driver: ${config.driver})`);
 
 for (const signal of ['SIGINT', 'SIGTERM'] as const) {
   process.once(signal, () => {
