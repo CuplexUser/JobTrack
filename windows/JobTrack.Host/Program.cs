@@ -1,6 +1,7 @@
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
 using JobTrack.Host.UI;
+using JobTrack.Host.Updates;
 
 namespace JobTrack.Host;
 
@@ -41,13 +42,13 @@ internal static class Program
             return 0;
         }
 
-        ApplicationConfiguration.Initialize();
         Paths.EnsureDataDirectories();
 
         using var hostLog = new RollingLog("host.log");
         using var serverLog = new RollingLog("server.log");
         var launchedAtSignIn = args.Contains(Autostart.AutostartSwitch, StringComparer.OrdinalIgnoreCase);
-        hostLog.Write($"JobTrack host {VersionInfo.Host} starting{(launchedAtSignIn ? " (sign-in)" : string.Empty)}");
+        var justUpdated = args.Contains(UpdateInstaller.UpdatedSwitch, StringComparer.OrdinalIgnoreCase);
+        hostLog.Write($"JobTrack host {VersionInfo.Host} starting{(launchedAtSignIn ? " (sign-in)" : justUpdated ? " (after an update)" : string.Empty)}");
 
         LaunchManifest manifest;
         try
@@ -58,19 +59,44 @@ internal static class Program
         {
             // Nothing can work without the payload, and there is no console to print to.
             hostLog.Write($"could not load the launch manifest: {error.Message}");
-            MessageBox.Show(
+            System.Windows.MessageBox.Show(
                 $"JobTrack could not start because part of its installation is missing.\n\n{error.Message}",
-                "JobTrack", MessageBoxButtons.OK, MessageBoxIcon.Error);
+                "JobTrack", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             instance.Dispose();
             return 2;
         }
 
-        using var supervisor = new NodeSupervisor(manifest, hostLog, serverLog);
-        using var tray = new TrayApplicationContext(supervisor, manifest, instance, hostLog, serverLog, launchedAtSignIn);
+        var app = new App();
+        app.InitializeComponent();
+        // A fault in a window should cost that window, not the server this process supervises:
+        // the job object takes node.exe down with the host, so a crash here would be an outage.
+        app.DispatcherUnhandledException += (_, e) =>
+        {
+            hostLog.Write($"unhandled UI exception: {e.Exception}");
+            System.Windows.MessageBox.Show($"Something went wrong in JobTrack's window.\n\n{e.Exception.Message}\n\nThe details are in the log.",
+                "JobTrack", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            e.Handled = true;
+        };
 
-        Application.Run(tray);
+        using var supervisor = new NodeSupervisor(manifest, hostLog, serverLog);
+        // Constructed once the theme resources exist, on the thread that will run the dispatcher.
+        TrayController? tray = null;
+        app.Startup += (_, _) => tray = new TrayController(supervisor, manifest, instance, hostLog, serverLog,
+            new LaunchReason(launchedAtSignIn, justUpdated));
+
+        app.Run();
+        tray?.Dispose();
         instance.Dispose();
         hostLog.Write("host stopped");
         return 0;
     }
+}
+
+/// <summary>Why this process was started, which decides what it says and opens on the way up.</summary>
+/// <param name="AtSignIn">Started from the Run key, so nobody is waiting for a browser window.</param>
+/// <param name="AfterUpdate">Relaunched by the installer at the end of an in-app update.</param>
+internal readonly record struct LaunchReason(bool AtSignIn, bool AfterUpdate)
+{
+    /// <summary>Whether someone deliberately started JobTrack just now, and might want the UI opened.</summary>
+    public bool ByPerson => !AtSignIn && !AfterUpdate;
 }

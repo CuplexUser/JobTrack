@@ -16,13 +16,15 @@
     <OutputType>WinExe</OutputType>
     <TargetFramework>net10.0-windows</TargetFramework>
     <RuntimeIdentifier>win-x64</RuntimeIdentifier>
-    <UseWindowsForms>true</UseWindowsForms>
+    <UseWPF>true</UseWPF>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <LangVersion>latest</LangVersion>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <AssemblyName>JobTrack</AssemblyName>
     <RootNamespace>JobTrack.Host</RootNamespace>
+    <!-- Explicit, so a stale App.g.cs with a generated Main can never make the entry point ambiguous. -->
+    <StartupObject>JobTrack.Host.Program</StartupObject>
     <Product>JobTrack</Product>
     <Company>CuplexUser</Company>
     <ApplicationManifest>app.manifest</ApplicationManifest>
@@ -38,21 +40,45 @@
       twice is worse, and an uncompressed single-file bundle extracts to %TEMP% on first run,
       which some AV configurations dislike. ReadyToRun is worth its ~10 MB for something that
       launches at sign-in. Trimming is a measured follow-up rather than an assumption: WinForms
-      trims but warns around reflection paths, and the Node payload dwarfs this assembly anyway.
+      trims but warns around reflection paths, and WPF does not trim at all.
     -->
     <SelfContained>true</SelfContained>
     <PublishSingleFile>false</PublishSingleFile>
     <PublishTrimmed>false</PublishTrimmed>
     <PublishReadyToRun>true</PublishReadyToRun>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <!--
+      Not InvariantGlobalization: WPF data binding looks up the UI language's specific culture on
+      every value it transfers, and throws when globalization is invariant.
+    -->
   </PropertyGroup>
 
   <ItemGroup>
     <!--
       The same icon the web UI and the tray use, taken straight from source rather than copied, so
-      there is one file to change. Loaded at runtime by Icons.cs.
+      there is one file to change. Loaded at runtime by Icons in Shell.cs.
     -->
     <EmbeddedResource Include="..\..\apps\web\public\favicon.ico" LogicalName="JobTrack.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      App.xaml is compiled as an ordinary page rather than as the application definition, so the
+      generated Main does not replace Program.Main and its quit-switch fast path, which has to run
+      before any WPF is loaded.
+    -->
+    <ApplicationDefinition Remove="App.xaml" />
+    <Page Include="App.xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!--
+      WPF-UI supplies the Fluent controls, the Mica backdrop, light and dark themes, and the Fluent UI
+      System Icons font every icon in the app is drawn from. H.NotifyIcon is the tray icon: WPF has
+      none of its own, and this one shows a real WPF context menu, so the menu gets the same styling
+      as the windows. Both MIT. Pinned exactly, since a UI library's minor versions restyle things.
+    -->
+    <PackageReference Include="WPF-UI" Version="4.3.0" />
+    <PackageReference Include="H.NotifyIcon.Wpf" Version="2.4.1" />
   </ItemGroup>
 
 </Project>

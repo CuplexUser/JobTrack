@@ -1,0 +1,83 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.GeneralPage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
+    Title="General">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="General" />
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Server" />
+        <ui:CardControl Icon="{ui:SymbolIcon Globe24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Address"
+                    Description="127.0.0.1 keeps JobTrack reachable only from this machine. Leave it unless you know you want otherwise." />
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ComboBox
+                    Width="150"
+                    IsEditable="True"
+                    ItemsSource="{Binding Source={x:Static local:SettingsModel.HostChoices}}"
+                    Text="{Binding Host, UpdateSourceTrigger=PropertyChanged}" />
+                <TextBlock
+                    Margin="16,0,8,0"
+                    VerticalAlignment="Center"
+                    Foreground="{DynamicResource TextFillColorSecondaryBrush}"
+                    Text="Port" />
+                <ui:NumberBox
+                    Width="130"
+                    MaxDecimalPlaces="0"
+                    Maximum="65535"
+                    Minimum="1"
+                    SpinButtonPlacementMode="Hidden"
+                    Value="{Binding Port, UpdateSourceTrigger=PropertyChanged}" />
+            </StackPanel>
+        </ui:CardControl>
+        <ui:InfoBar
+            Margin="0,4,0,0"
+            IsClosable="False"
+            IsOpen="{Binding ExposesNetwork, Mode=OneWay}"
+            Message="Anything that can reach this machine can reach your applications."
+            Severity="Warning"
+            Title="0.0.0.0 exposes JobTrack to your whole network." />
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Startup" />
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Rocket24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Start JobTrack when I sign in"
+                    Description="Applies immediately. It is a Windows setting, not part of the JobTrack configuration." />
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding Autostart}" />
+        </ui:CardControl>
+        <ui:CardControl Icon="{ui:SymbolIcon WindowNew24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Open JobTrack in my browser when it starts"
+                    Description="Only when you start it yourself, not at sign-in." />
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding OpenBrowserOnStart}" />
+        </ui:CardControl>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Notifications and integrations" />
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Alert24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Remind me when follow-ups and reconnects come due"
+                    Description="Shows a notification for follow-up dates and people to get back in touch with, checked every half hour." />
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding RemindersEnabled}" />
+        </ui:CardControl>
+        <ui:CardControl Icon="{ui:SymbolIcon PlugConnected24}" IsEnabled="{Binding ClaudeDesktopAvailable, Mode=OneTime}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Connect Claude Desktop to JobTrack's MCP server"
+                    Description="Points the jobtrack server in Claude Desktop's config at the one installed with JobTrack, so it updates with every install. Your other servers and settings are left as they are. Claude Desktop picks up a change when it restarts." />
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding ConnectClaudeDesktop}" />
+        </ui:CardControl>
+    </StackPanel>
+</Page>

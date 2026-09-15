@@ -1,0 +1,68 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.DatabasePage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
+    Title="Database">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="Database" />
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Default database" />
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Database24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="Driver" Description="Where JobTrack keeps your applications." />
+            </ui:CardControl.Header>
+            <ComboBox
+                Width="160"
+                ItemsSource="{Binding Source={x:Static local:SettingsModel.Drivers}}"
+                SelectedItem="{Binding Driver}" />
+        </ui:CardControl>
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon DocumentDatabase24}" IsEnabled="{Binding IsSqlite}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="SQLite file"
+                    Description="A bare file name goes in the data folder; a relative path is resolved from it; an absolute path is used as written." />
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:TextBox
+                    Width="300"
+                    PlaceholderText="data/jobtrack.db"
+                    Text="{Binding DbFile, UpdateSourceTrigger=PropertyChanged}" />
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Click="OnBrowse"
+                    Content="Browse"
+                    Icon="{ui:SymbolIcon FolderOpen24}" />
+            </StackPanel>
+        </ui:CardControl>
+        <ui:CardControl Icon="{ui:SymbolIcon PlugConnected24}" IsEnabled="{Binding IsServerDriver}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="Connection URL" Description="Required for postgres and mysql." />
+            </ui:CardControl.Header>
+            <ui:PasswordBox
+                Width="360"
+                Password="{Binding DatabaseUrl, UpdateSourceTrigger=PropertyChanged}"
+                PlaceholderText="postgres://user:password@host:5432/jobtrack"
+                RevealButtonEnabled="True" />
+        </ui:CardControl>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="More databases" />
+        <ui:CardExpander Icon="{ui:SymbolIcon DatabaseLink24}">
+            <ui:CardExpander.Header>
+                <local:SettingHeader
+                    Title="Additional named targets (DB_TARGETS)"
+                    Description="A JSON array of {name, driver, file|url}. Once configured, switch between them from the web UI's Settings page." />
+            </ui:CardExpander.Header>
+            <ui:TextBox
+                MinHeight="140"
+                AcceptsReturn="True"
+                FontFamily="{StaticResource MonoFont}"
+                PlaceholderText="[{&quot;name&quot;: &quot;archive&quot;, &quot;driver&quot;: &quot;sqlite&quot;, &quot;file&quot;: &quot;archive.db&quot;}]"
+                Text="{Binding DbTargets, UpdateSourceTrigger=PropertyChanged}"
+                TextWrapping="Wrap"
+                VerticalScrollBarVisibility="Auto" />
+        </ui:CardExpander>
+    </StackPanel>
+</Page>

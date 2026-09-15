@@ -29,7 +29,7 @@ drift, and both use the same data directory, so switching between them keeps you
 
 ```
 windows/
-  JobTrack.Host/          the .NET 10 WinForms tray host (see below)
+  JobTrack.Host/          the .NET 10 WPF tray host (see below)
   installer/JobTrack.iss  Inno Setup script, per-user, no UAC
   scripts/
     build-payload.mjs     assembles node.exe + a pruned node_modules
@@ -58,6 +58,13 @@ Two pieces are worth knowing about:
   `.env` is seeded from `.env.example`, which is eleven commented-out keys with documentation above
   each, so setting a key *uncomments the existing line in place* rather than appending a bare
   `KEY=value` at the bottom. Comments, ordering, blank lines and line endings all survive.
+
+The windows and the tray menu are WPF with [WPF-UI](https://github.com/lepoco/wpfui), laid out
+the way PowerToys lays out its settings: a navigation pane, pages of setting cards, Mica on
+Windows 11, and light or dark following the Windows setting. Every icon comes from the Fluent UI
+System Icons font WPF-UI bundles, so the set is uniform and there are no image assets to maintain.
+The tray icon is [H.NotifyIcon](https://github.com/HavenDV/H.NotifyIcon), which shows a real WPF
+context menu, so the menu is styled like the windows. Both libraries are MIT.
 
 The host also polls `GET /api/agenda` every half hour (`Hosting/ReminderPoller.cs`) and shows a
 balloon when a follow-up or a person's reconnect date comes due, once per item and due date.
@@ -95,8 +102,34 @@ the settings dialog. Turning it off removes the entry. **Copy MCP client config*
 gives the same entry to any other MCP client.
 
 Everything else in the dialog is read by the server once, at boot (`apps/api/src/config.ts`), so the
-footer says changes need a restart instead of pretending they are live. Autostart is the exception:
-it is a registry value this application owns.
+footer says changes need a restart instead of pretending they are live. Autostart and the update
+check are the exceptions: they belong to this application, not to the server.
+
+### Updates
+
+`Updates/UpdateService.cs` asks GitHub for the latest release
+(`api.github.com/repos/CuplexUser/JobTrack/releases/latest`, which never returns drafts or
+prereleases) two minutes after start and every twelve hours after that. A release is only offered
+once `windows-release.yml` has attached both `JobTrack-Setup-<version>.exe` and its `.sha256`. An
+available update shows a notification and an **Install update** item in the tray menu, and the
+Updates page in Settings has the same state, a manual check, and the switch that turns automatic
+checks off (`checkForUpdates` in `host.json`, on by default). Nothing is installed without a click.
+
+Installing (`Updates/UpdateInstaller.cs`):
+
+1. The installer downloads to `%LOCALAPPDATA%\JobTrack\updates`, which the uninstaller already removes.
+2. Its SHA-256 has to match the published `.sha256`, or the file is deleted and nothing runs.
+3. When the running `JobTrack.exe` is Authenticode-signed, the installer has to be validly signed by
+   the same subject. Unsigned builds skip this, since they have no publisher to compare against.
+4. It runs with `/SILENT /SUPPRESSMSGBOXES /NORESTART /relaunch=1` and the host quits, shutting the
+   server down cleanly. `PrepareToInstall` stops anything left over, as for any upgrade, and
+   `/relaunch=1` makes the installer start `JobTrack.exe --updated` when it is done, which shows an
+   "updated" notification instead of opening the browser.
+
+To try the whole flow before a release exists, point `JOBTRACK_UPDATE_FEED` at any URL that answers
+in the shape of the GitHub API: a JSON file with `tag_name`, `html_url` and `assets` entries whose
+`browser_download_url`s point at a locally built installer and its `.sha256`, served from a local
+HTTP server. The host logs when the override is in use.
 
 ## Building it
 
@@ -183,8 +216,6 @@ the SmartScreen prompt.
   binaries, so a native payload is a matter of a second build, not a redesign.
 - **The embedding model is not bundled.** It downloads on first use, as it does on the npm path.
   A first run with no network gets lexical search.
-- **No in-app updates.** The intended v1 addition is a "check for updates" item that compares
-  against the registry and opens the Releases page.
 - **The icon tops out at 48px.** `apps/web/public/favicon.ico` carries 16/20/32/48 only, so the
   installer wizard and Explorer's large-icon view upscale it. The fix belongs in
   `apps/web/scripts/make-icons.mjs`, which should emit a 256px frame too.

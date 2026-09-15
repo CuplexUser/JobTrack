@@ -86,6 +86,10 @@ Root: HKCU; Subkey: "Software\Microsoft\Windows\CurrentVersion\Run"; ValueType: 
 
 [Run]
 Filename: "{app}\JobTrack.exe"; Description: "Start {#AppName} now"; Flags: nowait postinstall skipifsilent
+; An in-app update runs this installer with /SILENT /relaunch=1 after quitting JobTrack, so the entry
+; above never runs and nothing would bring the app back. --updated tells it why it was started, so it
+; says it was updated instead of opening the browser.
+Filename: "{app}\JobTrack.exe"; Parameters: "--updated"; Flags: nowait; Check: IsUpdateRelaunch
 
 [UninstallDelete]
 ; Ours, not the user's: no need to ask.
@@ -142,6 +146,12 @@ begin
        '-NoProfile -NonInteractive -ExecutionPolicy Bypass -Command "Get-Process node -ErrorAction SilentlyContinue | ' +
        'Where-Object { $_.Path -eq ''' + Node + ''' } | Stop-Process -Force"',
        '', SW_HIDE, ewWaitUntilTerminated, ResultCode);
+end;
+
+// True when JobTrack's own updater started this install (see windows/JobTrack.Host/Updates).
+function IsUpdateRelaunch(): Boolean;
+begin
+  Result := ExpandConstant('{param:relaunch|0}') = '1';
 end;
 
 function PrepareToInstall(var NeedsRestart: Boolean): String;

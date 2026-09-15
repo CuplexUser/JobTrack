@@ -40,6 +40,18 @@ internal sealed class HostSettings
     /// </summary>
     [JsonPropertyName("claudeDesktopMcpVersion")] public string? ClaudeDesktopMcpVersion { get; set; }
 
+    /// <summary>
+    /// Whether to look for a newer release on GitHub twice a day. On by default: an update is only
+    /// ever offered, never installed without a click.
+    /// </summary>
+    [JsonPropertyName("checkForUpdates")] public bool CheckForUpdates { get; set; } = true;
+
+    /// <summary>When GitHub was last asked, so restarting often does not mean asking often.</summary>
+    [JsonPropertyName("lastUpdateCheck")] public DateTimeOffset? LastUpdateCheck { get; set; }
+
+    /// <summary>The update checker saves from a background thread while the UI may be saving too.</summary>
+    private readonly Lock _saveGate = new();
+
     public static HostSettings Load()
     {
         try
@@ -56,15 +68,18 @@ internal sealed class HostSettings
 
     public void Save()
     {
-        try
+        lock (_saveGate)
         {
-            var path = Paths.HostSettingsFile;
-            Directory.CreateDirectory(Path.GetDirectoryName(path)!);
-            File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
-        }
-        catch (IOException)
-        {
-            // Losing a preference is not worth interrupting anyone over.
+            try
+            {
+                var path = Paths.HostSettingsFile;
+                Directory.CreateDirectory(Path.GetDirectoryName(path)!);
+                File.WriteAllText(path, JsonSerializer.Serialize(this, new JsonSerializerOptions { WriteIndented = true }));
+            }
+            catch (IOException)
+            {
+                // Losing a preference is not worth interrupting anyone over.
+            }
         }
     }
 }

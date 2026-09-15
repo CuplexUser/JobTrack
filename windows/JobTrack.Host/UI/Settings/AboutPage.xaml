@@ -1,0 +1,64 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.AboutPage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
+    Title="About">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="About" />
+
+        <ui:Card Margin="0,16,0,0" Padding="20,18">
+            <StackPanel Orientation="Horizontal">
+                <Image
+                    x:Name="AppIcon"
+                    Width="48"
+                    Height="48"
+                    Margin="0,0,18,0"
+                    VerticalAlignment="Center" />
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock x:Name="ProductName" FontSize="20" FontWeight="SemiBold" />
+                    <TextBlock
+                        Style="{StaticResource CardDescription}"
+                        FontSize="13"
+                        Text="A personal job-application tracker. Single user, runs on your machine." />
+                    <TextBlock Margin="0,8,0,0" FontSize="13">
+                        <Run Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Built by Martin Dahl," />
+                        <Hyperlink
+                            Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
+                            NavigateUri="mailto:martin@cuplex.org"
+                            RequestNavigate="OnEmail">martin@cuplex.org</Hyperlink>
+                    </TextBlock>
+                </StackPanel>
+            </StackPanel>
+        </ui:Card>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Components" />
+        <ui:CardExpander Icon="{ui:SymbolIcon Box24}" IsExpanded="True">
+            <ui:CardExpander.Header>
+                <local:SettingHeader Title="Installed versions" Description="What this installation is made of." />
+            </ui:CardExpander.Header>
+            <Grid x:Name="Versions">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+            </Grid>
+        </ui:CardExpander>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Help" />
+        <ui:CardAction Margin="0,0,0,4" Click="OnProjectPage" Icon="{ui:SymbolIcon Globe24}">
+            <local:SettingHeader Title="Project page" Description="Documentation and source code on GitHub." />
+        </ui:CardAction>
+        <ui:CardAction Margin="0,0,0,4" Click="OnReportIssue" Icon="{ui:SymbolIcon PersonFeedback24}">
+            <local:SettingHeader Title="Report a problem" Description="Opens a new issue on GitHub. Attaching the log helps." />
+        </ui:CardAction>
+        <ui:CardAction Margin="0,0,0,4" Click="OnViewLog" Icon="{ui:SymbolIcon DocumentText24}">
+            <local:SettingHeader Title="View log" Description="What the server and the tray app have been doing." />
+        </ui:CardAction>
+        <ui:CardAction Click="OnDataFolder" Icon="{ui:SymbolIcon Folder24}">
+            <local:SettingHeader Title="Open data folder" Description="Your database, settings and downloaded search model." />
+        </ui:CardAction>
+    </StackPanel>
+</Page>

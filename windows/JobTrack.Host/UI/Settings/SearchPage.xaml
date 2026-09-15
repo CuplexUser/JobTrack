@@ -1,0 +1,49 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.SearchPage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
+    Title="Search">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="Search" />
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Semantic search" />
+        <ui:CardControl Icon="{ui:SymbolIcon BrainCircuit24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader
+                    Title="Enable semantic search"
+                    Description="Off means lexical search only. Left on, JobTrack downloads a small embedding model the first time it is needed and falls back to lexical if that fails." />
+            </ui:CardControl.Header>
+            <ui:ToggleSwitch IsChecked="{Binding SemanticSearch}" />
+        </ui:CardControl>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Model" />
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Cube24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="Embedding model" Description="Leave empty to use the default model." />
+            </ui:CardControl.Header>
+            <ui:TextBox
+                Width="300"
+                PlaceholderText="Xenova/all-MiniLM-L6-v2"
+                Text="{Binding EmbeddingModel, UpdateSourceTrigger=PropertyChanged}" />
+        </ui:CardControl>
+        <ui:CardControl Icon="{ui:SymbolIcon Folder24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="Model cache folder" Description="Where the downloaded model is kept. A relative path is resolved from the data folder." />
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:TextBox
+                    Width="240"
+                    PlaceholderText=".models"
+                    Text="{Binding ModelCacheDir, UpdateSourceTrigger=PropertyChanged}" />
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Click="OnOpenCache"
+                    Content="Open"
+                    Icon="{ui:SymbolIcon FolderOpen24}" />
+            </StackPanel>
+        </ui:CardControl>
+    </StackPanel>
+</Page>

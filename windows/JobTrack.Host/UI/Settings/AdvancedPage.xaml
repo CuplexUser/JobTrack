@@ -1,0 +1,44 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.AdvancedPage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    Title="Advanced">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="Advanced" />
+
+        <ui:InfoBar
+            Margin="0,16,0,0"
+            IsClosable="False"
+            IsOpen="True"
+            Message="This is the whole .env file. While this page is open, what you type here is what gets saved, and the other pages pick up your edits when you leave it."
+            Severity="Informational"
+            Title="Editing .env directly" />
+
+        <StackPanel Margin="0,16,0,8" Orientation="Horizontal">
+            <ui:Button
+                Click="OnOpenInNotepad"
+                Content="Open .env in Notepad"
+                Icon="{ui:SymbolIcon DocumentEdit24}" />
+            <ui:Button
+                Margin="8,0,0,0"
+                Click="OnOpenDataFolder"
+                Content="Open data folder"
+                Icon="{ui:SymbolIcon FolderOpen24}" />
+        </StackPanel>
+
+        <ui:TextBox
+            Height="440"
+            AcceptsReturn="True"
+            AcceptsTab="True"
+            ClearButtonEnabled="False"
+            FontFamily="{StaticResource MonoFont}"
+            FontSize="13"
+            HorizontalScrollBarVisibility="Auto"
+            Text="{Binding RawText, UpdateSourceTrigger=PropertyChanged}"
+            TextWrapping="NoWrap"
+            VerticalContentAlignment="Top"
+            VerticalScrollBarVisibility="Auto" />
+    </StackPanel>
+</Page>

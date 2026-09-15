@@ -1,5 +1,7 @@
-using System.Drawing;
 using System.Reflection;
+using System.Windows;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace JobTrack.Host.UI;
 
@@ -20,10 +22,10 @@ internal static class Shell
         {
             Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
         }
-        catch (Exception error) when (error is System.ComponentModel.Win32Exception or FileNotFoundException)
+        catch (Exception error) when (error is Win32Exception or FileNotFoundException)
         {
             MessageBox.Show($"Could not open {url}.\n\n{error.Message}", "JobTrack",
-                MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }
 
@@ -68,11 +70,28 @@ internal static class Shell
 /// <summary>The application icon, loaded once from the embedded copy of the web UI's favicon.</summary>
 internal static class Icons
 {
-    private static readonly Lazy<Icon> Loaded = new(() =>
+    private static readonly Lazy<System.Drawing.Icon> Loaded = new(() =>
     {
-        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream("JobTrack.ico");
-        return stream is null ? SystemIcons.Application : new Icon(stream);
+        using var stream = OpenIcon();
+        return stream is null ? System.Drawing.SystemIcons.Application : new System.Drawing.Icon(stream);
     });
 
-    public static Icon App => Loaded.Value;
+    private static readonly Lazy<ImageSource?> Image = new(() =>
+    {
+        using var stream = OpenIcon();
+        if (stream is null) return null;
+        var decoder = new IconBitmapDecoder(stream, BitmapCreateOptions.None, BitmapCacheOption.OnLoad);
+        // The largest frame, so a title bar at 150% scaling is scaled down rather than up.
+        var frame = decoder.Frames.MaxBy(candidate => candidate.PixelWidth);
+        frame?.Freeze();
+        return frame;
+    });
+
+    /// <summary>For the tray, which needs a real icon handle.</summary>
+    public static System.Drawing.Icon App => Loaded.Value;
+
+    /// <summary>For window title bars and the tray menu's header.</summary>
+    public static ImageSource? AppImage => Image.Value;
+
+    private static Stream? OpenIcon() => Assembly.GetExecutingAssembly().GetManifestResourceStream("JobTrack.ico");
 }

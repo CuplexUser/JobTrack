@@ -1,0 +1,61 @@
+<Page
+    x:Class="JobTrack.Host.UI.Settings.AccessPage"
+    x:ClassModifier="internal"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
+    xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
+    Title="Access">
+    <StackPanel Margin="0,0,0,24">
+        <TextBlock Style="{StaticResource PageTitle}" Text="Access" />
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Browser extension" />
+        <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Key24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="API token" Description="Paste this into the JobTrack Clipper extension's options page." />
+            </ui:CardControl.Header>
+            <StackPanel Orientation="Horizontal">
+                <ui:TextBox
+                    Width="280"
+                    ClearButtonEnabled="False"
+                    FontFamily="{StaticResource MonoFont}"
+                    IsReadOnly="True"
+                    Text="{Binding TokenDisplay, Mode=OneWay}" />
+                <ui:Button
+                    Margin="8,0,0,0"
+                    Click="OnCopy"
+                    Icon="{ui:SymbolIcon Copy24}"
+                    ToolTip="Copy the token" />
+                <ToggleButton
+                    Margin="4,0,0,0"
+                    Padding="11,8"
+                    IsChecked="{Binding TokenRevealed}"
+                    ToolTip="Show or hide the token">
+                    <ui:SymbolIcon Symbol="Eye24" />
+                </ToggleButton>
+            </StackPanel>
+        </ui:CardControl>
+        <ui:CardControl Icon="{ui:SymbolIcon KeyReset24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="Regenerate token" Description="Invalidates the current token; every browser extension using it has to be updated." />
+            </ui:CardControl.Header>
+            <ui:Button Click="OnRegenerate" Content="Regenerate" />
+        </ui:CardControl>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="Web pages" />
+        <ui:CardExpander Icon="{ui:SymbolIcon ShieldGlobe24}">
+            <ui:CardExpander.Header>
+                <local:SettingHeader
+                    Title="Extra allowed browser origins"
+                    Description="One per line. JobTrack's own address is always allowed, and the extension uses the token instead." />
+            </ui:CardExpander.Header>
+            <ui:TextBox
+                MinHeight="110"
+                AcceptsReturn="True"
+                FontFamily="{StaticResource MonoFont}"
+                PlaceholderText="https://example.com"
+                Text="{Binding CorsOrigins, UpdateSourceTrigger=PropertyChanged}"
+                VerticalScrollBarVisibility="Auto" />
+        </ui:CardExpander>
+    </StackPanel>
+</Page>
