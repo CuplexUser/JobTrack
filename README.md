@@ -347,7 +347,9 @@ an MCP client cannot destroy data, only add to or edit it. On top of the plain r
 
 | tool | what it is for |
 |---|---|
-| `capture_posting` | read a posting from a link or pasted text into a draft opening, with the duplicate verdict and its fit; `save: true` also saves it (refusing a posting that is already saved) |
+| `capture_posting` | read a posting from a link or pasted text into a draft opening, with the duplicate verdict and its fit; `save: true` also saves it (refusing a posting that is already saved or applied to, unless `allowDuplicate: true`) |
+| `create_opening` | save an opening by hand; refuses a posting already saved or applied to (same link, or same company and title when a link is missing) unless `allowDuplicate: true` |
+| `get_statistics` | the Statistics page's numbers: counts for today, this week, this month and any range, compared with the stretch before, broken down by location, source, work mode, status and company (also `GET /api/statistics`) |
 | `get_agenda` | what is waiting today: due follow-ups, applications gone quiet, openings left sitting for two weeks (also `GET /api/agenda`) |
 | `bulk_change_status` | one status change across several applications ("mark these ghosted"), each with its own dated event |
 | `find_duplicate_groups` | the Duplicates page's sweep, read-only |

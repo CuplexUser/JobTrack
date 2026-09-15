@@ -33,6 +33,7 @@
     "./services/tags": "./src/services/tags.service.ts",
     "./services/duplicates": "./src/services/duplicates.service.ts",
     "./services/dashboard": "./src/services/dashboard.service.ts",
+    "./services/statistics": "./src/services/statistics.service.ts",
     "./services/openings": "./src/services/openings.service.ts",
     "./services/ingest": "./src/services/ingest.service.ts",
     "./services/agenda": "./src/services/agenda.service.ts",

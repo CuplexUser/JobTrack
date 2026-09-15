@@ -25,8 +25,10 @@ import type {
   Rules,
   NoteWithTarget,
   PostingDraft,
+  StatisticsSummary,
   StatusEvent,
   Tag,
+  WorkMode,
 } from '@jobtrack/shared';
 
 export class ApiError extends Error {
@@ -147,6 +149,22 @@ export interface IngestResponse {
 
 export interface ClipResponse extends IngestResponse {
   opening: JobOpeningView;
+}
+
+/** The statistics page: counts for a range, and every application sent inside it. */
+export interface StatisticsResponse extends StatisticsSummary {
+  applications: {
+    id: string;
+    appliedOn: string;
+    jobTitle: string;
+    company: { id: string; name: string };
+    location: string | null;
+    workMode: WorkMode;
+    sourceName: string | null;
+    status: ApplicationStatus;
+    jobUrl: string | null;
+    archived: boolean;
+  }[];
 }
 
 export interface DashboardResponse {
@@ -433,6 +451,9 @@ export const httpApi = {
   deleteNote: (id: string) => request<void>(`/api/notes/${id}`, { method: 'DELETE' }),
 
   dashboard: () => request<DashboardResponse>('/api/dashboard'),
+
+  statistics: (params: Record<string, unknown> = {}) =>
+    request<StatisticsResponse>(`/api/statistics${toQuery(params)}`),
 
   listContacts: (params: Record<string, unknown> = {}) =>
     request<{ contacts: ContactView[] }>(`/api/contacts${toQuery(params)}`),

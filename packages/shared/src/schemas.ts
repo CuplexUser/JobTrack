@@ -16,6 +16,7 @@ import {
   TAG_SCOPES,
   LINK_TARGETS,
 } from './types.js';
+import { STATISTICS_GRANULARITIES } from './statistics.js';
 
 /** A calendar day. Kept as a string end to end; see periods.ts for why. */
 export const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date');
@@ -222,6 +223,22 @@ export const openingFilterSchema = z.object({
 
 export type OpeningFilter = z.output<typeof openingFilterSchema>;
 
+/**
+ * The statistics page's query. No dates means everything on file up to today. Archived
+ * applications count by default: statistics measure the effort that went out, and archiving
+ * a finished application does not un-send it.
+ */
+export const statisticsQuerySchema = z
+  .object({
+    from: dateOnly.optional(),
+    to: dateOnly.optional(),
+    granularity: z.enum(STATISTICS_GRANULARITIES).optional(),
+    archived: z.enum(['all', 'false']).default('all'),
+  })
+  .refine((v) => !v.from || !v.to || v.from <= v.to, { message: 'The start date is after the end date', path: ['from'] });
+
+export type StatisticsQuery = z.output<typeof statisticsQuerySchema>;
+
 export const duplicateCheckSchema = z.object({
   company: z.string().trim().min(1).max(200),
   title: z.string().trim().max(200).optional().default(''),
@@ -290,34 +307,46 @@ export const createTagSchema = z.object({
  * status, no follow-up, no tags — because an opening is a placeholder, not a tracked process
  * yet.
  */
-export const createJobOpeningSchema = z
-  .object({
-    companyName: z.string().trim().min(1, 'Company is required').max(200),
-    jobTitle: z.string().trim().min(1, 'Job title is required').max(200),
-    jobUrl: optionalTrimmed(2000),
-    location: optionalTrimmed(200),
-    workMode: workModeSchema.default('unspecified'),
-    sourceName: optionalTrimmed(120),
-    salaryMin: z
-      .number()
-      .int()
-      .nonnegative()
-      .nullish()
-      .transform((v) => v ?? null),
-    salaryMax: z
-      .number()
-      .int()
-      .nonnegative()
-      .nullish()
-      .transform((v) => v ?? null),
-    salaryCurrency: optionalTrimmed(8),
-    notes: optionalTrimmed(20000),
-    savedOn: dateOnly.optional(),
+const jobOpeningFields = z.object({
+  companyName: z.string().trim().min(1, 'Company is required').max(200),
+  jobTitle: z.string().trim().min(1, 'Job title is required').max(200),
+  jobUrl: optionalTrimmed(2000),
+  location: optionalTrimmed(200),
+  workMode: workModeSchema.default('unspecified'),
+  sourceName: optionalTrimmed(120),
+  salaryMin: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullish()
+    .transform((v) => v ?? null),
+  salaryMax: z
+    .number()
+    .int()
+    .nonnegative()
+    .nullish()
+    .transform((v) => v ?? null),
+  salaryCurrency: optionalTrimmed(8),
+  notes: optionalTrimmed(20000),
+  savedOn: dateOnly.optional(),
+});
+
+const salaryInOrder = (v: { salaryMin: number | null; salaryMax: number | null }) =>
+  v.salaryMin === null || v.salaryMax === null || v.salaryMin <= v.salaryMax;
+const salaryOrderIssue = { message: 'Minimum salary cannot exceed the maximum', path: ['salaryMin'] };
+
+export const createJobOpeningSchema = jobOpeningFields.refine(salaryInOrder, salaryOrderIssue);
+
+/**
+ * `create_opening` over MCP: the same fields, plus the override for its duplicate check.
+ * The REST route has no check to override, so the flag lives only here.
+ */
+export const createOpeningToolSchema = jobOpeningFields
+  .extend({
+    /** Save even when this posting is already saved or applied to. Only after the user says so. */
+    allowDuplicate: z.boolean().default(false),
   })
-  .refine((v) => v.salaryMin === null || v.salaryMax === null || v.salaryMin <= v.salaryMax, {
-    message: 'Minimum salary cannot exceed the maximum',
-    path: ['salaryMin'],
-  });
+  .refine(salaryInOrder, salaryOrderIssue);
 
 export const patchJobOpeningSchema = z
   .object({
@@ -369,6 +398,8 @@ export const capturePostingSchema = z
     url: z.string().trim().min(1).max(2000).optional(),
     text: z.string().min(1).max(200000).optional(),
     save: z.boolean().default(false),
+    /** With `save`, save even when this posting is already saved or applied to. */
+    allowDuplicate: z.boolean().default(false),
   })
   .refine((v) => v.url !== undefined || v.text !== undefined, {
     message: 'Give a url to read, or the posting text',

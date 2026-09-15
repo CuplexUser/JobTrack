@@ -28,6 +28,8 @@ export const keys = {
   tags: () => ['tags'] as const,
   notes: (params: unknown) => ['notes', params] as const,
   dashboard: () => ['dashboard'] as const,
+  // Under `dashboard`, so everything that refreshes the dashboard refreshes these too.
+  statistics: (params: unknown) => ['dashboard', 'statistics', params] as const,
   duplicates: (params: unknown) => ['duplicates', params] as const,
   duplicateGroups: () => ['duplicates', 'groups'] as const,
   search: (q: string) => ['search', q] as const,
@@ -105,6 +107,15 @@ export function useApplicationLocations() {
 
 export function useDashboard() {
   return useQuery({ queryKey: keys.dashboard(), queryFn: () => api.dashboard() });
+}
+
+export function useStatistics(params: Record<string, unknown>) {
+  return useQuery({
+    queryKey: keys.statistics(params),
+    queryFn: () => api.statistics(params),
+    // Keep the last range on screen while the next one loads, instead of flashing a skeleton.
+    placeholderData: (previous) => previous,
+  });
 }
 
 export function useTags() {
@@ -249,6 +260,8 @@ export function useOpenings(params: Record<string, unknown> = {}) {
 function invalidateOpenings(client: QueryClient): void {
   void client.invalidateQueries({ queryKey: ['openings'] });
   void client.invalidateQueries({ queryKey: ['opening'] });
+  // Statistics count openings saved and converted.
+  void client.invalidateQueries({ queryKey: ['dashboard', 'statistics'] });
 }
 
 export function useCreateOpening() {

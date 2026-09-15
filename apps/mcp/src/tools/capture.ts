@@ -3,13 +3,12 @@
  * browser extension. Reads a link or parses pasted text through the same
  * `ingest.service.ts` path, so the draft and the duplicate verdict are exactly what the web
  * app would show, and saving goes through `clipPosting`, which refuses a posting that is
- * already saved.
+ * already saved or already applied to unless `allowDuplicate` says the user wants it anyway.
  */
 
 import { capturePostingSchema, isUsableDraft, postingDraftSchema } from '@jobtrack/shared';
 import type { Deps } from '@jobtrack/api/deps';
 import {
-  DuplicateOpeningError,
   IngestBlockedError,
   clipPosting,
   ingestText,
@@ -17,9 +16,10 @@ import {
   type IngestResult,
 } from '@jobtrack/api/services/ingest';
 import { scorePostings } from '@jobtrack/api/services/fit';
+import { findMatchingApplication, findMatchingOpening } from '@jobtrack/api/services/openings';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { errorResult, jsonResult } from '../helpers.js';
-import { contactSummary, fitSummary, openingSummary } from '../views.js';
+import { duplicateRefusal, errorResult, jsonResult } from '../helpers.js';
+import { applicationSummary, contactSummary, fitSummary, openingSummary } from '../views.js';
 
 /**
  * How much of a posting's description comes back. Enough to judge the role and write a
@@ -42,14 +42,26 @@ function trimDraft(result: IngestResult) {
 export function registerCaptureTool(server: McpServer, deps: Deps): void {
   const { repos, search } = deps;
 
+  /**
+   * Whether this exact posting is already in JobTrack, for a draft that is not being saved:
+   * the refusal a save would get, told up front so it can be mentioned before anyone asks.
+   */
+  async function alreadyHeld(draft: IngestResult['draft']) {
+    if (!isUsableDraft(draft)) return {};
+    const opening = await findMatchingOpening(repos, draft);
+    if (opening) return { alreadySaved: openingSummary(opening) };
+    const application = await findMatchingApplication(repos, draft);
+    return application ? { alreadyApplied: applicationSummary(application) } : {};
+  }
+
   server.registerTool(
     'capture_posting',
     {
       description:
-        "Read a job posting into a draft opening, from a `url` (read from the site's schema.org JobPosting data; works on most career pages and applicant tracking systems such as Greenhouse, Lever, Workday and Teamtailor) or from pasted `text` (optionally with the `url` it came from). Returns the draft plus the same duplicate verdict check_duplicate gives, and, when the user has a profile, the posting's `fit` (0 to 100, with reasons) so you can say whether it is worth saving before you do. With `save: true` the draft is also saved as an opening, unless that posting is already saved. LinkedIn, Indeed and Glassdoor block automated readers: for those, ask the user to paste the posting text or use the JobTrack browser extension.",
+        "Read a job posting into a draft opening, from a `url` (read from the site's schema.org JobPosting data; works on most career pages and applicant tracking systems such as Greenhouse, Lever, Workday and Teamtailor) or from pasted `text` (optionally with the `url` it came from). Returns the draft plus the same duplicate verdict check_duplicate gives, and, when the user has a profile, the posting's `fit` (0 to 100, with reasons) so you can say whether it is worth saving before you do. When the posting itself is already in JobTrack, the result names it as `alreadySaved` (an opening) or `alreadyApplied` (an application). With `save: true` the draft is also saved as an opening, unless that posting is already saved or applied to: then `saved: false` comes back with the `reason` and the `existing` record. Only if the user still wants a second copy, call again with `allowDuplicate: true`. LinkedIn, Indeed and Glassdoor block automated readers: for those, ask the user to paste the posting text or use the JobTrack browser extension.",
       inputSchema: capturePostingSchema,
     },
-    async ({ url, text, save }) => {
+    async ({ url, text, save, allowDuplicate }) => {
       let result: IngestResult;
       try {
         result =
@@ -70,7 +82,9 @@ export function registerCaptureTool(server: McpServer, deps: Deps): void {
         : [null];
       const fitPart = fit ? { fit: fitSummary(fit) } : {};
 
-      if (!save) return jsonResult({ ...trimDraft(result), ...fitPart, saved: false });
+      if (!save) {
+        return jsonResult({ ...trimDraft(result), ...fitPart, ...(await alreadyHeld(result.draft)), saved: false });
+      }
 
       if (!isUsableDraft(result.draft)) {
         return jsonResult({
@@ -83,7 +97,7 @@ export function registerCaptureTool(server: McpServer, deps: Deps): void {
       }
 
       try {
-        const clipped = await clipPosting(repos, search, postingDraftSchema.parse(result.draft));
+        const clipped = await clipPosting(repos, search, postingDraftSchema.parse(result.draft), { allowDuplicate });
         search.markStale();
         return jsonResult({
           saved: true,
@@ -91,9 +105,8 @@ export function registerCaptureTool(server: McpServer, deps: Deps): void {
           duplicate: { ...clipped.duplicate, contacts: clipped.duplicate.contacts.map(contactSummary) },
         });
       } catch (error) {
-        if (error instanceof DuplicateOpeningError) {
-          return jsonResult({ saved: false, reason: error.message, existing: openingSummary(error.existing) });
-        }
+        const refusal = duplicateRefusal(error);
+        if (refusal) return jsonResult(refusal);
         throw error;
       }
     },

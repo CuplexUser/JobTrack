@@ -14,9 +14,11 @@
  */
 
 import {
+  STATUS_LABELS,
   parseJsonLdPosting,
   parsePostingText,
   sourceFromUrl,
+  type JobApplicationView,
   type JobOpeningView,
   type PostingDraft,
 } from '@jobtrack/shared';
@@ -24,7 +26,12 @@ import type { Repos } from '../db/repos.js';
 import type { SearchIndex } from '../search/index.js';
 import { HttpError } from '../lib/errors.js';
 import { checkDuplicates, type DuplicateCheckResult } from './duplicates.service.js';
-import { createOpening, findMatchingOpening } from './openings.service.js';
+import {
+  createOpening,
+  findMatchingApplication,
+  findMatchingOpening,
+  type OpeningIdentity,
+} from './openings.service.js';
 
 /** How long to wait on a job site before giving up. Long enough for a slow ATS, short enough to feel broken-fast rather than hung. */
 const FETCH_TIMEOUT_MS = 10_000;
@@ -93,6 +100,42 @@ export class DuplicateOpeningError extends HttpError {
     this.name = 'DuplicateOpeningError';
     this.existing = existing;
   }
+}
+
+/**
+ * "You already applied to this posting."
+ *
+ * The same 409 as `DuplicateOpeningError`, with its own code so a client can say "applied"
+ * rather than "saved". The extension treats any 409 as "already in JobTrack" and shows the
+ * message, which is the right answer for both.
+ */
+export class AlreadyAppliedError extends HttpError {
+  /** The application that already covers this posting. */
+  readonly existing: JobApplicationView;
+
+  constructor(existing: JobApplicationView) {
+    super(
+      409,
+      `You applied to “${existing.jobTitle}” at ${existing.company.name} on ${existing.appliedOn} (status: ${STATUS_LABELS[existing.status]}).`,
+      { applicationId: existing.id },
+      'duplicate_application',
+    );
+    this.name = 'AlreadyAppliedError';
+    this.existing = existing;
+  }
+}
+
+/**
+ * Refuse a posting that is already in JobTrack, as a saved opening or as an application.
+ *
+ * An opening match is reported first: it is the more literal "you have this already", and
+ * an opening converted into an application carries that application's id with it.
+ */
+export async function assertNewPosting(repos: Repos, posting: OpeningIdentity): Promise<void> {
+  const opening = await findMatchingOpening(repos, posting);
+  if (opening) throw new DuplicateOpeningError(opening);
+  const application = await findMatchingApplication(repos, posting);
+  if (application) throw new AlreadyAppliedError(application);
 }
 
 export interface IngestResult {
@@ -228,17 +271,22 @@ export async function ingestText(
  * forgotten — used to write a second identical opening and say nothing about it. That copy
  * carries no information anybody wanted, so it is declined and the existing one is named.
  *
- * Only this route enforces it, and deliberately so: `POST /api/openings` is a person typing
- * a record on purpose, while a clip is a button that looks the same whether or not it has
- * been pressed before.
+ * A posting already applied to is refused the same way, since an opening for it is a to-do
+ * for work that is done. `allowDuplicate` skips both checks, for an MCP client that has
+ * asked the user and been told to save anyway.
+ *
+ * Only clips and the MCP `create_opening` tool enforce it, and deliberately so:
+ * `POST /api/openings` is a person typing a record on purpose, while a clip is a button that
+ * looks the same whether or not it has been pressed before, and an assistant has no memory
+ * of what it saved last week.
  */
 export async function clipPosting(
   repos: Repos,
   search: SearchIndex,
   draft: PostingDraft,
+  options: { allowDuplicate?: boolean } = {},
 ): Promise<ClipResult> {
-  const existing = await findMatchingOpening(repos, draft);
-  if (existing) throw new DuplicateOpeningError(existing);
+  if (!options.allowDuplicate) await assertNewPosting(repos, draft);
 
   const duplicate = await verdictFor(repos, search, draft);
   const opening = await createOpening(repos, {

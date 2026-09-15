@@ -57,6 +57,7 @@ import {
   patchNoteSchema,
   postingDraftSchema,
   searchQuerySchema,
+  statisticsQuerySchema,
   titleKey,
   toCsvLines,
   type ApplicationStatus,
@@ -85,6 +86,7 @@ import { checkDuplicates, findDuplicateGroups } from '@jobtrack/api/services/dup
 import { createNote, deleteNote, listNotes, updateNote } from '@jobtrack/api/services/notes';
 import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
+import { getStatistics } from '@jobtrack/api/services/statistics';
 import { rankOpenings } from '@jobtrack/api/services/fit';
 import { getProfile, getRules, updateProfile, updateRules } from '@jobtrack/api/services/settings';
 import { runAutoGhost } from '@jobtrack/api/services/rules';
@@ -543,6 +545,12 @@ export const demoApi: typeof httpApi = {
     guarded(async () => {
       const { repos } = await getState();
       return getDashboard(repos);
+    }),
+
+  statistics: (params = {}) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getStatistics(repos, statisticsQuerySchema.parse(params));
     }),
 
   listContacts: (params = {}) =>

@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import {
   convertJobOpeningSchema,
-  createJobOpeningSchema,
+  createOpeningToolSchema,
   openingFilterSchema,
   patchJobOpeningSchema,
   type JobOpeningView,
@@ -19,8 +19,9 @@ import {
   updateOpening,
 } from '@jobtrack/api/services/openings';
 import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
+import { assertNewPosting } from '@jobtrack/api/services/ingest';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
-import { errorResult, jsonResult } from '../helpers.js';
+import { duplicateRefusal, errorResult, jsonResult } from '../helpers.js';
 import { fitSummary, openingSummary } from '../views.js';
 
 const idOnly = z.object({ id: z.string().min(1) });
@@ -60,10 +61,21 @@ export function registerOpeningTools(server: McpServer, deps: Deps): void {
     'create_opening',
     {
       description:
-        "Save a job opportunity for later, when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags. The saved opening comes back with its `fit` when the user has a profile. To judge a posting before saving it, use score_postings.",
-      inputSchema: createJobOpeningSchema,
+        "Save a job opportunity for later, when you don't have time to apply right now or don't have all the details yet. Lighter-weight than create_application: no status, no tags. The saved opening comes back with its `fit` when the user has a profile. To judge a posting before saving it, use score_postings. Refuses a posting that is already saved as an opening or already applied to (same link, or same company and title when a link is missing): the result is `saved: false` with the `reason` and the `existing` record. Tell the user; only if they still want a second copy, call again with `allowDuplicate: true`.",
+      inputSchema: createOpeningToolSchema,
     },
-    async (input) => jsonResult(await withFit(await createOpening(repos, input))),
+    async ({ allowDuplicate, ...input }) => {
+      if (!allowDuplicate) {
+        try {
+          await assertNewPosting(repos, input);
+        } catch (error) {
+          const refusal = duplicateRefusal(error);
+          if (refusal) return jsonResult(refusal);
+          throw error;
+        }
+      }
+      return jsonResult(await withFit(await createOpening(repos, input)));
+    },
   );
 
   server.registerTool(

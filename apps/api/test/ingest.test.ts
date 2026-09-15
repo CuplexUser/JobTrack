@@ -211,6 +211,33 @@ describe('POST /api/ingest/clip', () => {
     expect(await deps.repos.jobOpenings.findMany({})).toHaveLength(2);
   });
 
+  it('refuses a posting already applied to, and names the application', async () => {
+    const applied = await createApplication(deps.repos, applicationInput({ companyName: 'Spotify' }));
+
+    const response = await app.inject({ method: 'POST', url: '/api/ingest/clip', payload: clipped });
+
+    expect(response.statusCode).toBe(409);
+    expect(response.json().error).toBe('duplicate_application');
+    expect(response.json().message).toMatch(/you applied to/i);
+    expect(response.json().details).toEqual({ applicationId: applied.id });
+    expect(await deps.repos.jobOpenings.findMany({})).toHaveLength(0);
+  });
+
+  it('saves a posting whose link differs from the application at the same title', async () => {
+    await createApplication(
+      deps.repos,
+      applicationInput({ companyName: 'Spotify', jobUrl: 'https://jobs.example.com/spotify/berlin' }),
+    );
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ingest/clip',
+      payload: { ...clipped, jobUrl: 'https://jobs.example.com/spotify/stockholm' },
+    });
+
+    expect(response.statusCode).toBe(201);
+  });
+
   it('refuses a draft with no company, which nothing could be resolved from', async () => {
     const response = await app.inject({
       method: 'POST',

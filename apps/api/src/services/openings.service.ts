@@ -28,7 +28,7 @@ import {
 import { scopedRepos, type Repos } from '../db/repos.js';
 import type { JobOpeningRow } from '../db/schema.js';
 import { toCompany, toOpening } from '../db/mappers.js';
-import { missingCompany } from '../db/hydrate.js';
+import { hydrateApplications, missingCompany } from '../db/hydrate.js';
 import { findCompanyByName, resolveCompany } from './companies.service.js';
 import { createApplication, type CreateApplicationData } from './applications.service.js';
 import { detachTarget } from './contacts.service.js';
@@ -127,16 +127,49 @@ export async function findMatchingOpening(
     orderBy: [{ field: 'savedOn', direction: 'desc' }],
   });
 
-  const url = posting.jobUrl ? canonicalJobUrl(posting.jobUrl) : null;
-  const key = titleKey(posting.jobTitle);
+  const match = rows.find((row) => samePosting(posting, row));
+  return match ? hydrateOpening(repos, match) : null;
+}
 
-  const match = rows.find((row) => {
-    const rowUrl = row.jobUrl ? canonicalJobUrl(row.jobUrl) : null;
-    if (url && rowUrl) return url === rowUrl;
-    return key !== '' && titleKey(row.jobTitle) === key;
+/**
+ * Whether a stored record holds the same posting as `posting`, by the rule
+ * `findMatchingOpening` documents: two links decide it when both exist, the normalized
+ * title decides it when either is missing. Company is the caller's concern.
+ */
+export function samePosting(
+  posting: Pick<OpeningIdentity, 'jobTitle' | 'jobUrl'>,
+  row: { jobTitle: string; jobUrl: string | null },
+): boolean {
+  const url = posting.jobUrl ? canonicalJobUrl(posting.jobUrl) : null;
+  const rowUrl = row.jobUrl ? canonicalJobUrl(row.jobUrl) : null;
+  if (url && rowUrl) return url === rowUrl;
+  const key = titleKey(posting.jobTitle);
+  return key !== '' && titleKey(row.jobTitle) === key;
+}
+
+/**
+ * The application this posting was already applied through, if any.
+ *
+ * Same rule as `findMatchingOpening`, over applications instead of openings. Saving an
+ * opening for something already applied to adds a to-do for work that is done. Archived
+ * applications count for the same reason archived openings do.
+ */
+export async function findMatchingApplication(
+  repos: Repos,
+  posting: OpeningIdentity,
+): Promise<JobApplicationView | null> {
+  const company = await findCompanyByName(repos, posting.companyName);
+  if (!company) return null;
+
+  const rows = await repos.applications.findMany({
+    where: { companyId: company.id },
+    orderBy: [{ field: 'appliedOn', direction: 'desc' }],
   });
 
-  return match ? hydrateOpening(repos, match) : null;
+  const match = rows.find((row) => samePosting(posting, row));
+  if (!match) return null;
+  const [view] = await hydrateApplications(repos, [match]);
+  return view ?? null;
 }
 
 export interface CreateOpeningData {

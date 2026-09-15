@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Typography, type MenuProps } from 'antd';
 import {
+  BarChartOutlined,
   BulbOutlined,
   DashboardOutlined,
   FileTextOutlined,
@@ -17,6 +18,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { DashboardPage } from './pages/DashboardPage.js';
+import { StatisticsPage } from './pages/StatisticsPage.js';
 import { ApplicationsPage } from './pages/ApplicationsPage.js';
 import { ApplicationDetailPage } from './pages/ApplicationDetailPage.js';
 import { DuplicatesPage } from './pages/DuplicatesPage.js';
@@ -33,6 +35,7 @@ const THEME_KEY = 'jobtrack.theme';
 
 const NAV_ITEMS = [
   { key: '/dashboard', icon: <DashboardOutlined />, label: <Link to="/dashboard">Dashboard</Link> },
+  { key: '/statistics', icon: <BarChartOutlined />, label: <Link to="/statistics">Statistics</Link> },
   { key: '/applications', icon: <ProfileOutlined />, label: <Link to="/applications">Applications</Link> },
   { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">Openings</Link> },
   { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">Companies</Link> },
@@ -126,6 +129,7 @@ export function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
+              <Route path="/statistics" element={<StatisticsPage />} />
               <Route path="/applications" element={<ApplicationsPage />} />
               {/* Before `/:id`, so the word is a page and not an application id. */}
               <Route path="/applications/duplicates" element={<DuplicatesPage />} />

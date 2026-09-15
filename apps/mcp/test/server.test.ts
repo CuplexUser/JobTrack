@@ -103,6 +103,7 @@ describe('discovery', () => {
       'update_profile',
       'rank_openings',
       'score_postings',
+      'get_statistics',
     ]) {
       expect(names).toContain(name);
     }
@@ -142,6 +143,19 @@ describe('capture_posting', () => {
     expect(second.body.existing.id).toBe(first.body.opening.id);
   });
 
+  it('refuses to save a posting already applied to, unless told to', async () => {
+    await createApplication(deps.repos, applicationInput({ companyName: 'Acme Robotics', jobTitle: 'Backend Engineer' }));
+
+    const draft = await call('capture_posting', { text: POSTING });
+    expect(draft.body.alreadyApplied).toMatchObject({ company: 'Acme Robotics' });
+
+    const refused = await call('capture_posting', { text: POSTING, save: true });
+    expect(refused.body).toMatchObject({ saved: false, existingKind: 'application' });
+
+    const forced = await call('capture_posting', { text: POSTING, save: true, allowDuplicate: true });
+    expect(forced.body.saved).toBe(true);
+  });
+
   it('rejects a call with neither url nor text', async () => {
     const { isError } = await call('capture_posting', {});
     expect(isError).toBe(true);
@@ -157,6 +171,53 @@ describe('list_openings', () => {
     expect(body).toHaveLength(1);
     expect(body[0]).toMatchObject({ company: 'Axis', notesTruncated: true });
     expect(body[0].notes.length).toBeLessThan(1000);
+  });
+});
+
+describe('create_opening duplicates', () => {
+  it('refuses the same opening twice, and saves it when allowed', async () => {
+    const first = await call('create_opening', { companyName: 'Axis', jobTitle: 'Firmware Engineer' });
+    expect(first.body.id).toBeDefined();
+
+    const second = await call('create_opening', { companyName: 'AXIS AB', jobTitle: 'firmware engineer' });
+    expect(second.body).toMatchObject({ saved: false, existingKind: 'opening', existing: { id: first.body.id } });
+
+    const forced = await call('create_opening', { companyName: 'Axis', jobTitle: 'Firmware Engineer', allowDuplicate: true });
+    expect(forced.body.id).not.toBe(first.body.id);
+    expect(await deps.repos.jobOpenings.findMany({})).toHaveLength(2);
+  });
+
+  it('decides on the link when both sides have one', async () => {
+    const posting = { companyName: 'Axis', jobTitle: 'Firmware Engineer' };
+    await call('create_opening', { ...posting, jobUrl: 'https://jobs.example.com/axis/1' });
+
+    const tracked = await call('create_opening', { ...posting, jobUrl: 'https://www.jobs.example.com/axis/1/?utm_source=mail' });
+    expect(tracked.body.saved).toBe(false);
+
+    const otherAd = await call('create_opening', { ...posting, jobUrl: 'https://jobs.example.com/axis/2' });
+    expect(otherAd.body.id).toBeDefined();
+  });
+
+  it('refuses a posting already applied to', async () => {
+    const applied = await createApplication(deps.repos, applicationInput({ companyName: 'Spotify', jobTitle: 'Backend Engineer' }));
+
+    const { body } = await call('create_opening', { companyName: 'Spotify', jobTitle: 'Backend Engineer' });
+    expect(body).toMatchObject({ saved: false, existingKind: 'application', existing: { id: applied.id } });
+    expect(body.reason).toMatch(/you applied to/i);
+  });
+});
+
+describe('get_statistics', () => {
+  it('counts a range and names its applications', async () => {
+    await createApplication(deps.repos, applicationInput({ appliedOn: todayDateOnly() }));
+    await createApplication(deps.repos, applicationInput({ appliedOn: daysAgo(40), jobTitle: 'Earlier' }));
+
+    const { isError, body } = await call('get_statistics', { from: daysAgo(6), to: todayDateOnly() });
+    expect(isError).toBe(false);
+    expect(body.totals.applications).toBe(1);
+    expect(body.quick.find((w: { key: string }) => w.key === 'today').count).toBe(1);
+    expect(body.applications).toEqual([expect.objectContaining({ company: 'Spotify', jobTitle: 'Backend Engineer' })]);
+    expect(body.calendar).toBeUndefined();
   });
 });
 

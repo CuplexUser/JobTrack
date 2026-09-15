@@ -31,6 +31,8 @@ export const HEX_PALETTES: Record<ThemeMode, Record<string, string>> = {
     success: '#3fb950',
     danger: '#f85149',
     warning: '#d29922',
+    series1: '#3987e5',
+    series2: '#d95926',
   },
   light: {
     bgBase: '#ffffff',
@@ -45,6 +47,8 @@ export const HEX_PALETTES: Record<ThemeMode, Record<string, string>> = {
     success: '#1a7f37',
     danger: '#d1242f',
     warning: '#9a6700',
+    series1: '#0969da',
+    series2: '#eb6834',
   },
 };
 
@@ -61,6 +65,9 @@ export const palette = {
   success: 'var(--jt-success)',
   danger: 'var(--jt-danger)',
   warning: 'var(--jt-warning)',
+  /** Chart series 1 and 2. Not the accent: dark mode's accent is too light for a filled mark. */
+  series1: 'var(--jt-series-1)',
+  series2: 'var(--jt-series-2)',
 } as const;
 
 export function buildAntdTheme(mode: ThemeMode): ThemeConfig {

@@ -14,7 +14,8 @@ tags and job openings, plus every read (list/get/search/dashboard) — deliberat
 delete tools**, so an MCP client can only add to or edit data, never destroy it.
 
 Beyond the plain records it can capture a posting from a link or pasted text
-(`capture_posting`), list what is waiting on you today (`get_agenda`), change several
+(`capture_posting`), list what is waiting on you today (`get_agenda`), count what went out over any stretch
+of days (`get_statistics`), change several
 statuses at once (`bulk_change_status`) and sweep for duplicates (`find_duplicate_groups`).
 It knows what you are looking for (`get_profile`, `update_profile`), ranks your saved
 openings against it (`rank_openings`) and scores postings before you save them

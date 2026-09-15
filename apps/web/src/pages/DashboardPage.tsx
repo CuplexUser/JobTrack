@@ -260,7 +260,7 @@ export function DashboardPage() {
         </Col>
 
         <Col xs={24} lg={12}>
-          <Card title="Applications over time" size="small">
+          <Card title="Applications over time" size="small" extra={<Link to="/statistics">More statistics</Link>}>
             <BarSeries points={volume} />
           </Card>
         </Col>
