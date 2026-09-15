@@ -16,35 +16,35 @@ import {
   Empty,
   Flex,
   List,
-  Progress,
   Row,
   Segmented,
   Skeleton,
   Space,
-  Statistic,
   Tag,
   Timeline,
   Typography,
 } from 'antd';
 import { ClockCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
-import { RELATIONSHIP_LABELS, STATUS_LABELS, monthName, toPeriod, todayDateOnly } from '@jobtrack/shared';
+import { RELATIONSHIP_LABELS, STATUS_LABELS } from '@jobtrack/shared';
 import { useDashboard } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { PreApplyCheck } from '../components/PreApplyCheck.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { BarSeries } from '../components/charts/BarSeries.js';
 import { Funnel } from '../components/charts/Funnel.js';
-import { Sparkline } from '../components/charts/Sparkline.js';
-import { palette } from '../theme.js';
+import { DashboardHero } from '../components/DashboardHero.js';
 
-/** How many months of history the stat tile's sparkline shows. */
-const TREND_MONTHS = 12;
+/**
+ * Cards side by side share a height. Without this, the shorter card of a pair ends early
+ * and leaves a hole above the next row.
+ */
+const STRETCH = { display: 'flex' } as const;
+const FILL = { flex: 1, minWidth: 0 } as const;
 
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [attention, setAttention] = useState<'follow-ups' | 'quiet' | 'reconnect'>('follow-ups');
-  const period = toPeriod(todayDateOnly());
 
   if (isLoading || !data) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
@@ -82,74 +82,20 @@ export function DashboardPage() {
     );
   }
 
-  // The trend behind "this month": the same months the volume chart shows, tail end only.
-  const trend = volume.slice(-TREND_MONTHS);
-  const previousMonths = volume.slice(-13, -1);
-  const monthlyAverage =
-    previousMonths.length > 0
-      ? previousMonths.reduce((sum, point) => sum + point.count, 0) / previousMonths.length
-      : 0;
-  const againstAverage = stats.thisMonth - monthlyAverage;
-
   const attentionCount = { 'follow-ups': followUps.length, quiet: stale.length, reconnect: reconnect.length }[attention];
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
-      <Row gutter={[16, 16]}>
-        <Col xs={12} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title="Total applications" value={stats.total} />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} md={6}>
-          <Card size="small">
-            <Statistic
-              title="Still active"
-              value={stats.active}
-              valueStyle={{ color: palette.accent }}
-            />
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} md={6}>
-          <Card size="small">
-            <Statistic title={`${monthName(period.month)} ${period.year}`} value={stats.thisMonth} />
-            <Sparkline
-              values={trend.map((point) => point.count)}
-              label={`Applications in each of the last ${trend.length} months: ${trend
-                .map((point) => point.count)
-                .join(', ')}`}
-            />
-            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {monthlyAverage === 0
-                ? 'first month on record'
-                : `${againstAverage >= 0 ? '+' : ''}${againstAverage.toFixed(1)} vs your monthly average`}
-            </Typography.Text>
-          </Card>
-        </Col>
-        <Col xs={12} sm={12} md={6}>
-          <Card size="small">
-            <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <Typography.Text type="secondary">Response rate</Typography.Text>
-              <Progress
-                percent={Math.round(stats.responseRate * 100)}
-                size="small"
-                strokeColor={palette.accent}
-              />
-              <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                Anything past “applied” counts as a reply
-              </Typography.Text>
-            </Space>
-          </Card>
-        </Col>
-      </Row>
+      <DashboardHero data={data} onNewApplication={() => setDrawerOpen(true)} />
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={14}>
-          <PreApplyCheck onStartApplication={() => setDrawerOpen(true)} />
+        <Col xs={24} lg={14} style={STRETCH}>
+          <PreApplyCheck onStartApplication={() => setDrawerOpen(true)} style={FILL} />
         </Col>
 
-        <Col xs={24} lg={10}>
+        <Col xs={24} lg={10} style={STRETCH}>
           <Card
+            style={FILL}
             title={
               <Space>
                 <ClockCircleOutlined />
@@ -168,7 +114,7 @@ export function DashboardPage() {
                 ]}
               />
             }
-            styles={{ body: { maxHeight: 320, overflowY: 'auto' } }}
+            styles={{ body: { maxHeight: 300, overflowY: 'auto' } }}
           >
             {attentionCount === 0 ? (
               <Empty
@@ -253,14 +199,14 @@ export function DashboardPage() {
       </Row>
 
       <Row gutter={[16, 16]}>
-        <Col xs={24} lg={12}>
-          <Card title="Pipeline" size="small">
+        <Col xs={24} lg={12} style={STRETCH}>
+          <Card title="Pipeline" size="small" style={FILL}>
             <Funnel stages={funnel} />
           </Card>
         </Col>
 
-        <Col xs={24} lg={12}>
-          <Card title="Applications over time" size="small" extra={<Link to="/statistics">More statistics</Link>}>
+        <Col xs={24} lg={12} style={STRETCH}>
+          <Card title="Applications over time" size="small" style={FILL} extra={<Link to="/statistics">More statistics</Link>}>
             <BarSeries points={volume} />
           </Card>
         </Col>
