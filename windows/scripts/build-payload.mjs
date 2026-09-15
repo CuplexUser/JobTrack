@@ -84,7 +84,8 @@ async function installFromRegistry(npmArgs, attempts = 10, delayMs = 30_000) {
       const stderr = error.stderr?.toString() ?? '';
       process.stderr.write(stderr);
       if (!/\bETARGET\b|notarget/.test(stderr) || attempt === attempts) throw error;
-      console.log(`  A dependency is not on the registry yet; trying again in ${delayMs / 1000} s (attempt ${attempt + 1} of ${attempts}).`);
+      const missing = stderr.match(/No matching version found for (\S+?)\.?\s*$/m)?.[1] ?? 'A package';
+      console.log(`  ${missing} is not on the registry yet; trying again in ${delayMs / 1000} s (attempt ${attempt + 1} of ${attempts}).`);
       await new Promise((resolveDelay) => setTimeout(resolveDelay, delayMs));
     }
   }
@@ -196,7 +197,12 @@ writeFileSync(
 );
 
 const specs = local ? packLocalTarballs() : [`jobtrack@${version}`, ...(withMcp ? ['@jobtrack/mcp@latest'] : [])];
-const installArgs = ['install', '--prefix', appDir, '--omit=dev', '--no-audit', '--no-fund', ...specs];
+// --prefer-online: npm otherwise trusts a cached packument for its max-age (300 s on the registry)
+// without asking, so a build started minutes after a publish is told the new version does not exist
+// even though step 1 just fetched it. That stalled the 1.6.0 build for three retries.
+const installArgs = [
+  'install', '--prefix', appDir, '--omit=dev', '--no-audit', '--no-fund', ...(local ? [] : ['--prefer-online']), ...specs,
+];
 if (local) runNpm(installArgs);
 else await installFromRegistry(installArgs);
 
