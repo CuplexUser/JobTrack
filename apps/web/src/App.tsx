@@ -28,6 +28,8 @@ import { NotesPage } from './pages/NotesPage.js';
 import { OpeningsPage } from './pages/OpeningsPage.js';
 import { ContactsPage } from './pages/ContactsPage.js';
 import { ContactDetailPage } from './pages/ContactDetailPage.js';
+import { RememberParams } from './components/RememberParams.js';
+import { APPLICATIONS_PARAMS, CONTACTS_PARAMS, STATISTICS_PARAMS } from './preferences.js';
 import { SettingsPage } from './pages/SettingsPage.js';
 import { buildAntdTheme, palette } from './theme.js';
 
@@ -129,15 +131,15 @@ export function App() {
             <Routes>
               <Route path="/" element={<Navigate to="/dashboard" replace />} />
               <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/statistics" element={<StatisticsPage />} />
-              <Route path="/applications" element={<ApplicationsPage />} />
+              <Route path="/statistics" element={<RememberParams spec={STATISTICS_PARAMS}><StatisticsPage /></RememberParams>} />
+              <Route path="/applications" element={<RememberParams spec={APPLICATIONS_PARAMS}><ApplicationsPage /></RememberParams>} />
               {/* Before `/:id`, so the word is a page and not an application id. */}
               <Route path="/applications/duplicates" element={<DuplicatesPage />} />
               <Route path="/applications/:id" element={<ApplicationDetailPage />} />
               <Route path="/openings" element={<OpeningsPage />} />
               <Route path="/companies" element={<CompaniesPage />} />
               <Route path="/companies/:id" element={<CompanyDetailPage />} />
-              <Route path="/people" element={<ContactsPage />} />
+              <Route path="/people" element={<RememberParams spec={CONTACTS_PARAMS}><ContactsPage /></RememberParams>} />
               <Route path="/people/:id" element={<ContactDetailPage />} />
               <Route path="/notes" element={<NotesPage />} />
               <Route path="/settings" element={<SettingsPage />} />

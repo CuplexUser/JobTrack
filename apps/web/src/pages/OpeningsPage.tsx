@@ -57,6 +57,7 @@ import {
 import { OpeningDrawer } from '../components/OpeningDrawer.js';
 import { PostingIngestModal } from '../components/PostingIngestModal.js';
 import { FitBadge } from '../components/FitBadge.js';
+import { parse, usePreference } from '../preferences.js';
 
 interface ConvertFormValues {
   appliedOn: Dayjs;
@@ -65,12 +66,13 @@ interface ConvertFormValues {
 }
 
 type OpeningsView = 'active' | 'archived';
+type OpeningsOrder = 'newest' | 'fit';
 
 export function OpeningsPage() {
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
 
-  const [view, setView] = useState<OpeningsView>('active');
+  const [view, setView] = usePreference<OpeningsView>('filters', 'openings.view', 'active', parse.oneOf(['active', 'archived']));
   // `archived=true` returns active *and* archived, so the archived view still filters locally.
   const { data, isLoading } = useOpenings(view === 'archived' ? { archived: true } : {});
   const { data: tagData } = useTags();
@@ -78,8 +80,8 @@ export function OpeningsPage() {
   const convertOpening = useConvertOpening();
   const updateOpening = useUpdateOpening();
 
-  const [locations, setLocations] = useState<string[]>([]);
-  const [order, setOrder] = useState<'newest' | 'fit'>('newest');
+  const [locations, setLocations] = usePreference<string[]>('filters', 'openings.locations', [], parse.strings);
+  const [order, setOrder] = usePreference<OpeningsOrder>('view', 'openings.order', 'newest', parse.oneOf(['newest', 'fit']));
 
   const inView = useMemo(() => {
     const all = data?.openings ?? [];
@@ -316,7 +318,7 @@ export function OpeningsPage() {
         {hasProfile ? (
           <Segmented
             value={order}
-            onChange={(value) => setOrder(value as 'newest' | 'fit')}
+            onChange={(value) => setOrder(value as OpeningsOrder)}
             options={[
               { label: 'Newest first', value: 'newest' },
               { label: 'Best fit first', value: 'fit' },

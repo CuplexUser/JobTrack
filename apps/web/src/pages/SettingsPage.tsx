@@ -1,6 +1,6 @@
 /**
- * Settings: the user's profile and automation rules, which database is active, full-fidelity
- * backup/restore, and reset/demo data.
+ * Settings: the user's profile and automation rules, what this browser remembers, which database
+ * is active, full-fidelity backup/restore, and reset/demo data.
  *
  * Connection parameters (`DB_DRIVER`, `DATABASE_URL`, …) live in `.env` only — nothing here
  * can read or edit them. All this page can do is switch which already-configured target is
@@ -41,6 +41,7 @@ const DEMO = import.meta.env.VITE_DEMO === 'true';
 import { useClearDatabase, useDataStatus, useDbTargets, useMeta, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
 import { ProfileCard } from '../components/ProfileCard.js';
 import { AutomationCard } from '../components/AutomationCard.js';
+import { RememberCard } from '../components/RememberCard.js';
 
 const TABLE_LABELS: Record<string, string> = {
   companies: 'Companies',
@@ -417,6 +418,7 @@ export function SettingsPage() {
       </Typography.Title>
       <ProfileCard />
       <AutomationCard />
+      <RememberCard />
       <DatabaseCard />
       {!DEMO && <BackupCard />}
       <DataCard />

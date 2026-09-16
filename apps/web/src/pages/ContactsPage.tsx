@@ -15,6 +15,7 @@ import { useContacts } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
 import { ContactDrawer } from '../components/ContactDrawer.js';
 import { LinkedInImportModal } from '../components/LinkedInImportModal.js';
+import { parse, usePreference } from '../preferences.js';
 
 const DEFAULT_PAGE_SIZE = 25;
 
@@ -28,7 +29,7 @@ export function ContactsPage() {
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get('q') ?? '');
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [pageSize, setPageSize] = usePreference('view', 'people.pageSize', DEFAULT_PAGE_SIZE, parse.pageSize);
   const [adding, setAdding] = useState(false);
   const [importing, setImporting] = useState(false);
   const debounced = useDebounced(search, 300);

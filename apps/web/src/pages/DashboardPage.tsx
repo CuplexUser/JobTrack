@@ -33,6 +33,9 @@ import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { BarSeries } from '../components/charts/BarSeries.js';
 import { Funnel } from '../components/charts/Funnel.js';
 import { DashboardHero } from '../components/DashboardHero.js';
+import { parse, usePreference } from '../preferences.js';
+
+type Attention = 'follow-ups' | 'quiet' | 'reconnect';
 
 /**
  * Cards side by side share a height. Without this, the shorter card of a pair ends early
@@ -44,7 +47,7 @@ const FILL = { flex: 1, minWidth: 0 } as const;
 export function DashboardPage() {
   const { data, isLoading } = useDashboard();
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [attention, setAttention] = useState<'follow-ups' | 'quiet' | 'reconnect'>('follow-ups');
+  const [attention, setAttention] = usePreference<Attention>('view', 'dashboard.attention', 'follow-ups', parse.oneOf(['follow-ups', 'quiet', 'reconnect']));
 
   if (isLoading || !data) {
     return <Skeleton active paragraph={{ rows: 8 }} />;
@@ -106,7 +109,7 @@ export function DashboardPage() {
               <Segmented
                 size="small"
                 value={attention}
-                onChange={(value) => setAttention(value as 'follow-ups' | 'quiet' | 'reconnect')}
+                onChange={(value) => setAttention(value as Attention)}
                 options={[
                   { label: `Follow-ups (${followUps.length})`, value: 'follow-ups' },
                   { label: `Gone quiet (${stale.length})`, value: 'quiet' },

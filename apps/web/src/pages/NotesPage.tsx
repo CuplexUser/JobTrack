@@ -32,13 +32,14 @@ import {
 import type { NoteTarget, NoteWithTarget } from '@jobtrack/shared';
 import { useDeleteNote, useNotes } from '../api/hooks.js';
 import { NoteModal } from '../components/NoteModal.js';
+import { parse, usePreference } from '../preferences.js';
 
 type Scope = 'all' | NoteTarget;
 
 export function NotesPage() {
   const { message } = AntApp.useApp();
-  const [scope, setScope] = useState<Scope>('all');
-  const [query, setQuery] = useState('');
+  const [scope, setScope] = usePreference<Scope>('filters', 'notes.scope', 'all', parse.oneOf(['all', 'standalone', 'company', 'application']));
+  const [query, setQuery] = usePreference('filters', 'notes.search', '', parse.string);
   const [editing, setEditing] = useState<NoteWithTarget | null>(null);
   const [creating, setCreating] = useState(false);
 

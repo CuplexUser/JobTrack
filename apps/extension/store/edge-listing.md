@@ -72,17 +72,28 @@ third party, and there are no analytics or advertising.
 
 ## Notes for certification
 
-> The extension needs JobTrack running locally to save anything; it has no server of its own.
+Partner Center only shows the notes box after ticking that the extension requires credentials.
+Tick it; the notes then explain that the only credential is created locally during testing.
+Paste without the leading `> ` (the box takes fewer than 2,000 characters).
+
+> NO TEST CREDENTIALS ARE NEEDED, AND NONE EXIST. JobTrack Clipper has no accounts, no sign-in
+> and no online service. It only talks to JobTrack, a free open source app that the tester
+> installs and runs on the same computer (http://127.0.0.1:3001). The only secret is an access
+> token that JobTrack generates on first run and hands to the extension when the tester presses
+> Allow (step 3), so there is nothing we could give you in advance.
 >
-> To test:
-> 1. Install Node.js 24, then run `npx jobtrack` (or install the Windows app from
->    https://github.com/CuplexUser/JobTrack/releases/latest). JobTrack starts on
->    http://127.0.0.1:3001.
-> 2. Open the extension's settings and press Connect to JobTrack. A JobTrack page opens; press
->    Allow. The settings page then reports "Connected to JobTrack".
-> 3. Open any job posting (for example a Greenhouse or Lever job page) and click the extension
->    icon. Check the fields and press Save opening. The posting appears under Openings in
->    JobTrack at http://127.0.0.1:3001/openings.
+> To test (about 5 minutes, Windows):
+> 1. Download and run JobTrack-Setup-<version>.exe from
+>    https://github.com/CuplexUser/JobTrack/releases/latest
+>    (Alternative on any OS with Node.js 24: run `npx jobtrack`.)
+> 2. Leave "Start JobTrack now" checked on the last installer page. JobTrack starts in the
+>    notification area; check that http://127.0.0.1:3001 opens in the browser.
+> 3. Open the extension's settings (right-click the icon, Extension options) and press Connect
+>    to JobTrack. A JobTrack tab opens; press Allow. The tab closes and the settings page shows
+>    "Connected to JobTrack".
+> 4. Open any job posting, for example a job page on boards.greenhouse.io, jobs.lever.co or
+>    linkedin.com/jobs. Click the extension icon, check the fields and press Save opening.
+> 5. The posting appears under Openings at http://127.0.0.1:3001/openings.
 >
-> Without JobTrack running, the popup still reads the page but saving reports that JobTrack is
-> not reachable, which is expected.
+> If JobTrack is not running, the popup still reads the page but saving reports that JobTrack
+> is not reachable. That is expected, not a defect.

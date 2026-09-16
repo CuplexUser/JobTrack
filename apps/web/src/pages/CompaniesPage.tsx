@@ -2,7 +2,6 @@
  * Companies, with the counts that make repeat applications obvious at a glance.
  */
 
-import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Card, Flex, Input, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
@@ -10,13 +9,14 @@ import { SearchOutlined } from '@ant-design/icons';
 import type { CompanyWithStats } from '@jobtrack/shared';
 import { useCompanies } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
+import { parse, usePreference } from '../preferences.js';
 
 const DEFAULT_PAGE_SIZE = 25;
 
 export function CompaniesPage() {
   const navigate = useNavigate();
-  const [search, setSearch] = useState('');
-  const [pageSize, setPageSize] = useState(DEFAULT_PAGE_SIZE);
+  const [search, setSearch] = usePreference('filters', 'companies.search', '', parse.string);
+  const [pageSize, setPageSize] = usePreference('view', 'companies.pageSize', DEFAULT_PAGE_SIZE, parse.pageSize);
   const debounced = useDebounced(search, 300);
   const { data, isLoading } = useCompanies(debounced ? { q: debounced } : {});
 
