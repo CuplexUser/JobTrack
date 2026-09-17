@@ -1,0 +1,85 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+
+  // Oxlint rather than ESLint for one decidable reason: this repo is on typescript 7, whose
+  // package ships the native compiler and no JS compiler API, so typescript-eslint's
+  // type-aware rules would need a second TypeScript installed beside it. Oxlint needs none.
+  //
+  // The rule set is deliberately narrow. `correctness` is what oxlint will stand behind as
+  // "outright wrong", and a linter that also has opinions about how a loop should be spelled
+  // is a linter whose output gets scrolled past. Everything beyond that category is here
+  // because it caught something worth catching, and everything switched off below is a rule
+  // this codebase disagrees with on purpose rather than by accident.
+  "plugins": ["typescript", "unicorn", "oxc", "import", "promise", "react", "jsx-a11y", "vitest"],
+  "categories": {
+    "correctness": "error"
+  },
+  "env": {
+    "es2024": true,
+    "node": true,
+    "browser": true
+  },
+  "ignorePatterns": [
+    "**/dist/**",
+    "**/coverage/**",
+    "apps/tray/vendor/**",
+    "windows/**/bin/**",
+    "windows/**/obj/**"
+  ],
+  "rules": {
+    // The JSX transform has not needed React in scope since React 17.
+    "react/react-in-jsx-scope": "off",
+    // `_` is how an unused parameter is spelled on purpose, in a signature that must keep it.
+    "eslint/no-unused-vars": ["warn", { "argsIgnorePattern": "^_", "varsIgnorePattern": "^_" }],
+    // A cycle between modules is the one import problem that is never intentional.
+    "import/no-cycle": "error",
+    "import/no-self-import": "error",
+    // A `.then()` that returns nothing is a chain whose next link gets undefined — but the
+    // last callback in a chain has no next link, and a side effect is all it is ever for.
+    "promise/always-return": ["warn", { "ignoreLastCallback": true }],
+    // Awaiting in a loop is how this codebase seeds, migrates and drives a test in order.
+    "eslint/no-await-in-loop": "off",
+    // `sort()` over `toSorted()`: the arrays sorted here are already copies.
+    "unicorn/no-array-sort": "off",
+    "unicorn/no-array-reverse": "off",
+    // A helper defined inside a describe block is scoped to the tests that use it.
+    "unicorn/consistent-function-scoping": "off",
+    // `{ ...row, extra }` inside a map is the idiom this codebase hydrates rows with.
+    "oxc/no-map-spread": "off",
+    // Fastify awaits an async handler's return value. This rule is about Express.
+    "oxc/no-async-endpoint-handlers": "off",
+    // `role="img"` on an inline `<svg>` is the accessible way to write a chart, not a
+    // missed `<img>` tag: the graphic has to stay in the document to be drawn from data.
+    "jsx-a11y/prefer-tag-over-role": "off",
+    // A chart reads the pointer to place its tooltip. The figure carries a label and the
+    // same numbers are in the table beside it, so the handler is not the only way in.
+    "jsx-a11y/no-noninteractive-element-interactions": "off",
+    // These two find real smells whose fix changes when a component re-renders, which is
+    // not something to apply in passing. Warnings rather than errors for that reason, and
+    // the handful of places that mean it carry a disable comment saying why.
+    "react-hooks/exhaustive-deps": "warn",
+    "react/set-state-in-effect": "warn"
+  },
+  "overrides": [
+    {
+      "files": ["**/*.test.ts", "**/*.test.tsx"],
+      "rules": {
+        // The two that cost a suite its meaning: a focused test hides every other one, and
+        // two tests under one name make a failure impossible to place.
+        "vitest/no-focused-tests": "error",
+        "vitest/no-identical-title": "error",
+        // Test style is the test author's; these are about how an assertion is spelled.
+        "vitest/require-to-throw-message": "off",
+        "vitest/require-mock-type-parameters": "off",
+        "vitest/no-conditional-expect": "off"
+      }
+    },
+    {
+      "files": ["apps/web/src/main.tsx"],
+      "rules": {
+        // A stylesheet import is an import for its effect, which is the whole point of it.
+        "import/no-unassigned-import": "off"
+      }
+    }
+  ]
+}

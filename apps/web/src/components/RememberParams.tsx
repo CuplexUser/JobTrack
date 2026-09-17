@@ -21,6 +21,9 @@ export function RememberParams({ spec, children }: { spec: RememberedParams; chi
 
   useEffect(() => {
     if (pending === null) saveParams(spec, params);
+    // The latch is released once, after the redirect it caused has landed — which is not
+    // something render can know, so this one is an effect on purpose.
+    // oxlint-disable-next-line react/set-state-in-effect
     else if (current === pending) setPending(null);
   }, [spec, params, current, pending]);
 

@@ -54,6 +54,8 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
   const defaultCompany = defaults?.companyName;
   const defaultRelationship = defaults?.relationship;
 
+  /* oxlint-disable react-hooks/exhaustive-deps -- the primitives above are the dependencies
+     on purpose; the objects they come from are not. */
   useEffect(() => {
     if (!open) return;
     form.resetFields();
@@ -76,6 +78,7 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
       });
     }
   }, [open, contactId, defaultCompany, defaultRelationship, form]);
+  /* oxlint-enable react-hooks/exhaustive-deps */
 
   async function handleFinish(values: FormValues): Promise<void> {
     const body = {
@@ -121,6 +124,8 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
     >
       <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark="optional">
         <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
+          {/* oxlint-disable-next-line jsx-a11y/no-autofocus -- the drawer opens on a click
+              or a keystroke, and the name is the field it opened to collect. */}
           <Input autoFocus placeholder="Anna Svensson" />
         </Form.Item>
 

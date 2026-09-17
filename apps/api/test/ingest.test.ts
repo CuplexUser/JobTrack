@@ -79,6 +79,31 @@ describe('POST /api/ingest/url', () => {
     expect(response.json().message).toMatch(/extension|paste/i);
   });
 
+  it('fills in what the structured data left out, from the page and not from its menu', async () => {
+    stubFetch(`<!doctype html><html><head>
+      <script type="application/ld+json">
+      { "@type": "JobPosting", "title": "Backend Engineer", "hiringOrganization": { "name": "Acme" } }
+      </script></head>
+      <body>
+        <nav><a href="/login">Log in</a><a href="/lang">Language</a></nav>
+        <main>
+          <p>Location: Gothenburg</p>
+          <p>You will own our deployment pipeline.</p>
+        </main>
+        <footer>© 2026 Acme</footer>
+      </body></html>`);
+
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/ingest/url',
+      payload: { url: 'https://acme.example/jobs/7' },
+    });
+
+    const { draft } = response.json();
+    expect(draft.location).toBe('Gothenburg');
+    expect(draft.notes).toBe('Location: Gothenburg\nYou will own our deployment pipeline.');
+  });
+
   it('says so when a page carries no structured job data', async () => {
     stubFetch('<html><body><h1>Careers</h1></body></html>');
 

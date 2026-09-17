@@ -30,15 +30,18 @@ the problem, and it decides which route to use:
 **Paste a link** (`POST /api/ingest/url`) fetches the page and reads the
 [`schema.org/JobPosting`](https://schema.org/JobPosting) JSON-LD that most applicant
 tracking systems publish. When it works it is the most accurate route by a distance — the
-site is stating the fields rather than us inferring them. When a site refuses, the API
-answers `422 ingest_blocked` and the UI moves you to the next tab rather than showing a
-generic failure.
+site is stating the fields rather than us inferring them. What that block leaves out — very
+often the location, and nearly as often the description — is taken from the page itself,
+read the way the extension reads one: main content only, no navigation and no footer. When a
+site refuses, the API answers `422 ingest_blocked` and the UI moves you to the next tab
+rather than showing a generic failure.
 
 **Paste the text** (`POST /api/ingest/text`) parses what you copied, with no network
 involved. Heuristics, and honest about it: the first line is usually the title, a "Title at
 Company" or "Title | Company | City" shape is recognized, and a currency figure near the
 word "salary" becomes a salary. Everything you paste is also kept as the opening's note, so
-a wrong guess never loses information.
+a wrong guess never loses information — minus the rows of site navigation that come along
+when the copy was made from a page rather than from the posting.
 
 **The browser extension** reads the page you already have open, in your own session. This is
 what makes LinkedIn and Indeed work: nothing is being fetched or scraped from a server —
@@ -93,13 +96,27 @@ correct anything, press **Save opening**, and it lands in JobTrack.
 
 ### How it reads a page
 
-In order, stopping at the first that yields both a company and a title:
+The company and the title are decided by the first of these that names both:
 
 1. **The posting's own JSON-LD** — survives redesigns, and is what most ATS pages carry.
 2. **Per-site selectors** — `apps/extension/src/sites.ts`, for the boards that publish no
    structured data.
 3. **Your text selection, or the page title** — select the part of the page you care about
    before clicking and it will be used.
+
+**The location, the salary and the note are filled from whichever of them can answer.** A
+`JobPosting` block that states the company and the title but no city is completely ordinary,
+and letting one source decide every field is what used to leave the location box empty on
+postings that say where the job is in plain sight. So the page is asked next: a location
+selector, then a line in the posting that labels one ("Location: Gothenburg"). A remote
+posting that names no city at all is read off `jobLocationType` and
+`applicantLocationRequirements` instead, as "Remote (Sweden)".
+
+**The note is the posting, not the page it was printed on.** The description in the
+structured data is preferred, since that is the ad itself. Failing that the page is read,
+starting from whatever container holds the description, with the site's own furniture left
+out — navigation, header, footer, cookie banner, share buttons — and lines like "Log in",
+"Language" and "Search" dropped whole. Bullet lists stay bullet lists.
 
 **The site selectors will break.** LinkedIn and Indeed reshuffle their markup on their own
 schedule and owe this extension nothing, so a field coming back empty on one of them is

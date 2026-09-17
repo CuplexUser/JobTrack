@@ -142,7 +142,9 @@ export function ApplicationsPage() {
   // "Load more" appends, so the table shows every page fetched so far. Totals and the
   // search flags describe the whole result set, so they come from the first page.
   const pages = data?.pages ?? [];
-  const items = useMemo(() => pages.flatMap((page) => page.items), [pages]);
+  // Keyed on `data`, not on `pages`: the `?? []` fallback is a new array every render, so
+  // depending on it would rebuild the list on renders that fetched nothing.
+  const items = useMemo(() => (data?.pages ?? []).flatMap((page) => page.items), [data]);
   const summary = pages[0];
 
   function patchFilter(changes: Record<string, unknown>): void {

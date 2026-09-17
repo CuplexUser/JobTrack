@@ -223,7 +223,8 @@ means something has to bring the process back up:
 | command | does |
 |---|---|
 | `npm run dev` | API + web + shared in watch mode |
-| `npm test` | every workspace (263 tests) |
+| `npm test` | every workspace (497 tests) |
+| `npm run lint` | [oxlint](https://oxc.rs/docs/guide/usage/linter) over every workspace (`npm run lint:fix` applies what it can fix) |
 | `npm run typecheck` | `tsc --build` across the project references |
 | `npm run build` | production web bundle |
 | `npm run seed` | sample data (`-- --force` to add to a non-empty database) |

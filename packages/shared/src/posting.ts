@@ -179,17 +179,59 @@ export function canonicalJobUrl(url: string): string | null {
 
 // ---------------------------------------------------------------- shared bits
 
+/** The entities that survive a copy out of HTML often enough to be worth naming. */
+const NAMED_ENTITIES: Record<string, string> = {
+  nbsp: ' ',
+  amp: '&',
+  lt: '<',
+  gt: '>',
+  quot: '"',
+  apos: "'",
+  hellip: '…',
+  ndash: '–',
+  mdash: '—',
+  rsquo: '’',
+  lsquo: '‘',
+  rdquo: '”',
+  ldquo: '“',
+  bull: '•',
+  middot: '·',
+};
+
+const ENTITY = /&(#x?[0-9a-f]+|[a-z]+);/gi;
+
+/** Entities back to the characters they stand for, numeric ones included. */
+function decodeEntities(value: string): string {
+  return value.replace(ENTITY, (whole, body: string) => {
+    const name = body.toLowerCase();
+    if (name.startsWith('#')) {
+      const code = name.startsWith('#x') ? Number.parseInt(name.slice(2), 16) : Number(name.slice(1));
+      return Number.isFinite(code) && code > 0 && code <= 0x10ffff ? String.fromCodePoint(code) : whole;
+    }
+    return NAMED_ENTITIES[name] ?? whole;
+  });
+}
+
 /** Collapse the whitespace and entity noise that survives extraction from HTML or a page. */
 function clean(value: unknown): string {
   if (typeof value !== 'string') return '';
-  return value
-    .replace(/&nbsp;/gi, ' ')
-    .replace(/&amp;/gi, '&')
-    .replace(/&lt;/gi, '<')
-    .replace(/&gt;/gi, '>')
-    .replace(/&quot;/gi, '"')
-    .replace(/&#39;/gi, "'")
-    .replace(/\s+/g, ' ')
+  return decodeEntities(value).replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * The same tidy-up as `clean`, with the line breaks left standing.
+ *
+ * Notes are read by a person, not matched by a filter, so a posting's paragraphs and bullet
+ * list are the whole value of keeping it. What goes is only what nobody wants: trailing
+ * space, and the runs of blank lines a page dump is full of.
+ */
+function tidyLines(value: string): string {
+  return decodeEntities(value)
+    .replace(/\r\n?/g, '\n')
+    // Every kind of horizontal space collapses; the vertical ones are the structure.
+    .replace(/[^\S\n]+/g, ' ')
+    .replace(/ *\n */g, '\n')
+    .replace(/\n{3,}/g, '\n\n')
     .trim();
 }
 
@@ -198,6 +240,187 @@ function orNull(value: string, max: number): string | null {
   const text = clean(value);
   if (text === '') return null;
   return text.length > max ? text.slice(0, max) : text;
+}
+
+// ---------------------------------------------------------------- page text
+
+/** A note longer than this is not a posting any more, it is a website. */
+export const MAX_NOTE_LENGTH = 20_000;
+
+/**
+ * What a posting is worth keeping as a note, or null when there is nothing left.
+ *
+ * One place decides it for all three capture routes, so an opening clipped from a page
+ * carries the same kind of text as one pasted in by hand: the posting's own words, with
+ * their line breaks, and without the page they were printed on.
+ */
+export function postingNote(text: string): string | null {
+  const note = tidyLines(stripPageChrome(text));
+  if (note === '') return null;
+  return note.length > MAX_NOTE_LENGTH ? note.slice(0, MAX_NOTE_LENGTH) : note;
+}
+
+/**
+ * Elements that are the site rather than the posting. Dropped whole, contents included,
+ * because a navigation bar's text is exactly the "Log in / Language / Search" noise that
+ * makes a captured note unreadable.
+ */
+const CHROME_ELEMENTS =
+  /<(nav|header|footer|aside|script|style|noscript|form|select|button|svg|template|dialog)\b[^>]*>[\s\S]*?<\/\1\s*>/gi;
+
+/**
+ * Tags that end a line of text, so a paragraph does not run into the next heading.
+ *
+ * `</li>` is deliberately absent: `<li>` already opens a line with its bullet, and ending
+ * one here as well would put a blank line between every item of a requirements list.
+ */
+const BLOCK_END = /<\/(p|div|section|article|ul|ol|tr|table|h[1-6]|blockquote|pre|dd|dt)\s*>/gi;
+const LINE_BREAK = /<(?:br|hr)\s*\/?>/gi;
+const LIST_ITEM = /<li\b[^>]*>/gi;
+const COMMENT = /<!--[\s\S]*?-->/g;
+const ANY_TAG = /<[^>]+>/g;
+
+/**
+ * HTML to the text a reader would see, keeping the lines.
+ *
+ * Deliberately regex work rather than a parser: this file compiles against neither the DOM
+ * nor Node, and a posting's description is prose in simple markup — paragraphs, lists,
+ * headings — not a document that needs a tree to understand.
+ */
+export function htmlToText(html: string): string {
+  const text = html
+    .replace(COMMENT, ' ')
+    // A line break in the source is not a line break on the page; the tags are what decide
+    // where one falls, and a pretty-printed document would otherwise come out double-spaced.
+    .replace(/\s+/g, ' ')
+    .replace(CHROME_ELEMENTS, '\n')
+    .replace(LINE_BREAK, '\n')
+    .replace(LIST_ITEM, '\n• ')
+    .replace(BLOCK_END, '\n')
+    .replace(ANY_TAG, ' ');
+  // A list is one thing, so it is not opened by a blank line the paragraph tag put there.
+  return tidyLines(text).replace(/\n{2,}(?=• )/g, '\n');
+}
+
+/** The part of a page that holds its content, when the markup says which part that is. */
+const MAIN_ELEMENT = /<(main|article)\b[^>]*>([\s\S]*?)<\/\1\s*>/i;
+const BODY_ELEMENT = /<body\b[^>]*>([\s\S]*)<\/body\s*>/i;
+
+/**
+ * The readable text of a fetched page: its main content where the markup names one, the
+ * body otherwise, in both cases without the site's own furniture.
+ *
+ * This is the fallback for a posting whose structured data is thin — better a description
+ * taken from the page than an opening with nothing in it, and better the article than the
+ * whole document, since everything outside it is the website.
+ */
+export function readableTextFromHtml(html: string): string {
+  const withoutChrome = html.replace(CHROME_ELEMENTS, '\n');
+  const main = MAIN_ELEMENT.exec(withoutChrome)?.[2];
+  const body = BODY_ELEMENT.exec(withoutChrome)?.[1];
+  return htmlToText(main ?? body ?? withoutChrome);
+}
+
+/**
+ * Lines that belong to the website rather than to the job ad.
+ *
+ * Matched whole, never as a substring: "Search" on a line of its own is a navigation link,
+ * while "Search" inside "you will own our search stack" is the job. Anything that needs
+ * more judgment than that is left in — a note with one stray line is a small annoyance,
+ * a note missing a requirement is a wrong record.
+ */
+const CHROME_LINES = new Set([
+  'about',
+  'about us',
+  'accept',
+  'accept all',
+  'accept all cookies',
+  'accept cookies',
+  'all jobs',
+  'all rights reserved',
+  'apply',
+  'apply for this job',
+  'apply now',
+  'back',
+  'back to jobs',
+  'back to search results',
+  'careers',
+  'contact',
+  'contact us',
+  'cookie policy',
+  'cookie settings',
+  'cookies',
+  'create account',
+  'english',
+  'follow us',
+  'home',
+  'jobs',
+  'language',
+  'languages',
+  'learn more',
+  'loading',
+  'log in',
+  'log out',
+  'login',
+  'manage cookies',
+  'menu',
+  'my account',
+  'necessary cookies only',
+  'newsletter',
+  'next',
+  'previous',
+  'print',
+  'privacy',
+  'privacy policy',
+  'profile',
+  'read more',
+  'register',
+  'reject all',
+  'save job',
+  'search',
+  'search jobs',
+  'see all jobs',
+  'settings',
+  'share',
+  'share this job',
+  'show less',
+  'show more',
+  'sign in',
+  'sign up',
+  'skip to content',
+  'skip to main content',
+  'subscribe',
+  'svenska',
+  'terms',
+  'terms and conditions',
+  'terms of service',
+  'terms of use',
+  'view all jobs',
+]);
+
+/** A copyright line is the foot of the page wherever it appears. */
+const COPYRIGHT = /^(©|\(c\)|copyright\b)/i;
+
+/** Leading bullets and trailing punctuation, so "• Search:" is judged as "search". */
+const LINE_FURNITURE = /^[\s*•·\-–—|>]+|[\s:.,;!|]+$/g;
+
+/**
+ * Drop the lines a page carries around its posting.
+ *
+ * Applies to every route: the extension leaves out the page's navigation before it ever
+ * reads the text, but a description container can still end with a "Share this job" row,
+ * and a pasted copy of a page carries whatever the user's selection swept up.
+ */
+export function stripPageChrome(text: string): string {
+  const kept: string[] = [];
+  for (const line of tidyLines(text).split('\n')) {
+    const bare = line.replace(LINE_FURNITURE, '').toLowerCase();
+    if (bare !== '' && (CHROME_LINES.has(bare) || COPYRIGHT.test(bare))) continue;
+    // Two identical lines in a row are a page repeating itself, which nothing gains from.
+    if (line !== '' && kept[kept.length - 1] === line) continue;
+    kept.push(line);
+  }
+  return tidyLines(kept.join('\n'));
 }
 
 const REMOTE_WORDS = /\b(remote|distans|distansarbete|work from home|wfh|telecommute)\b/i;
@@ -347,29 +570,54 @@ function firstString(...values: unknown[]): string {
   return '';
 }
 
-/** `jobLocation` is variously an object, an array of them, or a bare string. */
+/** One `jobLocation` entry as a readable place, or '' when it names none. */
+function placeFromEntry(entry: unknown): string {
+  if (typeof entry === 'string') return clean(entry);
+  if (entry === null || typeof entry !== 'object') return '';
+
+  const place = entry as JsonLdNode;
+  const address = place.address;
+  if (typeof address === 'string') return clean(address);
+
+  if (address !== null && typeof address === 'object') {
+    const a = address as JsonLdNode;
+    const city = firstString(a.addressLocality, a.addressRegion);
+    const country = firstString(a.addressCountry, (a.addressCountry as JsonLdNode | undefined)?.name);
+    const written = clean([city, country].filter(Boolean).join(', '));
+    if (written !== '') return written;
+  }
+  // A Place with no address at all still often carries "Stockholm Office" as its name.
+  return clean(firstString(place.name));
+}
+
+/**
+ * Where the job is, out of a `JobPosting` node.
+ *
+ * `jobLocation` is variously an object, an array of them, or a bare string, and a fair
+ * number of postings leave it out entirely — a remote role says so with `jobLocationType`
+ * and names the countries it will hire from in `applicantLocationRequirements` instead.
+ * Reading only the first of those is what left the location box empty on postings that
+ * plainly stated where the work happens.
+ */
 function locationFromNode(node: JsonLdNode): string {
   const raw = node.jobLocation;
   const entries = Array.isArray(raw) ? raw : [raw];
   const parts: string[] = [];
   for (const entry of entries) {
-    if (typeof entry === 'string') {
-      parts.push(entry);
-      continue;
-    }
-    if (entry === null || typeof entry !== 'object') continue;
-    const address = (entry as JsonLdNode).address;
-    if (typeof address === 'string') {
-      parts.push(address);
-      continue;
-    }
-    if (address === null || typeof address !== 'object') continue;
-    const a = address as JsonLdNode;
-    const city = firstString(a.addressLocality, a.addressRegion);
-    const country = firstString(a.addressCountry, (a.addressCountry as JsonLdNode | undefined)?.name);
-    parts.push([city, country].filter(Boolean).join(', '));
+    const place = placeFromEntry(entry);
+    // The same city twice is how a posting lists two offices in one place.
+    if (place !== '' && !parts.includes(place)) parts.push(place);
   }
-  return parts.filter((part) => clean(part) !== '').join(' · ');
+  if (parts.length > 0) return parts.join(' · ');
+
+  const remote = firstString(node.jobLocationType).toUpperCase() === 'TELECOMMUTE';
+  const requirements = node.applicantLocationRequirements;
+  const where = (Array.isArray(requirements) ? requirements : [requirements])
+    .map((entry) => (typeof entry === 'string' ? clean(entry) : clean(firstString((entry as JsonLdNode | null)?.name))))
+    .filter((name) => name !== '');
+
+  if (where.length > 0) return remote ? `Remote (${where.join(', ')})` : where.join(' · ');
+  return remote ? 'Remote' : '';
 }
 
 function salaryFromNode(node: JsonLdNode): SalaryGuess {
@@ -451,6 +699,11 @@ export function parseJsonLdBlocks(blocks: readonly string[], url?: string): Post
   draft.jobUrl = orNull(jobUrl, 2000);
   draft.sourceName = jobUrl ? sourceFromUrl(jobUrl) : null;
 
+  // The posting's own `description`, which is the job ad and nothing else — no navigation,
+  // no cookie banner, no "Log in" from the page it was printed on. It is HTML in nearly
+  // every applicant tracking system, so it is read the way a reader would see it.
+  draft.notes = postingNote(htmlToText(firstString(node.description)));
+
   return draft;
 }
 
@@ -477,7 +730,17 @@ const COMPANY_SEPARATOR = /\s+[|·—–]\s+/;
  */
 const LOCATION_SEPARATOR = /\s+[|·—–-]\s+/;
 const SALARY_LINE = /\b(salary|compensation|pay|lön|lon|remuneration|base pay)\b/i;
-const LOCATION_LINE = /^(?:location|based in|plats|ort|locations?)\s*[:·-]\s*(?<value>.+)$/i;
+
+/**
+ * A line that labels a place: "Location: Stockholm", "Ort Kista", "Office · Malmö".
+ *
+ * The label may be followed by a separator or by nothing but space, because plenty of pages
+ * print the label and the value as two cells of a table that copy out as one line. That
+ * width is only safe because `looksLikeLocation` has the last word — without it, "Location
+ * matters to us, which is why every team chooses its own" would become a city.
+ */
+const LOCATION_LINE =
+  /^(?:(?:locations?|job locations?|work locations?|based in|plats|ort|arbetsort|placering)\s*(?:[:·|–—-]\s*|\s+)|(?:office|city|region|site)\s*[:·|–—-]\s*)(?<value>.+)$/i;
 
 /**
  * Whether a line could be a place rather than a sentence.
@@ -490,6 +753,25 @@ function looksLikeLocation(line: string): boolean {
   if (line.length > 60 || SALARY_LINE.test(line)) return false;
   if (/[.!?](\s|$)/.test(line)) return false;
   return line.split(/\s+/).length <= 6;
+}
+
+/**
+ * The place a block of text labels, if it labels one.
+ *
+ * The one location heuristic every route shares. A posting's page says where the job is in
+ * a line of its own far more often than its structured data does, so this is what the
+ * clipper and the link importer fall back to before leaving the box empty — which, on a
+ * site whose markup names no city, is what used to happen every time.
+ */
+export function locationFromText(text: string): string | null {
+  for (const line of tidyLines(text).split('\n')) {
+    const match = LOCATION_LINE.exec(line);
+    const value = match?.groups ? clean(match.groups.value!) : '';
+    if (value !== '' && looksLikeLocation(value)) {
+      return orNull(value.split(LOCATION_SEPARATOR)[0] ?? value, 200);
+    }
+  }
+  return null;
 }
 
 export function parsePostingText(text: string, url?: string): PostingDraft {
@@ -535,10 +817,6 @@ export function parsePostingText(text: string, url?: string): PostingDraft {
   }
 
   for (const line of lines) {
-    const locationMatch = LOCATION_LINE.exec(line);
-    if (locationMatch?.groups && draft.location === null) {
-      draft.location = orNull(locationMatch.groups.value!, 200);
-    }
     if (SALARY_LINE.test(line) && draft.salaryMin === null) {
       const salary = parseSalaryText(line);
       draft.salaryMin = salary.min;
@@ -547,11 +825,14 @@ export function parsePostingText(text: string, url?: string): PostingDraft {
     }
   }
 
+  draft.location ??= locationFromText(lines.join('\n'));
   draft.workMode = workModeFromText(`${draft.location ?? ''} ${text.slice(0, 4000)}`);
 
   // Everything pasted is kept as the opening's note: the parse above takes what it can
-  // recognize, and this makes sure nothing the user copied is thrown away.
-  draft.notes = orNull(text, 20000);
+  // recognize, and this makes sure nothing the user copied is thrown away — minus the rows
+  // of site navigation that come along when the copy was made from a page rather than from
+  // the posting itself.
+  draft.notes = postingNote(text);
 
   return draft;
 }

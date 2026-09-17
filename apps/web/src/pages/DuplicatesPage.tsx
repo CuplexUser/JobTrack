@@ -39,7 +39,7 @@ import type { DuplicateGroupResponse } from '../api/client.js';
 
 /** Stable across refetches, so a chosen keeper survives the list reloading. */
 function groupKey(group: DuplicateGroupResponse): string {
-  return [...group.members.map((m) => m.id)].sort().join('|');
+  return group.members.map((m) => m.id).sort().join('|');
 }
 
 export function DuplicatesPage() {

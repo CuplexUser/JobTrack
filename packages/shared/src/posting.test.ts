@@ -1,11 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalJobUrl,
+  htmlToText,
   isUsableDraft,
+  locationFromText,
   parseJsonLdPosting,
   parsePostingText,
   parseSalaryText,
+  postingNote,
+  readableTextFromHtml,
   sourceFromUrl,
+  stripPageChrome,
   workModeFromText,
 } from './posting.js';
 
@@ -185,6 +190,105 @@ describe('parseJsonLdPosting', () => {
   it('skips a malformed JSON-LD block instead of throwing', () => {
     const html = `<script type="application/ld+json">{ not json </script>${GREENHOUSE_HTML}`;
     expect(parseJsonLdPosting(html)?.companyName).toBe('Acme Robotics');
+  });
+
+  it('keeps the posting’s own description as the note, laid out as it reads', () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'JobPosting',
+      title: 'Backend Engineer',
+      hiringOrganization: { name: 'Acme' },
+      description:
+        '<p>You will own our deployment pipeline.</p><ul><li>Go</li><li>Kubernetes</li></ul>',
+    })}</script>`;
+
+    const draft = parseJsonLdPosting(html);
+    expect(draft!.notes).toBe('You will own our deployment pipeline.\n• Go\n• Kubernetes');
+  });
+
+  it('names the place a remote posting hires from, rather than none at all', () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'JobPosting',
+      title: 'Platform Engineer',
+      hiringOrganization: { name: 'Initech' },
+      jobLocationType: 'TELECOMMUTE',
+      applicantLocationRequirements: { '@type': 'Country', name: 'Sweden' },
+    })}</script>`;
+
+    const draft = parseJsonLdPosting(html);
+    expect(draft!.location).toBe('Remote (Sweden)');
+    expect(draft!.workMode).toBe('remote');
+  });
+
+  it('takes a Place’s name when it carries no address, and lists two offices once each', () => {
+    const html = `<script type="application/ld+json">${JSON.stringify({
+      '@type': 'JobPosting',
+      title: 'Designer',
+      hiringOrganization: { name: 'Acme' },
+      jobLocation: [
+        { '@type': 'Place', name: 'Stockholm Office' },
+        { '@type': 'Place', address: { addressLocality: 'Malmö' } },
+        { '@type': 'Place', address: { addressLocality: 'Malmö' } },
+      ],
+    })}</script>`;
+
+    expect(parseJsonLdPosting(html)!.location).toBe('Stockholm Office · Malmö');
+  });
+});
+
+describe('htmlToText', () => {
+  it('reads markup the way the page reads, and drops what is not the posting', () => {
+    const html = `
+      <body>
+        <nav><a href="/login">Log in</a><a href="/search">Search</a></nav>
+        <main>
+          <h1>Backend Engineer</h1>
+          <p>Stockholm &amp; remote.</p>
+          <ul><li>Go</li><li>Kubernetes</li></ul>
+        </main>
+        <footer>© 2026 Acme</footer>
+      </body>`;
+
+    expect(htmlToText(html)).toBe('Backend Engineer\nStockholm & remote.\n• Go\n• Kubernetes');
+  });
+
+  it('prefers the main content over the whole document', () => {
+    const html = '<body><div>Cookie banner</div><article><p>The job.</p></article></body>';
+    expect(readableTextFromHtml(html)).toBe('The job.');
+  });
+});
+
+describe('stripPageChrome', () => {
+  it('drops the lines that belong to the website rather than the job', () => {
+    const note = stripPageChrome(
+      ['Skip to content', 'Language', 'Search', 'Backend Engineer', 'Log in', '© 2026 Acme'].join(
+        '\n',
+      ),
+    );
+    expect(note).toBe('Backend Engineer');
+  });
+
+  it('leaves the same words alone when they are part of a sentence', () => {
+    const text = 'You will own our search stack and share what you learn.';
+    expect(stripPageChrome(text)).toBe(text);
+  });
+
+  it('is nothing rather than empty when a page had nothing but chrome', () => {
+    expect(postingNote('Menu\nLog in\n\n\nSearch')).toBeNull();
+  });
+});
+
+describe('locationFromText', () => {
+  it('reads a labelled location, with or without a separator', () => {
+    expect(locationFromText('Backend Engineer\nLocation: Stockholm, Sweden')).toBe('Stockholm, Sweden');
+    expect(locationFromText('Location Kista\nApply now')).toBe('Kista');
+    expect(locationFromText('Ort: Göteborg - hybrid')).toBe('Göteborg');
+  });
+
+  it('does not read a sentence that happens to start with the word', () => {
+    expect(
+      locationFromText('Location matters to us, which is why every team picks its own office.'),
+    ).toBeNull();
+    expect(locationFromText('We are hiring in Stockholm.')).toBeNull();
   });
 });
 

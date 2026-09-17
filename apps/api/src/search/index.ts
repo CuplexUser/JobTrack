@@ -171,7 +171,7 @@ export class SearchIndex {
 
     // Drop vectors for documents that no longer exist, so a deleted application cannot
     // keep scoring in semantic results.
-    for (const key of [...this.#vectors.keys()]) {
+    for (const key of this.#vectors.keys()) {
       if (!this.#docs.has(key)) this.#vectors.delete(key);
     }
   }

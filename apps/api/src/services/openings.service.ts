@@ -69,7 +69,14 @@ export async function listOpenings(
 async function readOpenings(repos: Repos, includeArchived: boolean): Promise<JobOpeningView[]> {
   const rows = await repos.jobOpenings.findMany({
     ...(includeArchived ? {} : { where: { archived: false } }),
-    orderBy: [{ field: 'savedOn', direction: 'desc' }],
+    // `savedOn` is a date with no time in it, so a day's worth of openings would otherwise
+    // come back in whatever order the table happens to hold them — which is insertion
+    // order, the exact opposite of newest first. `createdAt` breaks the tie the way the
+    // user means it: the one saved last is the one listed first.
+    orderBy: [
+      { field: 'savedOn', direction: 'desc' },
+      { field: 'createdAt', direction: 'desc' },
+    ],
   });
   if (rows.length === 0) return [];
 

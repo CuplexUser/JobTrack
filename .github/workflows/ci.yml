@@ -1,6 +1,6 @@
 name: CI
 
-# Typecheck plus the full vitest suite (apps/api, apps/web and packages/shared), so
+# Lint, typecheck and the full vitest suite (apps/api, apps/web and packages/shared), so
 # regressions are caught before merge rather than at publish time.
 on:
   push:
@@ -34,6 +34,14 @@ jobs:
       - run: npm ci
         env:
           ONNXRUNTIME_NODE_INSTALL: skip
+
+      # Oxlint needs no build and takes well under a second on this repo, so it runs first:
+      # an unused import is worth hearing about before a three-minute typecheck and suite.
+      # Warnings are reported without failing the run; only the `correctness` rules do that.
+      # The tree is at zero of both, so `--deny-warnings` is available whenever that is worth
+      # enforcing rather than trusting.
+      - name: Lint
+        run: npm run lint
 
       # `tsc --build --force` walks the project references in tsconfig.json, so this also
       # builds @jobtrack/shared's dist — which the test run needs.

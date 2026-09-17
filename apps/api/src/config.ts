@@ -116,7 +116,7 @@ function resolveDatabaseFile(dataDir: string, configured: string | undefined): s
   const dataFolder = resolve(dataDir, 'data');
   if (configured === undefined || configured.trim() === '') return resolve(dataFolder, 'jobtrack.db');
   const trimmed = configured.trim();
-  return /[\/]/.test(trimmed) ? resolve(dataDir, trimmed) : resolve(dataFolder, trimmed);
+  return /[/]/.test(trimmed) ? resolve(dataDir, trimmed) : resolve(dataFolder, trimmed);
 }
 
 export function loadConfig(env: NodeJS.ProcessEnv = process.env): Config {

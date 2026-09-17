@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
 import {
   convertOpening,
@@ -69,6 +69,25 @@ describe('listOpenings', () => {
 
     const bySource = await listOpenings(repos, { source: 'linked' });
     expect(bySource.map((o) => o.jobTitle)).toEqual(['B']);
+  });
+
+  it('is newest first within a day, not oldest first', async () => {
+    // `savedOn` holds no time, so three openings saved today are a three-way tie that only
+    // the moment they were created can break — and the last one saved is the newest. The
+    // clock is moved by hand because that moment is what decides it, and three creates in
+    // a test run land in the same millisecond.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      for (const [index, jobTitle] of ['A', 'B', 'C'].entries()) {
+        vi.setSystemTime(new Date(`2026-09-17T09:0${index}:00Z`));
+        await createOpening(repos, openingInput({ jobTitle, savedOn: '2026-09-17' }));
+      }
+      await createOpening(repos, openingInput({ jobTitle: 'Older', savedOn: '2026-09-16' }));
+    } finally {
+      vi.useRealTimers();
+    }
+
+    expect((await listOpenings(repos)).map((o) => o.jobTitle)).toEqual(['C', 'B', 'A', 'Older']);
   });
 });
 

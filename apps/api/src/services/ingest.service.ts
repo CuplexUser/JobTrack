@@ -15,9 +15,13 @@
 
 import {
   STATUS_LABELS,
+  locationFromText,
   parseJsonLdPosting,
   parsePostingText,
+  postingNote,
+  readableTextFromHtml,
   sourceFromUrl,
+  workModeFromText,
   type JobApplicationView,
   type JobOpeningView,
   type PostingDraft,
@@ -230,6 +234,29 @@ async function verdictFor(
   return checkDuplicates(repos, search, { company: draft.companyName, title: draft.jobTitle });
 }
 
+/**
+ * Fill in what a posting's structured data left out, from the page it was read off.
+ *
+ * Structured data is stated by the site and so is trusted first, but it is routinely
+ * partial: a `JobPosting` with no `jobLocation`, or with the description carried only in
+ * the visible markup, is ordinary. Taking those two from the page is the difference between
+ * a draft that says where the job is and one whose location box the user fills in by hand
+ * every time.
+ *
+ * The page's own furniture — navigation, cookie banner, footer — is dropped before any of
+ * this, so what lands in the note is the posting rather than the website around it.
+ */
+function fillFromPage(draft: PostingDraft, html: string): void {
+  if (draft.location !== null && draft.notes !== null && draft.workMode !== 'unspecified') return;
+
+  const text = readableTextFromHtml(html);
+  draft.location ??= locationFromText(text);
+  draft.notes ??= postingNote(text);
+  if (draft.workMode === 'unspecified') {
+    draft.workMode = workModeFromText(`${draft.location ?? ''} ${text.slice(0, 4000)}`);
+  }
+}
+
 export async function ingestUrl(
   repos: Repos,
   search: SearchIndex,
@@ -246,6 +273,7 @@ export async function ingestUrl(
   // detail of the board, but it is what identifies the source system.
   draft.jobUrl = url;
   draft.sourceName = sourceFromUrl(finalUrl) ?? sourceFromUrl(url);
+  fillFromPage(draft, html);
 
   return { draft, duplicate: await verdictFor(repos, search, draft) };
 }

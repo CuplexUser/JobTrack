@@ -46,8 +46,10 @@ export function NotesPage() {
   const { data, isLoading } = useNotes(scope === 'all' ? {} : { targetType: scope });
   const remove = useDeleteNote();
 
-  const allNotes = data?.notes ?? [];
+  // Keyed on `data` rather than on a `data?.notes ?? []` read outside: that fallback is a
+  // new empty array on every render, which is a dependency that never compares equal.
   const notes = useMemo(() => {
+    const allNotes = data?.notes ?? [];
     const needle = query.trim().toLowerCase();
     if (!needle) return allNotes;
     return allNotes.filter(
@@ -56,7 +58,7 @@ export function NotesPage() {
         note.body.toLowerCase().includes(needle) ||
         (note.targetLabel?.toLowerCase().includes(needle) ?? false),
     );
-  }, [allNotes, query]);
+  }, [data, query]);
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
