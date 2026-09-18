@@ -119,6 +119,20 @@ describe('findMatchingOpening', () => {
     ).toBeNull();
   });
 
+  it('falls back to title when a link is just the company\'s domain, not a specific posting', async () => {
+    // What actually happened: an MCP client filled `jobUrl` with the company's careers
+    // domain (no path) rather than leaving it out, which used to compare it byte-for-byte
+    // against a real posting link, find no match, and let a second copy through.
+    await createOpening(repos, openingInput({ jobUrl: 'https://nexergroup.teamtailor.com' }));
+
+    const match = await findMatchingOpening(
+      repos,
+      posting({ jobUrl: 'https://arbetsformedlingen.se/platsbanken/annonser/31465602' }),
+    );
+
+    expect(match?.jobTitle).toBe('Backend Engineer');
+  });
+
   it('falls back to company and title when either side has no link', async () => {
     await createOpening(repos, openingInput());
 

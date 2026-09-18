@@ -147,11 +147,29 @@ export function samePosting(
   posting: Pick<OpeningIdentity, 'jobTitle' | 'jobUrl'>,
   row: { jobTitle: string; jobUrl: string | null },
 ): boolean {
-  const url = posting.jobUrl ? canonicalJobUrl(posting.jobUrl) : null;
-  const rowUrl = row.jobUrl ? canonicalJobUrl(row.jobUrl) : null;
+  const url = specificJobUrl(posting.jobUrl);
+  const rowUrl = specificJobUrl(row.jobUrl);
   if (url && rowUrl) return url === rowUrl;
   const key = titleKey(posting.jobTitle);
   return key !== '' && titleKey(row.jobTitle) === key;
+}
+
+/**
+ * `canonicalJobUrl`, but null for a bare domain — a company's careers home page rather than
+ * a link to one specific posting. That kind of link says nothing about which job it is, so
+ * treating it as "this posting" would make it collide with every other job saved from the
+ * same site and, worse, block the title match this same-URL check is meant to defer to: a
+ * chat client that filled in the company's domain because no real link was on hand should
+ * not stop "Cloud Engineer at Nexer Group" saved twice from being caught as one posting.
+ *
+ * A host can never itself contain `/` or `?` (`canonicalJobUrl`'s own parsing depends on
+ * that), so either character surviving into the canonical form only happens when there was a
+ * real path or query to go with it.
+ */
+function specificJobUrl(url: string | null): string | null {
+  if (!url) return null;
+  const canonical = canonicalJobUrl(url);
+  return canonical && /[/?]/.test(canonical) ? canonical : null;
 }
 
 /**
