@@ -8,7 +8,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { buildDraft } from '../src/extract.js';
+import { buildDraft, simplifyLocation } from '../src/extract.js';
 import type { PageSnapshot } from '../src/page-reader.js';
 
 function snapshot(overrides: Partial<PageSnapshot> = {}): PageSnapshot {
@@ -127,5 +127,100 @@ describe('buildDraft', () => {
     expect(draft.jobTitle).toBe('Backend Engineer');
     expect(draft.companyName).toBe('Acme');
     expect(draft.notes).toBe('You will own the build pipeline.');
+  });
+
+  it('reads LinkedIn’s "Company hiring Title in Location" tab title when the selectors miss', () => {
+    const { draft, method } = buildDraft(
+      snapshot({
+        url: 'https://www.linkedin.com/jobs/view/99',
+        hostname: 'www.linkedin.com',
+        title: 'Volvo Cars hiring Platform Engineer in Gothenburg, Sweden | LinkedIn',
+        fields: { title: '', company: '', location: '', salary: '', description: '' },
+      }),
+    );
+
+    expect(method).toContain('linkedin.com');
+    expect(draft.companyName).toBe('Volvo Cars');
+    expect(draft.jobTitle).toBe('Platform Engineer');
+    expect(draft.location).toBe('Gothenburg, Sweden');
+    expect(draft.sourceName).toBe('LinkedIn');
+  });
+
+  it('does not misread Indeed’s title as naming a company when it only names a location', () => {
+    // Indeed's title is often "Title - Location - Indeed.com" with no company at all. The
+    // generic "second line is the company" fallback used to read "Gothenburg" as the employer.
+    const { draft, method } = buildDraft(
+      snapshot({
+        url: 'https://www.indeed.com/viewjob?jk=abc',
+        hostname: 'www.indeed.com',
+        title: 'Platform Engineer - Gothenburg - Indeed.com',
+        fields: { title: '', company: '', location: '', salary: '', description: '' },
+      }),
+    );
+
+    expect(method).toContain('indeed.com');
+    expect(draft.jobTitle).toBe('Platform Engineer');
+    expect(draft.companyName).toBe('');
+    expect(draft.location).toBe('Gothenburg');
+  });
+
+  it('reads company and location out of Indeed’s title when both are present', () => {
+    const { draft } = buildDraft(
+      snapshot({
+        url: 'https://www.indeed.com/viewjob?jk=abc',
+        hostname: 'www.indeed.com',
+        title: 'Platform Engineer - Volvo Cars - Gothenburg - Indeed.com',
+        fields: { title: '', company: '', location: '', salary: '', description: '' },
+      }),
+    );
+
+    expect(draft.jobTitle).toBe('Platform Engineer');
+    expect(draft.companyName).toBe('Volvo Cars');
+    expect(draft.location).toBe('Gothenburg');
+  });
+
+  it('reads å/ä/ö in a Swedish city name out of LinkedIn and Indeed titles', () => {
+    const linkedin = buildDraft(
+      snapshot({
+        url: 'https://www.linkedin.com/jobs/view/99',
+        hostname: 'www.linkedin.com',
+        title: 'Klarna hiring Backend-utvecklare in Malmö, Skåne län | LinkedIn',
+        fields: { title: '', company: '', location: '', salary: '', description: '' },
+      }),
+    ).draft;
+    expect(linkedin.companyName).toBe('Klarna');
+    expect(linkedin.jobTitle).toBe('Backend-utvecklare');
+    expect(linkedin.location).toBe('Malmö, Skåne län');
+
+    const indeed = buildDraft(
+      snapshot({
+        url: 'https://www.indeed.com/viewjob?jk=abc',
+        hostname: 'www.indeed.com',
+        title: 'Backend-utvecklare - Volvo Cars - Göteborg - Indeed.com',
+        fields: { title: '', company: '', location: '', salary: '', description: '' },
+      }),
+    ).draft;
+    expect(indeed.jobTitle).toBe('Backend-utvecklare');
+    expect(indeed.companyName).toBe('Volvo Cars');
+    expect(indeed.location).toBe('Göteborg');
+  });
+});
+
+describe('simplifyLocation', () => {
+  it('drops a region behind a plain "City, Region" pair', () => {
+    expect(simplifyLocation('Lund, Skåne län')).toBe('Lund');
+    expect(simplifyLocation('Malmö, Skåne län')).toBe('Malmö');
+  });
+
+  it('leaves a location with no comma alone', () => {
+    expect(simplifyLocation('Lund')).toBe('Lund');
+  });
+
+  it('leaves a parenthesized remote location alone, comma and all', () => {
+    expect(simplifyLocation('Remote (Sweden, Norway)')).toBe('Remote (Sweden, Norway)');
+  });
+
+  it('leaves more than two comma-separated parts alone, rather than guess which is the city', () => {
+    expect(simplifyLocation('Lund, Skåne, Sweden')).toBe('Lund, Skåne, Sweden');
   });
 });

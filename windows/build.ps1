@@ -41,7 +41,7 @@
     ./windows/build.ps1 -Source Local -SkipSmoke
 
 .EXAMPLE
-    ./windows/build.ps1 -Source Registry -Version 1.8.0
+    ./windows/build.ps1 -Source Registry -Version 1.8.1
 #>
 [CmdletBinding()]
 param(

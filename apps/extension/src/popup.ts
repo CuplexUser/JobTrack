@@ -7,11 +7,11 @@
  * about to save another posting from the same company.
  */
 
-import type { PostingDraft } from '@jobtrack/shared/posting';
+import { isUsableDraft, type PostingDraft } from '@jobtrack/shared/posting';
 // Types only, so the root entry point (and the zod it carries) never reaches this bundle.
 import type { DuplicateCheck } from '@jobtrack/shared';
 import { canReachJobTrack, ext, NO_ACCESS_MESSAGE } from './browser-api.js';
-import { buildDraft } from './extract.js';
+import { buildDraft, simplifyLocation } from './extract.js';
 import { readPage, type PageSnapshot } from './page-reader.js';
 import { rulesFor } from './sites.js';
 import { ApiCallError, callApi, loadSettings, type Settings } from './settings.js';
@@ -19,6 +19,30 @@ import { ApiCallError, callApi, loadSettings, type Settings } from './settings.j
 interface ClipResponse {
   duplicate: DuplicateCheck & { company: { name: string } | null };
   opening: { id: string };
+}
+
+interface IngestUrlResponse {
+  draft: PostingDraft;
+}
+
+/**
+ * Sites whose own page carries none of the posting — Platsbanken renders it entirely
+ * client-side after load — so reading the tab's DOM cannot win here even in principle. The
+ * server can, since it now knows to ask Arbetsförmedlingen's own API instead of fetching the
+ * page (see `ingestUrl` in the API), and it is the same request the web app's "Paste a link"
+ * tab makes.
+ */
+const SERVER_READ_HOSTS = ['arbetsformedlingen.se'];
+
+function needsServerRead(hostname: string): boolean {
+  return SERVER_READ_HOSTS.some((host) => hostname === host || hostname.endsWith(`.${host}`));
+}
+
+/** Applies the **Settings → Show city only** preference, wherever the draft came from. */
+function applyLocationPreference(target: PostingDraft): void {
+  if (settings.locationCityOnly && target.location) {
+    target.location = simplifyLocation(target.location);
+  }
 }
 
 const $ = <T extends HTMLElement>(id: string): T => document.getElementById(id) as T;
@@ -92,6 +116,23 @@ async function readCurrentTab(): Promise<void> {
   } catch {
     hostname = '';
   }
+
+  if (tab.url && needsServerRead(hostname) && settings.token) {
+    try {
+      const result = await callApi<IngestUrlResponse>(settings, '/api/ingest/url', { url: tab.url });
+      if (isUsableDraft(result.draft)) {
+        draft = result.draft;
+        applyLocationPreference(draft);
+        fillForm(draft);
+        $('method').textContent = 'Read from Arbetsförmedlingen’s own job data.';
+        setStatus('', 'info');
+        return;
+      }
+    } catch {
+      // Falls through to the ordinary page read below.
+    }
+  }
+
   const rules = rulesFor(hostname);
 
   let snapshot: PageSnapshot;
@@ -118,6 +159,7 @@ async function readCurrentTab(): Promise<void> {
 
   const extraction = buildDraft(snapshot);
   draft = extraction.draft;
+  applyLocationPreference(draft);
   fillForm(draft);
 
   $('method').textContent = `Read from ${extraction.method}.`;

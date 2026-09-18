@@ -1,17 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import {
   canonicalJobUrl,
+  draftFromPlatsbankenAd,
   htmlToText,
   isUsableDraft,
   locationFromText,
   parseJsonLdPosting,
   parsePostingText,
   parseSalaryText,
+  platsbankenAdId,
   postingNote,
   readableTextFromHtml,
   sourceFromUrl,
   stripPageChrome,
   workModeFromText,
+  type PlatsbankenAd,
 } from './posting.js';
 
 /**
@@ -350,5 +353,69 @@ describe('parsePostingText', () => {
     const draft = parsePostingText('');
     expect(isUsableDraft(draft)).toBe(false);
     expect(draft.companyName).toBe('');
+  });
+});
+
+describe('platsbankenAdId', () => {
+  it('reads the ad id out of a Platsbanken URL', () => {
+    expect(platsbankenAdId('https://arbetsformedlingen.se/platsbanken/annonser/31477656')).toBe(
+      '31477656',
+    );
+  });
+
+  it('is null for anything else', () => {
+    expect(platsbankenAdId('https://arbetsformedlingen.se/platsbanken/sok')).toBeNull();
+    expect(platsbankenAdId('https://boards.greenhouse.io/acme/jobs/7')).toBeNull();
+  });
+});
+
+describe('draftFromPlatsbankenAd', () => {
+  /** Trimmed down from the real `GET /ad/31477656` response, the case this was built for. */
+  const AD: PlatsbankenAd = {
+    headline: 'Senior .NET Developer, Workflow Engine',
+    description: {
+      text_formatted: '<strong>About the Company</strong><p>Avaron builds things.</p>',
+    },
+    employer: { name: 'Avaron AB' },
+    workplace_model: { label: 'Arbete på plats' },
+    workplace_address: { municipality: 'Lund', region: 'Skåne län' },
+    salary_description: null,
+  };
+
+  it('reads the fields a Platsbanken ad states', () => {
+    const draft = draftFromPlatsbankenAd(AD, 'https://arbetsformedlingen.se/platsbanken/annonser/31477656');
+    expect(draft.companyName).toBe('Avaron AB');
+    expect(draft.jobTitle).toBe('Senior .NET Developer, Workflow Engine');
+    expect(draft.location).toBe('Lund, Skåne län');
+    expect(draft.workMode).toBe('onsite');
+    expect(draft.notes).toContain('About the Company');
+    expect(draft.notes).toContain('Avaron builds things.');
+    expect(draft.sourceName).toBe('Arbetsförmedlingen');
+    expect(draft.jobUrl).toBe('https://arbetsformedlingen.se/platsbanken/annonser/31477656');
+  });
+
+  it('reads a remote or hybrid workplace model', () => {
+    expect(draftFromPlatsbankenAd({ ...AD, workplace_model: { label: 'Hybridarbete' } }, 'x').workMode).toBe(
+      'hybrid',
+    );
+    expect(
+      draftFromPlatsbankenAd({ ...AD, workplace_model: { label: 'Arbete på distans' } }, 'x').workMode,
+    ).toBe('remote');
+  });
+
+  it('drops a region that repeats the municipality', () => {
+    const draft = draftFromPlatsbankenAd(
+      { ...AD, workplace_address: { municipality: 'Stockholm', region: 'Stockholm' } },
+      'x',
+    );
+    expect(draft.location).toBe('Stockholm');
+  });
+
+  it('carries å/ä/ö through the municipality and region untouched', () => {
+    const draft = draftFromPlatsbankenAd(
+      { ...AD, workplace_address: { municipality: 'Malmö', region: 'Skåne län' } },
+      'x',
+    );
+    expect(draft.location).toBe('Malmö, Skåne län');
   });
 });

@@ -17,7 +17,7 @@
  */
 
 import { ext } from './browser-api.js';
-import { ApiCallError, callApi, saveSettings, type Settings } from './settings.js';
+import { ApiCallError, callApi, loadSettings, saveSettings, type Settings } from './settings.js';
 
 /** How long the page waits for the user to press Allow before giving up. */
 const ALLOW_TIMEOUT_MS = 5 * 60 * 1000;
@@ -99,9 +99,13 @@ function tabLoaded(tabId: number): Promise<void> {
 }
 
 export async function connectToJobTrack(baseUrl: string): Promise<ConnectResult> {
+  // Connecting only ever changes the address and the token; whatever the location preference
+  // was stays as it was, rather than silently resetting to its default on every reconnect.
+  const { locationCityOnly } = await loadSettings();
+
   let meta: { version: string; connectPage?: string };
   try {
-    meta = await callApi<{ version: string; connectPage?: string }>({ baseUrl, token: '' }, '/api/meta');
+    meta = await callApi<{ version: string; connectPage?: string }>({ baseUrl, token: '', locationCityOnly }, '/api/meta');
   } catch (error) {
     return { ok: false, reason: 'unreachable', message: error instanceof Error ? error.message : String(error) };
   }
@@ -143,7 +147,7 @@ export async function connectToJobTrack(baseUrl: string): Promise<ConnectResult>
     return { ok: false, reason: 'timeout', message: 'Nobody pressed Allow in time. Press Connect to try again.' };
   }
 
-  const settings: Settings = { baseUrl, token };
+  const settings: Settings = { baseUrl, token, locationCityOnly };
   await saveSettings(settings);
 
   try {

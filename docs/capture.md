@@ -24,8 +24,9 @@ the problem, and it decides which route to use:
 |---|---|---|---|
 | Greenhouse, Lever, Ashby, Workday, most career pages | ✅ best | ✅ | ✅ |
 | LinkedIn, Indeed, Glassdoor | ❌ blocked | ✅ | ✅ |
+| Platsbanken (arbetsformedlingen.se) | ✅ via its own API | ✅ | ✅ (routed through the API) |
 | Needs the page open in your browser | no | no | yes |
-| Needs the API to reach the internet | yes | no | no |
+| Needs the API to reach the internet | yes | no | yes, for Platsbanken only |
 
 **Paste a link** (`POST /api/ingest/url`) fetches the page and reads the
 [`schema.org/JobPosting`](https://schema.org/JobPosting) JSON-LD that most applicant
@@ -35,6 +36,15 @@ often the location, and nearly as often the description — is taken from the pa
 read the way the extension reads one: main content only, no navigation and no footer. When a
 site refuses, the API answers `422 ingest_blocked` and the UI moves you to the next tab
 rather than showing a generic failure.
+
+Platsbanken is the one exception to "read the page": it is a client-rendered SPA, so a
+fetched page is always the same empty app shell, whatever ad is in the URL — there is no
+JSON-LD to find there. A `arbetsformedlingen.se/platsbanken/annonser/<id>` link is instead
+read from Arbetsförmedlingen's own public [Jobsearch
+API](https://jobsearch.api.jobtechdev.se/), keyed by the same ID that is in the URL. The
+extension takes the same detour for the same reason: it cannot reach that API directly (its
+`host_permissions` name only the local JobTrack), so a Platsbanken tab is read by asking the
+local API rather than by inspecting the tab's DOM.
 
 **Paste the text** (`POST /api/ingest/text`) parses what you copied, with no network
 involved. Heuristics, and honest about it: the first line is usually the title, a "Title at

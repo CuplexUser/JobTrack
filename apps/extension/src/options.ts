@@ -36,7 +36,11 @@ function typedBaseUrl(): string {
 
 /** Whatever is in the boxes right now, normalized the same way storage normalizes it. */
 function typedSettings(): Settings {
-  return { baseUrl: typedBaseUrl(), token: $<HTMLInputElement>('token').value.trim() };
+  return {
+    baseUrl: typedBaseUrl(),
+    token: $<HTMLInputElement>('token').value.trim(),
+    locationCityOnly: $<HTMLInputElement>('locationCityOnly').checked,
+  };
 }
 
 /**
@@ -114,9 +118,18 @@ async function main(): Promise<void> {
   const settings = await loadSettings();
   $<HTMLInputElement>('baseUrl').value = settings.baseUrl;
   $<HTMLInputElement>('token').value = settings.token;
+  $<HTMLInputElement>('locationCityOnly').checked = settings.locationCityOnly;
 
   $('connect').addEventListener('click', () => void connect());
   $('test').addEventListener('click', () => void saveAndTest());
+  // Saved the moment it changes, independent of the address/token below: it is not part of
+  // connecting, and making someone press "Save and test" — which needs a token typed in — to
+  // store an unrelated preference would be a strange thing to require.
+  $<HTMLInputElement>('locationCityOnly').addEventListener('change', (event) => {
+    void loadSettings().then((current) =>
+      saveSettings({ ...current, locationCityOnly: (event.target as HTMLInputElement).checked }),
+    );
+  });
 
   if (settings.token === '') {
     setStatus('Not connected yet. Start JobTrack, then press Connect to JobTrack.', 'info');

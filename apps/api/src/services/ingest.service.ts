@@ -15,15 +15,18 @@
 
 import {
   STATUS_LABELS,
+  draftFromPlatsbankenAd,
   locationFromText,
   parseJsonLdPosting,
   parsePostingText,
+  platsbankenAdId,
   postingNote,
   readableTextFromHtml,
   sourceFromUrl,
   workModeFromText,
   type JobApplicationView,
   type JobOpeningView,
+  type PlatsbankenAd,
   type PostingDraft,
 } from '@jobtrack/shared';
 import type { Repos } from '../db/repos.js';
@@ -214,6 +217,25 @@ async function fetchPosting(url: string): Promise<{ html: string; finalUrl: stri
   throw new IngestBlockedError('That link redirected too many times.');
 }
 
+/**
+ * Arbetsförmedlingen's Jobsearch API: public, unauthenticated, and the only place Platsbanken's
+ * own content can be read from, since the site itself renders it client-side (see
+ * `ingestUrl` below). Returns `null` on any failure so the caller can fall back to the
+ * generic page-fetch path rather than hard-failing on a site known to need this detour.
+ */
+async function fetchPlatsbankenAd(id: string): Promise<PlatsbankenAd | null> {
+  try {
+    const response = await fetch(`https://jobsearch.api.jobtechdev.se/ad/${id}`, {
+      signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+      headers: { accept: 'application/json' },
+    });
+    if (!response.ok) return null;
+    return (await response.json()) as PlatsbankenAd;
+  } catch {
+    return null;
+  }
+}
+
 /** The verdict for a draft. A draft with no company yet cannot be checked against anything. */
 async function verdictFor(
   repos: Repos,
@@ -262,6 +284,19 @@ export async function ingestUrl(
   search: SearchIndex,
   url: string,
 ): Promise<IngestResult> {
+  // Platsbanken renders every posting client-side, so a fetched page never carries the ad —
+  // only the empty app shell, whatever the URL. Its own public API is read instead, and this
+  // has to happen before the generic fetch, which would otherwise see that empty shell and
+  // report the site as publishing no structured data, which is technically true and useless.
+  const adId = platsbankenAdId(url);
+  if (adId) {
+    const ad = await fetchPlatsbankenAd(adId);
+    if (ad) {
+      const draft = draftFromPlatsbankenAd(ad, url);
+      return { draft, duplicate: await verdictFor(repos, search, draft) };
+    }
+  }
+
   const { html, finalUrl } = await fetchPosting(url);
   const draft = parseJsonLdPosting(html, finalUrl);
   if (!draft) {

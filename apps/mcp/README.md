@@ -36,7 +36,7 @@ npm install -g @jobtrack/mcp
 
 A global install is not updated by anything else, including updating the `jobtrack` tray app.
 Run `npm install -g @jobtrack/mcp@latest` to update it, then restart the MCP client. The server
-prints its version when it starts (`[jobtrack-mcp] 1.5.0 ready`), which MCP clients keep in
+prints its version when it starts (`[jobtrack-mcp] 1.5.1 ready`), which MCP clients keep in
 their logs.
 
 Then point an MCP client at the installed `jobtrack-mcp` command:

@@ -707,6 +707,69 @@ export function parseJsonLdBlocks(blocks: readonly string[], url?: string): Post
   return draft;
 }
 
+// ---------------------------------------------------------------- Platsbanken
+
+/**
+ * Arbetsförmedlingen's Platsbanken publishes no JSON-LD at all — it is a client-rendered
+ * SPA, so a server-side fetch only ever sees the empty app shell, whichever ad ID is in the
+ * URL. But every ad also has a page on JobTech Dev's public, unauthenticated Jobsearch API,
+ * keyed by the same numeric ID that is in the Platsbanken URL, so that is read instead of the
+ * page itself.
+ */
+const PLATSBANKEN_AD_URL = /arbetsformedlingen\.se\/platsbanken\/annonser\/(\d+)/i;
+
+export function platsbankenAdId(url: string): string | null {
+  return PLATSBANKEN_AD_URL.exec(url)?.[1] ?? null;
+}
+
+/** The fields this reads off `GET https://jobsearch.api.jobtechdev.se/ad/<id>`. */
+export interface PlatsbankenAd {
+  headline?: unknown;
+  description?: { text?: unknown; text_formatted?: unknown } | null;
+  employer?: { name?: unknown } | null;
+  workplace_model?: { label?: unknown } | null;
+  workplace_address?: { municipality?: unknown; region?: unknown } | null;
+  salary_description?: unknown;
+}
+
+/** "Arbete på plats" / "Hybridarbete" / "Arbete på distans" -> the `WorkMode` they describe. */
+function workModeFromPlatsbankenLabel(label: string): WorkMode | null {
+  const lower = label.toLowerCase();
+  if (lower.includes('distans')) return 'remote';
+  if (lower.includes('hybrid')) return 'hybrid';
+  if (lower.includes('plats')) return 'onsite';
+  return null;
+}
+
+export function draftFromPlatsbankenAd(ad: PlatsbankenAd, url: string): PostingDraft {
+  const draft = emptyDraft();
+  draft.companyName = clean(firstString(ad.employer?.name));
+  draft.jobTitle = clean(firstString(ad.headline));
+
+  const address = ad.workplace_address;
+  const municipality = clean(firstString(address?.municipality));
+  const region = clean(firstString(address?.region));
+  const place = region && region !== municipality ? `${municipality}, ${region}` : municipality;
+  draft.location = orNull(place, 200);
+
+  const modelLabel = clean(firstString(ad.workplace_model?.label));
+  const html = firstString(ad.description?.text_formatted, ad.description?.text);
+  const note = postingNote(html.includes('<') ? htmlToText(html) : html);
+  draft.notes = note;
+  draft.workMode =
+    workModeFromPlatsbankenLabel(modelLabel) ??
+    workModeFromText(`${draft.location ?? ''} ${modelLabel} ${note ?? ''}`.slice(0, 4000));
+
+  const salary = parseSalaryText(clean(firstString(ad.salary_description)));
+  draft.salaryMin = salary.min;
+  draft.salaryMax = salary.max;
+  draft.salaryCurrency = salary.currency;
+
+  draft.jobUrl = orNull(url, 2000);
+  draft.sourceName = sourceFromUrl(url);
+  return draft;
+}
+
 // ---------------------------------------------------------------- pasted text
 
 /**

@@ -75,6 +75,75 @@ function fillGaps(draft: PostingDraft, snapshot: PageSnapshot): void {
   }
 }
 
+/**
+ * LinkedIn's `document.title` is "`<Company> hiring <Title> in <Location>`", not the generic
+ * "Title - Company - Location" shape `parsePostingText` knows: the generic separator splitter
+ * has no notion of "hiring"/"in" and mangles this into garbage. Parsed directly instead, since
+ * this shape is a much slower-moving thing for LinkedIn to change than any CSS class.
+ */
+const LINKEDIN_TITLE =
+  /^(?<company>.+?)\s+hiring\s+(?<title>.+?)(?:\s+in\s+(?<location>.+?))?\s*(?:\|\s*LinkedIn)?$/i;
+
+/**
+ * Indeed's `document.title` ends in "- Indeed.com" and, critically, often has no company at
+ * all — "`<Title> - <Location> - Indeed.com`" — which the generic fallback misreads as
+ * "`<Title>`" at company "`<Location>`", since it assumes a bare second segment names the
+ * employer. The last segment before the "Indeed.com" suffix is the location; anything between
+ * the title and that is the company, when present.
+ */
+const INDEED_SUFFIX = /\s*[-|]\s*indeed(?:\.com)?\s*$/i;
+const INDEED_SEGMENT = /\s+-\s+/;
+
+function titleShapeDraft(hostname: string, title: string, url: string): PostingDraft | null {
+  if (hostname.endsWith('linkedin.com')) {
+    const match = LINKEDIN_TITLE.exec(title);
+    const company = found(match?.groups?.company ?? '');
+    const role = found(match?.groups?.title ?? '');
+    if (!company || !role) return null;
+    const draft = emptyDraft();
+    draft.companyName = company;
+    draft.jobTitle = role;
+    draft.location = found(match?.groups?.location ?? '');
+    draft.jobUrl = url;
+    draft.sourceName = sourceFromUrl(url);
+    return draft;
+  }
+
+  if (hostname.endsWith('indeed.com')) {
+    const withoutSuffix = title.replace(INDEED_SUFFIX, '').trim();
+    const segments = withoutSuffix.split(INDEED_SEGMENT).map((part) => part.trim());
+    const role = found(segments[0] ?? '');
+    if (!role) return null;
+    const draft = emptyDraft();
+    draft.jobTitle = role;
+    if (segments.length >= 3) {
+      draft.companyName = found(segments.slice(1, -1).join(' - ')) ?? '';
+      draft.location = found(segments[segments.length - 1] ?? '');
+    } else if (segments.length === 2) {
+      draft.location = found(segments[1] ?? '');
+    }
+    draft.jobUrl = url;
+    draft.sourceName = sourceFromUrl(url);
+    return draft;
+  }
+
+  return null;
+}
+
+/**
+ * "Lund, Skåne län" -> "Lund" — the **JobTrack Clipper → Settings** "city only" preference.
+ *
+ * Only ever trims a plain two-part "City, Region" pair. A parenthesized location like
+ * "Remote (Sweden, Norway)" or a multi-office one joined with " · " is left exactly as read:
+ * guessing which of three or more parts is "the city" is a worse mistake than leaving the
+ * fuller string in place, and a comma inside parentheses is not the same separator at all.
+ */
+export function simplifyLocation(location: string): string {
+  if (location.includes('(')) return location;
+  const parts = location.split(',').map((part) => part.trim()).filter((part) => part !== '');
+  return parts.length === 2 ? parts[0]! : location;
+}
+
 export function buildDraft(snapshot: PageSnapshot): Extraction {
   const { url, fields } = snapshot;
 
@@ -96,6 +165,21 @@ export function buildDraft(snapshot: PageSnapshot): Extraction {
     fillGaps(draft, snapshot);
 
     return { draft, method: `the ${rules.label} page layout` };
+  }
+
+  // LinkedIn and Indeed both title their tabs in a fixed shape that says more than the
+  // generic "Title - Company - Location" splitter below can safely assume — in particular,
+  // Indeed's title is routinely "Title - Location - Indeed.com" with no company at all, which
+  // the generic splitter misreads as company. Accepted on a title alone, deliberately not
+  // gated on `isUsableDraft`: a title and a correct location beats the generic splitter's
+  // habit of mistaking that same location for the company name. Tried only when there is no
+  // text selection to prefer, same as the generic fallback below.
+  if (snapshot.selection === '') {
+    const shaped = titleShapeDraft(snapshot.hostname, snapshot.title, url);
+    if (shaped && shaped.jobTitle !== '') {
+      fillGaps(shaped, snapshot);
+      return { draft: shaped, method: `the ${snapshot.hostname.replace(/^www\./, '')} tab title` };
+    }
   }
 
   // Last resort. A job page's title is very often "Title - Company - Location", which the

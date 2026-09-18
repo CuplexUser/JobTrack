@@ -30,15 +30,26 @@ export const SITE_RULES: readonly SiteRules[] = [
   {
     host: 'linkedin.com',
     label: 'LinkedIn',
-    title: ['.job-details-jobs-unified-top-card__job-title', '.jobs-unified-top-card__job-title', 'h1'],
+    // The `top-card-layout__*`/`topcard__*` classes are the long-stable "public view" markup;
+    // the `job-details-jobs-unified-top-card__*` ones are the newer logged-in layout. Both are
+    // kept, in no particular order of freshness, since either can be what a given session gets.
+    title: [
+      '.job-details-jobs-unified-top-card__job-title',
+      '.jobs-unified-top-card__job-title',
+      '.top-card-layout__title',
+      'h1',
+    ],
     company: [
       '.job-details-jobs-unified-top-card__company-name a',
       '.job-details-jobs-unified-top-card__company-name',
       '.jobs-unified-top-card__company-name',
+      '.topcard__org-name-link',
+      '.topcard__flavor-row a',
     ],
     location: [
       '.job-details-jobs-unified-top-card__primary-description-container span:first-child',
       '.jobs-unified-top-card__bullet',
+      '.topcard__flavor--bullet',
     ],
     salary: ['.jobs-details__salary-main-rail-card', '.job-details-jobs-unified-top-card__job-insight'],
     description: ['#job-details', '.jobs-description__content'],
@@ -46,9 +57,24 @@ export const SITE_RULES: readonly SiteRules[] = [
   {
     host: 'indeed.com',
     label: 'Indeed',
-    title: ['.jobsearch-JobInfoHeader-title', 'h1.jobsearch-JobInfoHeader-title', 'h1'],
-    company: ['[data-testid="inlineHeader-companyName"]', '.jobsearch-CompanyInfoContainer a'],
-    location: ['[data-testid="inlineHeader-companyLocation"]', '[data-testid="job-location"]'],
+    title: [
+      '.jobsearch-JobInfoHeader-title',
+      'h1.jobsearch-JobInfoHeader-title',
+      '[data-testid="jobsearch-JobInfoHeader-title"]',
+      '[data-testid="simpler-jobTitle"]',
+      'h1',
+    ],
+    company: [
+      '[data-testid="inlineHeader-companyName"]',
+      '.jobsearch-CompanyInfoContainer a',
+      '[data-testid="jobsearch-CompanyInfoContainer"] a',
+      '[data-company-name="true"]',
+    ],
+    location: [
+      '[data-testid="inlineHeader-companyLocation"]',
+      '[data-testid="job-location"]',
+      '[data-testid="jobsearch-JobInfoHeader-companyLocation"]',
+    ],
     salary: ['#salaryInfoAndJobType', '[data-testid="attribute_snippet_testid"]'],
     description: ['#jobDescriptionText'],
   },

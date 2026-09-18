@@ -13,16 +13,24 @@ export interface Settings {
   /** The API's address, e.g. http://127.0.0.1:3001 — no trailing slash. */
   baseUrl: string;
   token: string;
+  /**
+   * Whether a read location is trimmed to just its leading part — "Lund" rather than "Lund,
+   * Skåne län" — before it lands in the form. Off by default: a location a source states in
+   * full is not wrong, just more specific than some people want to match against later, and
+   * trimming it is a preference rather than a correction.
+   */
+  locationCityOnly: boolean;
 }
 
 /** The tray's default bind address, which is where JobTrack is for nearly everyone. */
 export const DEFAULT_BASE_URL = 'http://127.0.0.1:3001';
 
 export async function loadSettings(): Promise<Settings> {
-  const stored = await ext.storage.local.get(['baseUrl', 'token']);
+  const stored = await ext.storage.local.get(['baseUrl', 'token', 'locationCityOnly']);
   return {
     baseUrl: typeof stored.baseUrl === 'string' && stored.baseUrl ? stored.baseUrl : DEFAULT_BASE_URL,
     token: typeof stored.token === 'string' ? stored.token : '',
+    locationCityOnly: stored.locationCityOnly === true,
   };
 }
 
@@ -30,6 +38,7 @@ export async function saveSettings(settings: Settings): Promise<void> {
   await ext.storage.local.set({
     baseUrl: settings.baseUrl.replace(/\/+$/, ''),
     token: settings.token.trim(),
+    locationCityOnly: settings.locationCityOnly,
   });
 }
 

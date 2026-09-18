@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/extension",
-  "version": "1.1.2",
+  "version": "1.1.4",
   "private": true,
   "type": "module",
   "description": "Browser extension that clips a job posting into JobTrack",
