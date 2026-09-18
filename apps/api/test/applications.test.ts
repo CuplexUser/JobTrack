@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
 import {
   changeStatus,
@@ -288,6 +288,25 @@ describe('listApplications', () => {
   it('sorts by company name in memory, since that is a join the database cannot do', async () => {
     const result = await listApplications(repos, filter({ sort: 'company', direction: 'asc' }));
     expect(result.items.map((i) => i.company.name)).toEqual(['Anthropic', 'Klarna', 'Spotify']);
+  });
+
+  it('breaks a same-date tie by createdAt, newest first, instead of table order', async () => {
+    // Three of this suite's applications already share no date, so this adds three more
+    // that do, and moves the clock by hand because the moment they were created is the
+    // only thing that can break the tie, and three creates in a test run land in the same
+    // millisecond otherwise.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      for (const [index, jobTitle] of ['A', 'B', 'C'].entries()) {
+        vi.setSystemTime(new Date(`2026-05-0${index + 1}T09:00:00Z`));
+        await createApplication(repos, applicationInput({ jobTitle, appliedOn: '2026-05-10' }));
+      }
+    } finally {
+      vi.useRealTimers();
+    }
+
+    const result = await listApplications(repos, filter({ from: '2026-05-10', to: '2026-05-10' }));
+    expect(result.items.map((i) => i.jobTitle)).toEqual(['C', 'B', 'A']);
   });
 
   it('honors a search ranking over the database ordering', async () => {

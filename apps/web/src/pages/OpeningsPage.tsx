@@ -19,6 +19,7 @@ import {
   Empty,
   Flex,
   Form,
+  Input,
   Modal,
   Popconfirm,
   Segmented,
@@ -35,6 +36,7 @@ import {
   LinkOutlined,
   PlusOutlined,
   RollbackOutlined,
+  SearchOutlined,
   SwapOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
@@ -44,6 +46,7 @@ import {
   WORK_MODE_LABELS,
   locationKey,
   matchesAnyLocation,
+  normalizeText,
   type RankedOpening,
   type PostingDraft,
 } from '@jobtrack/shared';
@@ -73,8 +76,9 @@ export function OpeningsPage() {
   const { message } = AntApp.useApp();
 
   const [view, setView] = usePreference<OpeningsView>('filters', 'openings.view', 'active', parse.oneOf(['active', 'archived']));
-  // `archived=true` returns active *and* archived, so the archived view still filters locally.
-  const { data, isLoading } = useOpenings(view === 'archived' ? { archived: true } : {});
+  // Fetched once, active and archived together, so the Active/Archived counts on the
+  // segmented control are both known without a second request when the tab is switched.
+  const { data, isLoading } = useOpenings({ archived: true });
   const { data: tagData } = useTags();
   const deleteOpening = useDeleteOpening();
   const convertOpening = useConvertOpening();
@@ -82,19 +86,28 @@ export function OpeningsPage() {
 
   const [locations, setLocations] = usePreference<string[]>('filters', 'openings.locations', [], parse.strings);
   const [order, setOrder] = usePreference<OpeningsOrder>('view', 'openings.order', 'newest', parse.oneOf(['newest', 'fit']));
+  const [q, setQ] = usePreference<string>('filters', 'openings.q', '', parse.string);
 
-  const inView = useMemo(() => {
-    const all = data?.openings ?? [];
-    return view === 'archived' ? all.filter((o) => o.archived) : all;
-  }, [data, view]);
+  const activeOpenings = useMemo(() => (data?.openings ?? []).filter((o) => !o.archived), [data]);
+  const archivedOpenings = useMemo(() => (data?.openings ?? []).filter((o) => o.archived), [data]);
+  const inView = view === 'archived' ? archivedOpenings : activeOpenings;
 
   // Filtered here rather than by the API: the page already holds every opening in this
-  // view, and `matchesAnyLocation` is the same rule the API applies.
+  // view, `matchesAnyLocation` is the same rule the API applies, and the search words are
+  // matched over the same fields `listOpenings`' `q` filter checks server-side.
   const rows = useMemo(() => {
-    const matching = inView.filter((opening) => matchesAnyLocation(opening.location, locations));
+    const words = normalizeText(q).split(' ').filter(Boolean);
+    const matching = inView.filter((opening) => {
+      if (!matchesAnyLocation(opening.location, locations)) return false;
+      if (words.length === 0) return true;
+      const haystack = normalizeText(
+        [opening.jobTitle, opening.company.name, opening.location, opening.notes].filter(Boolean).join(' '),
+      );
+      return words.every((word) => haystack.includes(word));
+    });
     // The API already scored every opening; ranking is only a different order of the same rows.
     return order === 'fit' ? [...matching].sort((a, b) => (b.fit?.score ?? -1) - (a.fit?.score ?? -1)) : matching;
-  }, [inView, locations, order]);
+  }, [inView, locations, q, order]);
 
   /** Fit is null on every opening when the user has not filled in a profile yet. */
   const hasProfile = inView.some((opening) => opening.fit !== null);
@@ -300,9 +313,20 @@ export function OpeningsPage() {
           value={view}
           onChange={setView}
           options={[
-            { label: 'Active', value: 'active' },
-            { label: 'Archived', value: 'archived' },
+            { label: `Active (${activeOpenings.length})`, value: 'active' },
+            { label: `Archived (${archivedOpenings.length})`, value: 'archived' },
           ]}
+        />
+        <Input
+          allowClear
+          placeholder="Search by title, company, location or notes"
+          prefix={<SearchOutlined />}
+          style={{ minWidth: 260 }}
+          defaultValue={q}
+          onChange={(event) => {
+            if (event.target.value === '') setQ('');
+          }}
+          onPressEnter={(event) => setQ((event.target as HTMLInputElement).value)}
         />
         <Select
           // `tags` mode: pick a location from this list, or type any fragment ("Sweden").
@@ -345,8 +369,8 @@ export function OpeningsPage() {
               <Empty
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
-                  locations.length > 0
-                    ? 'No openings in that location'
+                  q || locations.length > 0
+                    ? 'No openings match that search'
                     : view === 'active'
                     ? "Nothing saved yet. Use “Save opening for later” for a role you're not ready to apply to."
                     : 'No archived openings.'

@@ -73,12 +73,18 @@ const MINISEARCH_OPTIONS: Options<SearchDoc> = {
 /**
  * Cosine floor for the semantic half.
  *
- * Vector search has no concept of "no match" — it always returns the nearest neighbours,
- * so without a floor a query for "zzzzz" comes back with the whole table ranked by
- * accident. Normalized MiniLM embeddings put unrelated sentence pairs below ~0.2 and
- * genuinely related ones above ~0.4, so this sits between them.
+ * Vector search has no concept of "no match" — it always returns the nearest neighbours, so
+ * without a floor a query for "zzzzz" comes back with the whole table ranked by accident.
+ * 0.25 was not high enough in practice: short, specific queries this app sees a lot of —
+ * a company name, a single word — routinely score 0.3-0.5 against completely unrelated rows
+ * on all-MiniLM-L6-v2, an artifact of mean-pooling very little text (measured against this
+ * app's own data: searching "sandvik" scored the real Sandvik row 0.81, then every other
+ * company in the 0.28-0.42 range with nothing to do with it). 0.5 sits above that noise band
+ * while still admitting genuine cross-vocabulary matches — "server-side developer" still
+ * finds postings titled "Software Developer" and "Backend System Developer" at 0.5-0.57,
+ * comfortably clear of the floor.
  */
-const SEMANTIC_FLOOR = 0.25;
+const SEMANTIC_FLOOR = 0.5;
 
 export class SearchIndex {
   #repos: Repos;

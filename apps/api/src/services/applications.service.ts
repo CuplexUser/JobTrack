@@ -117,6 +117,21 @@ const SORT_FIELDS = {
 } as const;
 
 /**
+ * `sortField` plus a `createdAt` tie-breaker, so applications sharing a date (`appliedOn`,
+ * or any other non-unique field) still come back in a fixed order — the one added last
+ * sorts last within the tie — instead of whatever order the table happens to hold them,
+ * which keyset pagination also depends on to avoid skipping or repeating rows across pages.
+ */
+function sortOrder(
+  sortField: keyof typeof SORT_FIELDS,
+  direction: 'asc' | 'desc',
+): Array<{ field: keyof typeof SORT_FIELDS; direction: 'asc' | 'desc' }> {
+  const order = [{ field: sortField, direction }];
+  if (sortField !== 'createdAt') order.push({ field: 'createdAt', direction });
+  return order;
+}
+
+/**
  * Ids whose location contains any of `terms`, compared by `locationKey` — or null when there
  * is no location filter at all.
  *
@@ -197,7 +212,7 @@ export async function listApplications(
 
   const sortField = SORT_FIELDS[filter.sort as keyof typeof SORT_FIELDS] ?? 'appliedOn';
   const page = await repos.applications.findPage(
-    { ...query, orderBy: [{ field: sortField, direction: filter.direction }] },
+    { ...query, orderBy: sortOrder(sortField, filter.direction) },
     { limit: filter.limit, ...(filter.cursor ? { after: filter.cursor } : {}) },
   );
 
@@ -261,7 +276,7 @@ export async function findAllMatching(
 
   const rows = await repos.applications.findMany({
     ...(where.length > 0 ? { where } : {}),
-    orderBy: [{ field: sortField, direction: filter.direction }],
+    orderBy: sortOrder(sortField, filter.direction),
   });
 
   const items = await hydrateApplications(repos, rows);
