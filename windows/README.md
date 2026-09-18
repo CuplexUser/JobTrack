@@ -141,7 +141,7 @@ It asks where the payload should come from, or takes `-Source`:
 ./windows/build.ps1
 
 # A published release, as CI builds it
-./windows/build.ps1 -Source Registry -Version 1.8.1
+./windows/build.ps1 -Source Registry -Version 1.8.2
 
 # This checkout, before it is published (build-payload.mjs --local --with-mcp)
 ./windows/build.ps1 -Source Local

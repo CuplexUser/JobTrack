@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/mcp",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "type": "module",
   "license": "MIT",
   "description": "MCP server (stdio) for JobTrack — read and write job applications from an MCP client",
@@ -26,7 +26,7 @@
     "start": "tsx src/index.ts"
   },
   "dependencies": {
-    "@jobtrack/api": "^1.6.1",
+    "@jobtrack/api": "^1.6.2",
     "@jobtrack/shared": "^1.5.1",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "tsx": "^4.23.12",
