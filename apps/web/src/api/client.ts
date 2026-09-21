@@ -14,6 +14,7 @@ import type {
   ContactLink,
   ContactView,
   DuplicateCheck,
+  FitWeights,
   Interaction,
   JobApplicationDetail,
   JobApplicationView,
@@ -517,6 +518,11 @@ export const httpApi = {
   getRules: () => request<Rules>('/api/rules'),
 
   updateRules: (body: unknown) => request<Rules>('/api/rules', { method: 'PUT', body: JSON.stringify(body) }),
+
+  getFitWeights: () => request<FitWeights>('/api/fit-weights'),
+
+  updateFitWeights: (body: unknown) =>
+    request<FitWeights>('/api/fit-weights', { method: 'PUT', body: JSON.stringify(body) }),
 
   previewAutoGhost: () => request<AutoGhostResponse>('/api/rules/auto-ghost'),
 

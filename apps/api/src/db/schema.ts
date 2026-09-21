@@ -207,6 +207,25 @@ export const appSettingSchema = defineSchema({
   ...timestampFields,
 });
 
+/**
+ * A saved opening's fit score, computed once and read by every surface — the whole point
+ * being that the web app and the MCP server, which run as separate processes with their own
+ * in-memory search index (see `search/index.ts`'s header), must never compute this
+ * themselves on a read and risk disagreeing. `fingerprint` is what decides whether a stored
+ * row is still good: a hash of everything that went into it (the opening's own fields, the
+ * profile, and the fit weights), so it is recomputed exactly when one of those actually
+ * changed, the same "recompute only what changed" idea `search_vectors`' `textHash` uses.
+ */
+export const fitScoreSchema = defineSchema({
+  id: { type: 'string', primaryKey: true },
+  openingId: { type: 'string', unique: true, column: 'opening_id' },
+  score: { type: 'integer' },
+  reasons: { type: 'json' },
+  semanticUsed: { type: 'boolean', column: 'semantic_used' },
+  fingerprint: { type: 'string' },
+  ...timestampFields,
+});
+
 export type CompanyRow = Infer<typeof companySchema>;
 export type AppSettingRow = Infer<typeof appSettingSchema>;
 export type ContactRow = Infer<typeof contactSchema>;
@@ -219,3 +238,4 @@ export type NoteRow = Infer<typeof noteSchema>;
 export type StatusEventRow = Infer<typeof statusEventSchema>;
 export type SearchVectorRow = Infer<typeof searchVectorSchema>;
 export type JobOpeningRow = Infer<typeof jobOpeningSchema>;
+export type FitScoreRow = Infer<typeof fitScoreSchema>;

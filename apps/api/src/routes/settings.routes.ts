@@ -4,9 +4,9 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { profilePatchSchema, rulesPatchSchema } from '@jobtrack/shared';
+import { fitWeightsPatchSchema, profilePatchSchema, rulesPatchSchema } from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
-import { getProfile, getRules, updateProfile, updateRules } from '../services/settings.service.js';
+import { getFitWeights, getProfile, getRules, updateFitWeights, updateProfile, updateRules } from '../services/settings.service.js';
 import { runAutoGhost } from '../services/rules.service.js';
 
 export async function settingsRoutes(app: FastifyInstance, deps: Deps): Promise<void> {
@@ -20,6 +20,11 @@ export async function settingsRoutes(app: FastifyInstance, deps: Deps): Promise<
   app.get('/api/rules', async () => getRules(repos));
 
   app.put('/api/rules', async (request) => updateRules(repos, rulesPatchSchema.parse(request.body)));
+
+  app.get('/api/fit-weights', async () => getFitWeights(repos));
+
+  /** A partial update: fields left out keep their stored values. Reshapes every saved opening's score. */
+  app.put('/api/fit-weights', async (request) => updateFitWeights(repos, fitWeightsPatchSchema.parse(request.body)));
 
   /** What the auto-ghost rule would change right now, without changing anything. */
   app.get('/api/rules/auto-ghost', async () => runAutoGhost(repos, { dryRun: true }));

@@ -17,6 +17,7 @@
 
 import { locationKey, titleKey } from './normalize.js';
 import { diceCoefficient } from './similarity.js';
+import type { FitWeights } from './schemas.js';
 import type { JobOpeningView, WorkMode } from './types.js';
 
 export interface FitProfile {
@@ -57,26 +58,24 @@ export interface FitResult {
   semanticUsed: boolean;
 }
 
-/** Points each part is worth when the profile makes it count. */
-export const FIT_WEIGHTS = {
+/**
+ * The weights `scoreFit` falls back to when none are given — same values `fitWeightsSchema`
+ * (schemas.ts) defaults to, so an unset profile setting and an explicit call from a test or
+ * `scorePostings` mean the same thing. MiniLM puts unrelated text pairs around 0.1 to 0.2
+ * cosine similarity and a posting that matches a CV's field around 0.5 to 0.6, which is what
+ * `semanticFloor`/`semanticCeiling` are stretched across.
+ */
+export const DEFAULT_FIT_WEIGHTS: FitWeights = {
   title: 30,
   summary: 25,
   location: 15,
   workMode: 10,
   salary: 10,
   keywords: 10,
-} as const;
-
-/** Taken off the earned share for each excluded keyword found: one is usually a dealbreaker. */
-export const EXCLUDED_PENALTY = 40;
-
-/**
- * Cosine similarity below this reads as unrelated and earns nothing; at or above the ceiling
- * it earns everything. MiniLM puts unrelated text pairs around 0.1 to 0.2 and a posting that
- * matches a CV's field around 0.5 to 0.6.
- */
-const SEMANTIC_FLOOR = 0.2;
-const SEMANTIC_CEILING = 0.55;
+  excludedPenalty: 40,
+  semanticFloor: 0.2,
+  semanticCeiling: 0.55,
+};
 
 const WORK_MODE_WORDS: Record<WorkMode, string> = {
   remote: 'remote',
@@ -119,7 +118,12 @@ function containsKeyword(text: string, keyword: string): boolean {
   return ` ${titleKey(text)} `.includes(` ${needle} `);
 }
 
-export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimilarity: number | null = null): FitResult | null {
+export function scoreFit(
+  profile: FitProfile,
+  posting: FitPosting,
+  semanticSimilarity: number | null = null,
+  weights: FitWeights = DEFAULT_FIT_WEIGHTS,
+): FitResult | null {
   if (!hasFitCriteria(profile)) return null;
 
   const reasons: FitReason[] = [];
@@ -128,14 +132,14 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
   const text = [posting.jobTitle, posting.notes].filter(Boolean).join(' ');
 
   if (profile.targetTitles.length > 0) {
-    possible += FIT_WEIGHTS.title;
+    possible += weights.title;
     const best = Math.max(...profile.targetTitles.map((target) => titleMatch(posting.jobTitle, target)));
     const bestTarget = profile.targetTitles.find((target) => titleMatch(posting.jobTitle, target) === best)!;
     if (best >= 0.75) {
-      earned += FIT_WEIGHTS.title * best;
+      earned += weights.title * best;
       reasons.push({ factor: 'title', effect: 'plus', label: `Title matches "${bestTarget}"` });
     } else if (best >= 0.5) {
-      earned += FIT_WEIGHTS.title * best * 0.6;
+      earned += weights.title * best * 0.6;
       reasons.push({ factor: 'title', effect: 'plus', label: `Title is close to "${bestTarget}"` });
     } else {
       reasons.push({ factor: 'title', effect: 'minus', label: 'Title is not one you are looking for' });
@@ -144,27 +148,30 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
 
   if (profile.summary?.trim()) {
     if (semanticSimilarity !== null) {
-      possible += FIT_WEIGHTS.summary;
-      const share = Math.min(1, Math.max(0, (semanticSimilarity - SEMANTIC_FLOOR) / (SEMANTIC_CEILING - SEMANTIC_FLOOR)));
-      earned += FIT_WEIGHTS.summary * share;
+      possible += weights.summary;
+      const share = Math.min(
+        1,
+        Math.max(0, (semanticSimilarity - weights.semanticFloor) / (weights.semanticCeiling - weights.semanticFloor)),
+      );
+      earned += weights.summary * share;
       if (share >= 0.6) reasons.push({ factor: 'summary', effect: 'plus', label: 'Reads close to your profile' });
       else if (share <= 0.2) reasons.push({ factor: 'summary', effect: 'minus', label: 'Reads far from your profile' });
     }
   }
 
   if (profile.locations.length > 0) {
-    possible += FIT_WEIGHTS.location;
+    possible += weights.location;
     const where = posting.location ? locationKey(posting.location) : '';
     const matched = profile.locations.find((place) => where.includes(locationKey(place)));
     if (matched) {
-      earned += FIT_WEIGHTS.location;
+      earned += weights.location;
       reasons.push({ factor: 'location', effect: 'plus', label: `In ${matched}` });
     } else if (posting.workMode === 'remote' && profile.workModes.includes('remote')) {
       // A remote role is in every location the user is willing to work remotely from.
-      earned += FIT_WEIGHTS.location;
+      earned += weights.location;
       reasons.push({ factor: 'location', effect: 'plus', label: 'Remote, so location does not matter' });
     } else if (!posting.location) {
-      earned += FIT_WEIGHTS.location / 2;
+      earned += weights.location / 2;
       reasons.push({ factor: 'location', effect: 'neutral', label: 'Location not stated' });
     } else {
       reasons.push({ factor: 'location', effect: 'minus', label: `In ${posting.location}, not a place you listed` });
@@ -172,12 +179,12 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
   }
 
   if (profile.workModes.length > 0) {
-    possible += FIT_WEIGHTS.workMode;
+    possible += weights.workMode;
     if (posting.workMode === 'unspecified') {
-      earned += FIT_WEIGHTS.workMode / 2;
+      earned += weights.workMode / 2;
       reasons.push({ factor: 'workMode', effect: 'neutral', label: 'Work mode not stated' });
     } else if (profile.workModes.includes(posting.workMode)) {
-      earned += FIT_WEIGHTS.workMode;
+      earned += weights.workMode;
       reasons.push({ factor: 'workMode', effect: 'plus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, as you want` });
     } else {
       reasons.push({ factor: 'workMode', effect: 'minus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, which you did not pick` });
@@ -185,14 +192,14 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
   }
 
   if (profile.salaryFloor !== null) {
-    possible += FIT_WEIGHTS.salary;
+    possible += weights.salary;
     const comparable =
       !profile.salaryCurrency ||
       !posting.salaryCurrency ||
       profile.salaryCurrency.toUpperCase() === posting.salaryCurrency.toUpperCase();
     const top = posting.salaryMax ?? posting.salaryMin;
     if (top === null || !comparable) {
-      earned += FIT_WEIGHTS.salary / 2;
+      earned += weights.salary / 2;
       reasons.push({
         factor: 'salary',
         effect: 'neutral',
@@ -201,15 +208,15 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
     } else if (top < profile.salaryFloor) {
       reasons.push({ factor: 'salary', effect: 'minus', label: 'Salary tops out below your floor' });
     } else {
-      earned += FIT_WEIGHTS.salary;
+      earned += weights.salary;
       reasons.push({ factor: 'salary', effect: 'plus', label: 'Salary reaches your floor' });
     }
   }
 
   if (profile.includeKeywords.length > 0) {
-    possible += FIT_WEIGHTS.keywords;
+    possible += weights.keywords;
     const hits = profile.includeKeywords.filter((keyword) => containsKeyword(text, keyword));
-    earned += FIT_WEIGHTS.keywords * Math.min(1, hits.length / Math.min(3, profile.includeKeywords.length));
+    earned += weights.keywords * Math.min(1, hits.length / Math.min(3, profile.includeKeywords.length));
     if (hits.length > 0) reasons.push({ factor: 'keywords', effect: 'plus', label: `Mentions ${hits.join(', ')}` });
   }
 
@@ -217,7 +224,7 @@ export function scoreFit(profile: FitProfile, posting: FitPosting, semanticSimil
 
   const excluded = profile.excludeKeywords.filter((keyword) => containsKeyword(text, keyword));
   if (excluded.length > 0) {
-    score -= EXCLUDED_PENALTY * excluded.length;
+    score -= weights.excludedPenalty * excluded.length;
     reasons.unshift({ factor: 'excluded', effect: 'minus', label: `Mentions ${excluded.join(', ')}, which you want to avoid` });
   }
 

@@ -1,10 +1,14 @@
 /**
- * Settings: the user's profile and automation rules, what this browser remembers, which database
- * is active, full-fidelity backup/restore, and reset/demo data.
+ * Settings, split into tabs so a rarely-touched section (Database) never makes a frequently
+ * touched one (Profile) something to scroll past: Profile (job search profile and fit
+ * scoring), Automation, Browser (what this browser remembers), Database (which target is
+ * active, full-fidelity backup/restore, reset/demo data), and About. The active tab is
+ * remembered per browser, same as any other view preference.
  *
  * Connection parameters (`DB_DRIVER`, `DATABASE_URL`, …) live in `.env` only — nothing here
- * can read or edit them. All this page can do is switch which already-configured target is
- * active, export/restore a snapshot of the one that's active now, and clear or seed it.
+ * can read or edit them. All the Database tab can do is switch which already-configured
+ * target is active, export/restore a snapshot of the one that's active now, and clear or
+ * seed it.
  */
 
 import { useEffect, useRef, useState } from 'react';
@@ -19,18 +23,23 @@ import {
   Result,
   Select,
   Space,
+  Tabs,
   Typography,
   Upload,
   type UploadProps,
 } from 'antd';
 import {
   DatabaseOutlined,
+  DesktopOutlined,
   ExperimentOutlined,
   InboxOutlined,
   InfoCircleOutlined,
   ReloadOutlined,
+  RobotOutlined,
+  UserOutlined,
 } from '@ant-design/icons';
 import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/index.js';
+import { parse, usePreference } from '../preferences.js';
 
 /**
  * `.jtbak` backup export/restore needs `node:zlib`, which does not belong in a browser
@@ -40,6 +49,7 @@ import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../a
 const DEMO = import.meta.env.VITE_DEMO === 'true';
 import { useClearDatabase, useDataStatus, useDbTargets, useMeta, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
 import { ProfileCard } from '../components/ProfileCard.js';
+import { FitWeightsCard } from '../components/FitWeightsCard.js';
 import { AutomationCard } from '../components/AutomationCard.js';
 import { RememberCard } from '../components/RememberCard.js';
 
@@ -410,19 +420,79 @@ function AboutCard() {
   );
 }
 
+const SETTINGS_TABS = ['profile', 'automation', 'browser', 'database', 'about'] as const;
+type SettingsTab = (typeof SETTINGS_TABS)[number];
+
 export function SettingsPage() {
+  const [tab, setTab] = usePreference<SettingsTab>('view', 'settings.tab', 'profile', parse.oneOf(SETTINGS_TABS));
+
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={4} style={{ margin: 0 }}>
         Settings
       </Typography.Title>
-      <ProfileCard />
-      <AutomationCard />
-      <RememberCard />
-      <DatabaseCard />
-      {!DEMO && <BackupCard />}
-      <DataCard />
-      <AboutCard />
+      <Tabs
+        activeKey={tab}
+        onChange={(key) => setTab(key as SettingsTab)}
+        items={[
+          {
+            key: 'profile',
+            label: (
+              <span>
+                <UserOutlined /> Profile
+              </span>
+            ),
+            children: (
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <ProfileCard />
+                <FitWeightsCard />
+              </Space>
+            ),
+          },
+          {
+            key: 'automation',
+            label: (
+              <span>
+                <RobotOutlined /> Automation
+              </span>
+            ),
+            children: <AutomationCard />,
+          },
+          {
+            key: 'browser',
+            label: (
+              <span>
+                <DesktopOutlined /> Browser
+              </span>
+            ),
+            children: <RememberCard />,
+          },
+          {
+            key: 'database',
+            label: (
+              <span>
+                <DatabaseOutlined /> Database
+              </span>
+            ),
+            children: (
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <DatabaseCard />
+                {!DEMO && <BackupCard />}
+                <DataCard />
+              </Space>
+            ),
+          },
+          {
+            key: 'about',
+            label: (
+              <span>
+                <InfoCircleOutlined /> About
+              </span>
+            ),
+            children: <AboutCard />,
+          },
+        ]}
+      />
     </Space>
   );
 }

@@ -41,6 +41,7 @@ import {
   createNoteSchema,
   duplicateCheckSchema,
   exportQuerySchema,
+  fitWeightsPatchSchema,
   linkContactSchema,
   linkedInImportSchema,
   monthName,
@@ -87,8 +88,8 @@ import { createNote, deleteNote, listNotes, updateNote } from '@jobtrack/api/ser
 import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
 import { getStatistics } from '@jobtrack/api/services/statistics';
-import { rankOpenings } from '@jobtrack/api/services/fit';
-import { getProfile, getRules, updateProfile, updateRules } from '@jobtrack/api/services/settings';
+import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
+import { getFitWeights, getProfile, getRules, updateFitWeights, updateProfile, updateRules } from '@jobtrack/api/services/settings';
 import { runAutoGhost } from '@jobtrack/api/services/rules';
 import {
   commitLinkedInImport,
@@ -753,6 +754,20 @@ export const demoApi: typeof httpApi = {
       return rules;
     }),
 
+  getFitWeights: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getFitWeights(repos);
+    }),
+
+  updateFitWeights: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const weights = await updateFitWeights(repos, fitWeightsPatchSchema.parse(body));
+      await persist(repos);
+      return weights;
+    }),
+
   previewAutoGhost: () =>
     guarded(async () => {
       const { repos } = await getState();
@@ -770,29 +785,29 @@ export const demoApi: typeof httpApi = {
 
   getOpening: (id) =>
     guarded(async () => {
-      const { repos } = await getState();
+      const { repos, search } = await getState();
       const opening = await getOpening(repos, id);
       if (!opening) throw notFound('No such opening');
-      return opening;
+      return fitOpening(repos, search, opening);
     }),
 
   createOpening: (body) =>
     guarded(async () => {
-      const { repos } = await getState();
+      const { repos, search } = await getState();
       const input = createJobOpeningSchema.parse(body);
       const opening = await createOpening(repos, input);
       await persist(repos);
-      return opening;
+      return fitOpening(repos, search, opening);
     }),
 
   updateOpening: (id, body) =>
     guarded(async () => {
-      const { repos } = await getState();
+      const { repos, search } = await getState();
       const patch = patchJobOpeningSchema.parse(body);
       const opening = await updateOpening(repos, id, patch);
       if (!opening) throw notFound('No such opening');
       await persist(repos);
-      return opening;
+      return fitOpening(repos, search, opening);
     }),
 
   deleteOpening: (id) =>

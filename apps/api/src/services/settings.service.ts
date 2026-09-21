@@ -7,12 +7,20 @@
  * unset: losing a stale preference is better than taking down the openings page over it.
  */
 
-import { profileSchema, rulesSchema, type Profile, type Rules } from '@jobtrack/shared';
+import {
+  fitWeightsSchema,
+  profileSchema,
+  rulesSchema,
+  type FitWeights,
+  type Profile,
+  type Rules,
+} from '@jobtrack/shared';
 import type { z } from 'zod';
 import type { Repos } from '../db/repos.js';
 
 const PROFILE_KEY = 'profile';
 const RULES_KEY = 'rules';
+const FIT_WEIGHTS_KEY = 'fitWeights';
 
 async function readSetting<S extends z.ZodType>(repos: Repos, key: string, schema: S): Promise<z.output<S>> {
   const row = await repos.appSettings.findOne({ where: { settingKey: key } });
@@ -52,5 +60,20 @@ export async function getRules(repos: Repos): Promise<Rules> {
 export async function updateRules(repos: Repos, patch: Partial<Rules>): Promise<Rules> {
   const next = rulesSchema.parse({ ...(await getRules(repos)), ...sentFields(patch) });
   await writeSetting(repos, RULES_KEY, next);
+  return next;
+}
+
+export async function getFitWeights(repos: Repos): Promise<FitWeights> {
+  return readSetting(repos, FIT_WEIGHTS_KEY, fitWeightsSchema);
+}
+
+/**
+ * Merge `patch` into the stored fit weights. Every saved opening's cached score is keyed to
+ * these weights (see `fit.service.ts`'s fingerprint), so changing them here is what makes the
+ * next read recompute — no separate "recalculate now" step needed.
+ */
+export async function updateFitWeights(repos: Repos, patch: Partial<FitWeights>): Promise<FitWeights> {
+  const next = fitWeightsSchema.parse({ ...(await getFitWeights(repos)), ...sentFields(patch) });
+  await writeSetting(repos, FIT_WEIGHTS_KEY, next);
   return next;
 }

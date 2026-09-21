@@ -620,6 +620,52 @@ export type Rules = z.output<typeof rulesSchema>;
 
 export const rulesPatchSchema = rulesSchema.partial();
 
+/**
+ * How fit points are divided among the parts `scoreFit` (in `./fit.ts`) checks, plus the
+ * penalty for an excluded keyword and the cosine range the semantic comparison is stretched
+ * across. Tunable rather than hardcoded, so a user who finds title matching too dominant, or
+ * the semantic floor too strict, can say so without waiting on a release.
+ *
+ * Bounded generously rather than tightly: the goal is to stop a typo (an extra zero) from
+ * producing a nonsensical score, not to second-guess a deliberate choice like "salary does
+ * not matter to me" (0) or "only title matters" (everything else 0).
+ */
+const weight = z.number().int().min(0).max(100);
+
+/**
+ * The plain shape, kept separate from the `refine` below so `.partial()` stays available for
+ * the patch schema — Zod drops object methods once a schema is wrapped in `ZodEffects`.
+ */
+const fitWeightsObjectSchema = z.object({
+  title: weight.default(30),
+  summary: weight.default(25),
+  location: weight.default(15),
+  workMode: weight.default(10),
+  salary: weight.default(10),
+  keywords: weight.default(10),
+  /** Taken off the earned share for each excluded keyword found. */
+  excludedPenalty: weight.default(40),
+  /** Cosine similarity at or below this earns nothing from the summary comparison. */
+  semanticFloor: z.number().min(0).max(1).default(0.2),
+  /** Cosine similarity at or above this earns full marks from the summary comparison. */
+  semanticCeiling: z.number().min(0).max(1).default(0.55),
+});
+
+export const fitWeightsSchema = fitWeightsObjectSchema.refine((v) => v.semanticCeiling > v.semanticFloor, {
+  message: 'semanticCeiling must be greater than semanticFloor',
+  path: ['semanticCeiling'],
+});
+
+export type FitWeights = z.output<typeof fitWeightsSchema>;
+
+/**
+ * Fields left out keep their stored value, same convention as `rulesPatchSchema`. The
+ * semantic-range check only applies once both bounds are known, which `updateFitWeights`
+ * (settings.service.ts) guarantees by validating the merged, full document rather than the
+ * patch alone.
+ */
+export const fitWeightsPatchSchema = fitWeightsObjectSchema.partial();
+
 /** LinkedIn's `Connections.csv`, sent as text so the browser and the API parse the same bytes. */
 export const linkedInImportSchema = z.object({
   csv: z.string().min(1).max(20_000_000),

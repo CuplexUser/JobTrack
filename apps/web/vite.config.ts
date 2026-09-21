@@ -55,7 +55,31 @@ export default defineConfig({
       },
     },
   },
-  build: { outDir: 'dist', sourcemap: true },
+  build: {
+    outDir: 'dist',
+    sourcemap: true,
+    // Each page is its own lazy-loaded chunk (see App.tsx). What is left past the 500 kB
+    // default is antd's shared component chunk (~610 kB) — every page uses several of its
+    // components, so this is baseline cost, not something one route is dragging in by
+    // accident. Raised just past that rather than disabled outright, so a genuinely
+    // oversized future chunk still warns.
+    chunkSizeWarningLimit: 650,
+    rolldownOptions: {
+      onwarn(warning, warn) {
+        // `demo-client.ts` (the client-side demo build's data layer) reaches `db/schema.ts`
+        // for `defineSchema`, which lives in the same module as repolayer's `createRepo` —
+        // whose SQLite/Postgres/MySQL drivers it only reaches through `await import(...)`.
+        // Rolldown still resolves those adapter modules to build the graph, sees their real
+        // `node:*` imports, and warns, even though nothing in this app ever calls
+        // `createRepo` in the browser (only `defineSchema` and the in-memory driver — see
+        // `demo-client.ts`'s header). Tree-shaking then drops the whole unreachable branch,
+        // so nothing Node-only actually ships; verified by grepping `dist/assets/*.js` for
+        // `createRepo`/`SqliteRepo`/`openSqlite`, all absent. Safe to silence.
+        if (warning.message.includes('has been externalized for browser compatibility')) return;
+        warn(warning);
+      },
+    },
+  },
   test: {
     environment: 'jsdom',
     globals: true,

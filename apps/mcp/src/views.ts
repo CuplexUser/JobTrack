@@ -159,6 +159,12 @@ export interface FitSummary {
   score: number;
   /** Each prefixed `+` or `-` by whether it raised or lowered the score. */
   reasons: string[];
+  /**
+   * False when the score rests on rules alone because the summary was never compared — no
+   * summary in the profile, or the search model had not loaded yet when this was scored.
+   * Absent (never false) once a summary comparison has actually happened.
+   */
+  summaryCompared?: true;
 }
 
 /** A fit with its reasons flattened to readable lines. */
@@ -166,6 +172,7 @@ export function fitSummary(fit: FitResult): FitSummary {
   return {
     score: fit.score,
     reasons: fit.reasons.map((reason) => `${reason.effect === 'minus' ? '-' : '+'} ${reason.label}`),
+    ...(fit.semanticUsed ? { summaryCompared: true } : {}),
   };
 }
 

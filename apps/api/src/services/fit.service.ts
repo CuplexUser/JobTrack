@@ -3,8 +3,14 @@
  * are saved.
  *
  * The scoring itself is the pure `scoreFit` in `@jobtrack/shared`; this module fetches the
- * profile, asks the search index how close each posting reads to the profile summary, and
- * sorts. Without a profile every fit is null and a list keeps its usual newest-first order.
+ * profile and weights, asks the search index how close each posting reads to the profile
+ * summary, and sorts. Without a profile every fit is null and a list keeps its usual
+ * newest-first order.
+ *
+ * A saved opening's score is cached in the `fit_scores` table rather than recomputed on
+ * every read — see `scoreOpenings` below for why that isn't just an optimization. Scoring a
+ * posting that isn't saved (`scorePostings`/`rankPostings`, used before anything is stored)
+ * has no row to cache into and stays a live computation.
  */
 
 import {
@@ -12,7 +18,9 @@ import {
   scoreFit,
   type FitPosting,
   type FitProfile,
+  type FitReason,
   type FitResult,
+  type FitWeights,
   type JobOpeningView,
   type OpeningFilter,
   type PostingToScore,
@@ -21,17 +29,22 @@ import {
 import type { Repos } from '../db/repos.js';
 import type { SearchIndex } from '../search/index.js';
 import { listOpenings } from './openings.service.js';
-import { getProfile } from './settings.service.js';
+import { getFitWeights, getProfile } from './settings.service.js';
 
-type SimilaritySource = Pick<SearchIndex, 'similarityBetween'> | null;
+type SimilaritySource = Pick<SearchIndex, 'similarityBetween' | 'embedderReady'> | null;
 
 /** A posting to score, saved or not. The company only feeds the summary comparison. */
 export interface ScorablePosting extends FitPosting {
   companyName: string | null;
 }
 
+function toScorable(opening: JobOpeningView): ScorablePosting {
+  return { ...opening, companyName: opening.company.name };
+}
+
 async function scoreAgainst(
   profile: FitProfile,
+  weights: FitWeights,
   search: SimilaritySource,
   postings: readonly ScorablePosting[],
 ): Promise<(FitResult | null)[]> {
@@ -47,7 +60,7 @@ async function scoreAgainst(
         )
       : null;
 
-  return postings.map((posting, index) => scoreFit(profile, posting, similarities?.[index] ?? null));
+  return postings.map((posting, index) => scoreFit(profile, posting, similarities?.[index] ?? null, weights));
 }
 
 /**
@@ -59,7 +72,100 @@ export async function scorePostings(
   search: SimilaritySource,
   postings: readonly ScorablePosting[],
 ): Promise<(FitResult | null)[]> {
-  return scoreAgainst(await getProfile(repos), search, postings);
+  const [profile, weights] = await Promise.all([getProfile(repos), getFitWeights(repos)]);
+  return scoreAgainst(profile, weights, search, postings);
+}
+
+/**
+ * Everything that decided a stored fit score, so a cached row can be trusted without
+ * recomputing it: the opening's own fields, the profile, and the weights. Any of those
+ * changing invalidates whatever it produced — the same "recompute only what changed" idea
+ * `search/index.ts`'s `textHash` uses for embeddings.
+ */
+function fitFingerprint(profile: FitProfile, weights: FitWeights, posting: ScorablePosting): string {
+  return JSON.stringify([profile, weights, posting]);
+}
+
+/**
+ * Fit for saved openings, read from `fit_scores` when the stored row is still good for the
+ * current profile, weights and opening, computed and persisted otherwise.
+ *
+ * This is what keeps a score identical wherever an opening is read. The web app and the MCP
+ * server run as separate processes, each with its own in-memory search index and embedding
+ * model (`search/index.ts`'s header explains why), so a score computed live on every read
+ * could disagree between the two: whichever process's model happened to be loaded at request
+ * time decides whether the semantic comparison counts, and that isn't the same moment in both
+ * processes. Reading a stored value sidesteps the whole race — whichever process last wrote
+ * it is what every reader sees, until the opening, the profile or the weights actually change.
+ *
+ * A row whose `semanticUsed` is false is also treated as stale once the embedder becomes
+ * ready, even if nothing else changed, so a score computed keyword-only during a cold start
+ * gets upgraded the next time anyone reads it rather than staying keyword-only forever.
+ */
+async function scoreOpenings(
+  repos: Repos,
+  search: SimilaritySource,
+  profile: FitProfile,
+  weights: FitWeights,
+  openings: readonly JobOpeningView[],
+): Promise<(FitResult | null)[]> {
+  if (!hasFitCriteria(profile) || openings.length === 0) return openings.map(() => null);
+
+  const stored = await repos.fitScores.findMany({
+    where: [{ field: 'openingId', op: 'in', value: openings.map((o) => o.id) }],
+  });
+  const storedByOpeningId = new Map(stored.map((row) => [row.openingId, row]));
+  const semanticReady = search?.embedderReady ?? false;
+
+  const results: (FitResult | null)[] = Array.from({ length: openings.length });
+  const stale: { index: number; opening: JobOpeningView; fingerprint: string }[] = [];
+
+  openings.forEach((opening, index) => {
+    const fingerprint = fitFingerprint(profile, weights, toScorable(opening));
+    const row = storedByOpeningId.get(opening.id);
+    const outgrown = row?.semanticUsed === false && semanticReady;
+    if (row && row.fingerprint === fingerprint && !outgrown) {
+      results[index] = { score: row.score, reasons: row.reasons as FitReason[], semanticUsed: row.semanticUsed };
+    } else {
+      stale.push({ index, opening, fingerprint });
+    }
+  });
+
+  if (stale.length > 0) {
+    const fresh = await scoreAgainst(
+      profile,
+      weights,
+      search,
+      stale.map(({ opening }) => toScorable(opening)),
+    );
+
+    await Promise.all(
+      stale.map(async ({ index, opening, fingerprint }, i) => {
+        const fit = fresh[i]!;
+        results[index] = fit;
+        const existing = storedByOpeningId.get(opening.id);
+        const payload = {
+          openingId: opening.id,
+          score: fit.score,
+          reasons: fit.reasons,
+          semanticUsed: fit.semanticUsed,
+          fingerprint,
+        };
+        if (existing) {
+          await repos.fitScores.update(existing.id, payload as never);
+        } else {
+          try {
+            await repos.fitScores.create(payload as never);
+          } catch {
+            // Lost a race with another process caching this same opening's score first — its
+            // value is as valid as the one just computed, so there is nothing to reconcile.
+          }
+        }
+      }),
+    );
+  }
+
+  return results;
 }
 
 /** One opening with its fit alongside, for the single-record reads and writes. */
@@ -68,7 +174,8 @@ export async function fitOpening(
   search: SimilaritySource,
   opening: JobOpeningView,
 ): Promise<RankedOpening> {
-  const [fit] = await scorePostings(repos, search, [{ ...opening, companyName: opening.company.name }]);
+  const [profile, weights] = await Promise.all([getProfile(repos), getFitWeights(repos)]);
+  const [fit] = await scoreOpenings(repos, search, profile, weights, [opening]);
   return { ...opening, fit: fit ?? null };
 }
 
@@ -122,12 +229,12 @@ export async function rankOpenings(
   search: SimilaritySource,
   filter: Partial<OpeningFilter> = {},
 ): Promise<RankedOpening[]> {
-  const [openings, profile] = await Promise.all([listOpenings(repos, filter), getProfile(repos)]);
-  const fits = await scoreAgainst(
-    profile,
-    search,
-    openings.map((opening) => ({ ...opening, companyName: opening.company.name })),
-  );
+  const [openings, profile, weights] = await Promise.all([
+    listOpenings(repos, filter),
+    getProfile(repos),
+    getFitWeights(repos),
+  ]);
+  const fits = await scoreOpenings(repos, search, profile, weights, openings);
 
   let ranked: RankedOpening[] = openings.map((opening, index) => ({ ...opening, fit: fits[index] ?? null }));
 

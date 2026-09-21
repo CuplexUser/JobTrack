@@ -115,6 +115,16 @@ export class SearchIndex {
   }
 
   /**
+   * Whether the embedding model itself has loaded, regardless of whether anything is indexed
+   * yet. `semanticReady` is the wrong check for callers like `fit.service.ts`'s cache: it
+   * requires indexed vectors that have nothing to do with whether an ad hoc comparison (a
+   * profile summary against a posting) can run right now.
+   */
+  get embedderReady(): boolean {
+    return this.#embedder.ready;
+  }
+
+  /**
    * Build the lexical index immediately, then load the model and embed in the background.
    *
    * Deliberately two phases: the API is useful the moment the lexical half is ready, and

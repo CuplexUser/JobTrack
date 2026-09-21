@@ -19,6 +19,7 @@ import type {
   CompanyRow,
   ContactLinkRow,
   ContactRow,
+  FitScoreRow,
   InteractionRow,
   JobOpeningRow,
   NoteRow,
@@ -37,6 +38,7 @@ export interface Repos {
   statusEvents: Repo<StatusEventRow>;
   searchVectors: Repo<SearchVectorRow>;
   jobOpenings: Repo<JobOpeningRow>;
+  fitScores: Repo<FitScoreRow>;
   contacts: Repo<ContactRow>;
   interactions: Repo<InteractionRow>;
   contactLinks: Repo<ContactLinkRow>;
@@ -67,6 +69,7 @@ export function scopedRepos(repos: Repos, ctx: TxContext | undefined): Repos {
     statusEvents: repos.statusEvents.with(ctx),
     searchVectors: repos.searchVectors.with(ctx),
     jobOpenings: repos.jobOpenings.with(ctx),
+    fitScores: repos.fitScores.with(ctx),
     contacts: repos.contacts.with(ctx),
     interactions: repos.interactions.with(ctx),
     contactLinks: repos.contactLinks.with(ctx),

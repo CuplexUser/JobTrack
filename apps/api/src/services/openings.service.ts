@@ -292,6 +292,8 @@ export async function deleteOpening(repos: Repos, id: string): Promise<boolean> 
   await repos.jobOpenings.withTransaction(async (_tx, ctx: TxContext) => {
     const scoped = scopedRepos(repos, ctx);
     await detachTarget(scoped, 'opening', id);
+    const fitScore = await scoped.fitScores.findOne({ where: { openingId: id } });
+    if (fitScore) await scoped.fitScores.delete(fitScore.id);
     await scoped.jobOpenings.delete(id);
   });
   return true;

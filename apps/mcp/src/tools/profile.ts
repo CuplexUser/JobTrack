@@ -6,9 +6,9 @@
  */
 
 import { z } from 'zod';
-import { MAX_POSTINGS_TO_SCORE, profilePatchSchema, scorePostingsSchema } from '@jobtrack/shared';
+import { fitWeightsPatchSchema, MAX_POSTINGS_TO_SCORE, profilePatchSchema, scorePostingsSchema } from '@jobtrack/shared';
 import type { Deps } from '@jobtrack/api/deps';
-import { getProfile, updateProfile } from '@jobtrack/api/services/settings';
+import { getFitWeights, getProfile, updateFitWeights, updateProfile } from '@jobtrack/api/services/settings';
 import { rankOpenings, rankPostings } from '@jobtrack/api/services/fit';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { jsonResult } from '../helpers.js';
@@ -35,6 +35,26 @@ export function registerProfileTools(server: McpServer, deps: Deps): void {
       inputSchema: profilePatchSchema,
     },
     async (patch) => jsonResult(await updateProfile(repos, patch)),
+  );
+
+  server.registerTool(
+    'get_fit_weights',
+    {
+      description:
+        'How fit points are divided among title, summary, location, work mode, salary and keyword matches, plus the penalty for an excluded keyword and the similarity range the summary comparison is stretched across. Tune these if the user says fit scores weigh the wrong things, e.g. "title matters more to me than location".',
+      inputSchema: z.object({}),
+    },
+    async () => jsonResult(await getFitWeights(repos)),
+  );
+
+  server.registerTool(
+    'update_fit_weights',
+    {
+      description:
+        'Change how fit points are divided. Only the fields given are changed. Every saved opening is rescored against the new weights the next time it is read — nothing needs to be run by hand. Confirm with the user before changing this; it is unusual to want a change here.',
+      inputSchema: fitWeightsPatchSchema,
+    },
+    async (patch) => jsonResult(await updateFitWeights(repos, patch)),
   );
 
   server.registerTool(

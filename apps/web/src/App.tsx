@@ -2,9 +2,9 @@
  * Application shell: theme, navigation and routing.
  */
 
-import { useEffect, useMemo, useState } from 'react';
+import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
-import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Typography, type MenuProps } from 'antd';
+import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Spin, Typography, type MenuProps } from 'antd';
 import {
   BarChartOutlined,
   BulbOutlined,
@@ -17,21 +17,29 @@ import {
   SunOutlined,
   TeamOutlined,
 } from '@ant-design/icons';
-import { DashboardPage } from './pages/DashboardPage.js';
-import { StatisticsPage } from './pages/StatisticsPage.js';
-import { ApplicationsPage } from './pages/ApplicationsPage.js';
-import { ApplicationDetailPage } from './pages/ApplicationDetailPage.js';
-import { DuplicatesPage } from './pages/DuplicatesPage.js';
-import { CompaniesPage } from './pages/CompaniesPage.js';
-import { CompanyDetailPage } from './pages/CompanyDetailPage.js';
-import { NotesPage } from './pages/NotesPage.js';
-import { OpeningsPage } from './pages/OpeningsPage.js';
-import { ContactsPage } from './pages/ContactsPage.js';
-import { ContactDetailPage } from './pages/ContactDetailPage.js';
 import { RememberParams } from './components/RememberParams.js';
 import { APPLICATIONS_PARAMS, CONTACTS_PARAMS, STATISTICS_PARAMS } from './preferences.js';
-import { SettingsPage } from './pages/SettingsPage.js';
 import { buildAntdTheme, palette } from './theme.js';
+
+/**
+ * Each page is its own chunk, fetched only when its route is visited, rather than one
+ * monolithic bundle everyone downloads to see the dashboard. Named exports (not default),
+ * so each loader picks the one export out of the module dynamic `import()` resolves to.
+ */
+const DashboardPage = lazy(() => import('./pages/DashboardPage.js').then((m) => ({ default: m.DashboardPage })));
+const StatisticsPage = lazy(() => import('./pages/StatisticsPage.js').then((m) => ({ default: m.StatisticsPage })));
+const ApplicationsPage = lazy(() => import('./pages/ApplicationsPage.js').then((m) => ({ default: m.ApplicationsPage })));
+const ApplicationDetailPage = lazy(() =>
+  import('./pages/ApplicationDetailPage.js').then((m) => ({ default: m.ApplicationDetailPage })),
+);
+const DuplicatesPage = lazy(() => import('./pages/DuplicatesPage.js').then((m) => ({ default: m.DuplicatesPage })));
+const CompaniesPage = lazy(() => import('./pages/CompaniesPage.js').then((m) => ({ default: m.CompaniesPage })));
+const CompanyDetailPage = lazy(() => import('./pages/CompanyDetailPage.js').then((m) => ({ default: m.CompanyDetailPage })));
+const NotesPage = lazy(() => import('./pages/NotesPage.js').then((m) => ({ default: m.NotesPage })));
+const OpeningsPage = lazy(() => import('./pages/OpeningsPage.js').then((m) => ({ default: m.OpeningsPage })));
+const ContactsPage = lazy(() => import('./pages/ContactsPage.js').then((m) => ({ default: m.ContactsPage })));
+const ContactDetailPage = lazy(() => import('./pages/ContactDetailPage.js').then((m) => ({ default: m.ContactDetailPage })));
+const SettingsPage = lazy(() => import('./pages/SettingsPage.js').then((m) => ({ default: m.SettingsPage })));
 
 const THEME_KEY = 'jobtrack.theme';
 
@@ -128,23 +136,25 @@ export function App() {
           </Layout.Header>
 
           <Layout.Content style={{ padding: 24 }}>
-            <Routes>
-              <Route path="/" element={<Navigate to="/dashboard" replace />} />
-              <Route path="/dashboard" element={<DashboardPage />} />
-              <Route path="/statistics" element={<RememberParams spec={STATISTICS_PARAMS}><StatisticsPage /></RememberParams>} />
-              <Route path="/applications" element={<RememberParams spec={APPLICATIONS_PARAMS}><ApplicationsPage /></RememberParams>} />
-              {/* Before `/:id`, so the word is a page and not an application id. */}
-              <Route path="/applications/duplicates" element={<DuplicatesPage />} />
-              <Route path="/applications/:id" element={<ApplicationDetailPage />} />
-              <Route path="/openings" element={<OpeningsPage />} />
-              <Route path="/companies" element={<CompaniesPage />} />
-              <Route path="/companies/:id" element={<CompanyDetailPage />} />
-              <Route path="/people" element={<RememberParams spec={CONTACTS_PARAMS}><ContactsPage /></RememberParams>} />
-              <Route path="/people/:id" element={<ContactDetailPage />} />
-              <Route path="/notes" element={<NotesPage />} />
-              <Route path="/settings" element={<SettingsPage />} />
-              <Route path="*" element={<Navigate to="/dashboard" replace />} />
-            </Routes>
+            <Suspense fallback={<Spin size="large" style={{ display: 'flex', justifyContent: 'center', marginTop: 80 }} />}>
+              <Routes>
+                <Route path="/" element={<Navigate to="/dashboard" replace />} />
+                <Route path="/dashboard" element={<DashboardPage />} />
+                <Route path="/statistics" element={<RememberParams spec={STATISTICS_PARAMS}><StatisticsPage /></RememberParams>} />
+                <Route path="/applications" element={<RememberParams spec={APPLICATIONS_PARAMS}><ApplicationsPage /></RememberParams>} />
+                {/* Before `/:id`, so the word is a page and not an application id. */}
+                <Route path="/applications/duplicates" element={<DuplicatesPage />} />
+                <Route path="/applications/:id" element={<ApplicationDetailPage />} />
+                <Route path="/openings" element={<OpeningsPage />} />
+                <Route path="/companies" element={<CompaniesPage />} />
+                <Route path="/companies/:id" element={<CompanyDetailPage />} />
+                <Route path="/people" element={<RememberParams spec={CONTACTS_PARAMS}><ContactsPage /></RememberParams>} />
+                <Route path="/people/:id" element={<ContactDetailPage />} />
+                <Route path="/notes" element={<NotesPage />} />
+                <Route path="/settings" element={<SettingsPage />} />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
+              </Routes>
+            </Suspense>
           </Layout.Content>
         </Layout>
       </AntApp>

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { EXCLUDED_PENALTY, hasFitCriteria, scoreFit, titleMatch, type FitPosting, type FitProfile } from './fit.js';
+import { DEFAULT_FIT_WEIGHTS, hasFitCriteria, scoreFit, titleMatch, type FitPosting, type FitProfile } from './fit.js';
 
 const empty: FitProfile = {
   summary: null,
@@ -76,7 +76,7 @@ describe('scoreFit', () => {
     const clean = scoreFit(avoid, posting({ notes: 'We use Kotlin.' }))!;
     const flagged = scoreFit(avoid, posting({ notes: 'Legacy PHP monolith.' }))!;
     expect(clean.score).toBe(100);
-    expect(flagged.score).toBe(100 - EXCLUDED_PENALTY);
+    expect(flagged.score).toBe(100 - DEFAULT_FIT_WEIGHTS.excludedPenalty);
     expect(flagged.reasons[0]).toMatchObject({ factor: 'excluded', effect: 'minus' });
     // Whole words only: "phpstorm" is not "php".
     expect(scoreFit(avoid, posting({ notes: 'Licenses for PhpStorm.' }))!.score).toBe(100);

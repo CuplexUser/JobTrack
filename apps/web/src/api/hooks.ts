@@ -37,6 +37,7 @@ export const keys = {
   contacts: (params: unknown) => ['contacts', params] as const,
   profile: () => ['profile'] as const,
   rules: () => ['rules'] as const,
+  fitWeights: () => ['fit-weights'] as const,
   autoGhostPreview: () => ['rules', 'auto-ghost'] as const,
   contact: (id: string) => ['contact', id] as const,
   linkedContacts: (targetType: string, targetId: string) => ['contacts', 'linked', targetType, targetId] as const,
@@ -453,6 +454,22 @@ export function useSaveRules() {
   return useMutation({
     mutationFn: (body: unknown) => api.updateRules(body),
     onSuccess: () => void client.invalidateQueries({ queryKey: ['rules'] }),
+  });
+}
+
+export function useFitWeights() {
+  return useQuery({ queryKey: keys.fitWeights(), queryFn: () => api.getFitWeights() });
+}
+
+/** New weights reshape every saved opening's score, so the openings are refetched too. */
+export function useSaveFitWeights() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateFitWeights(body),
+    onSuccess: (weights) => {
+      client.setQueryData(keys.fitWeights(), weights);
+      void client.invalidateQueries({ queryKey: ['openings'] });
+    },
   });
 }
 

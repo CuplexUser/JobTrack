@@ -15,7 +15,7 @@ import {
   ingestUrl,
   type IngestResult,
 } from '@jobtrack/api/services/ingest';
-import { scorePostings } from '@jobtrack/api/services/fit';
+import { fitOpening, scorePostings } from '@jobtrack/api/services/fit';
 import { findMatchingApplication, findMatchingOpening } from '@jobtrack/api/services/openings';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { duplicateRefusal, errorResult, jsonResult } from '../helpers.js';
@@ -99,9 +99,14 @@ export function registerCaptureTool(server: McpServer, deps: Deps): void {
       try {
         const clipped = await clipPosting(repos, search, postingDraftSchema.parse(result.draft), { allowDuplicate });
         search.markStale();
+        // Scored again against the saved record rather than reusing the draft-time `fit`
+        // above: this is what persists the score, so a later get_opening or list_openings
+        // agrees with what is returned here instead of recomputing something slightly
+        // different from the trimmed draft text.
+        const { fit: savedFit } = await fitOpening(repos, search, clipped.opening);
         return jsonResult({
           saved: true,
-          opening: openingSummary({ ...clipped.opening, fit }),
+          opening: openingSummary({ ...clipped.opening, fit: savedFit }),
           duplicate: { ...clipped.duplicate, contacts: clipped.duplicate.contacts.map(contactSummary) },
         });
       } catch (error) {

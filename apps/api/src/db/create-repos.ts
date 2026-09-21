@@ -17,6 +17,7 @@ import {
   companySchema,
   contactLinkSchema,
   contactSchema,
+  fitScoreSchema,
   interactionSchema,
   jobOpeningSchema,
   noteSchema,
@@ -29,6 +30,7 @@ import {
   type CompanyRow,
   type ContactLinkRow,
   type ContactRow,
+  type FitScoreRow,
   type InteractionRow,
   type JobOpeningRow,
   type NoteRow,
@@ -83,6 +85,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
   const statusEvents = await createRepo<StatusEventRow>({ ...common, table: 'status_events', schema: statusEventSchema });
   const searchVectors = await createRepo<SearchVectorRow>({ ...common, table: 'search_vectors', schema: searchVectorSchema });
   const jobOpenings = await createRepo<JobOpeningRow>({ ...common, table: 'job_openings', schema: jobOpeningSchema });
+  const fitScores = await createRepo<FitScoreRow>({ ...common, table: 'fit_scores', schema: fitScoreSchema });
   const contacts = await createRepo<ContactRow>({ ...common, table: 'contacts', schema: contactSchema });
   const interactions = await createRepo<InteractionRow>({ ...common, table: 'interactions', schema: interactionSchema });
   const contactLinks = await createRepo<ContactLinkRow>({ ...common, table: 'contact_links', schema: contactLinkSchema });
@@ -97,6 +100,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
     statusEvents,
     searchVectors,
     jobOpenings,
+    fitScores,
     contacts,
     interactions,
     contactLinks,
@@ -113,6 +117,7 @@ export async function createRepos(config: Config): Promise<RepoBundle> {
         statusEvents.close(),
         searchVectors.close(),
         jobOpenings.close(),
+        fitScores.close(),
         contacts.close(),
         interactions.close(),
         contactLinks.close(),
