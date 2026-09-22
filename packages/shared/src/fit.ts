@@ -47,7 +47,11 @@ export interface FitReason {
   factor: FitFactor;
   /** Whether this part helped or hurt. `neutral` when the posting did not say. */
   effect: 'plus' | 'minus' | 'neutral';
+  /** Pre-formatted English text — used as-is by apps/mcp, apps/api and apps/tray. */
   label: string;
+  /** Translation key `apps/web` looks up instead of `label`, to localize this reason. */
+  i18nKey: string;
+  i18nParams?: Record<string, string | number>;
 }
 
 export interface FitResult {
@@ -137,12 +141,29 @@ export function scoreFit(
     const bestTarget = profile.targetTitles.find((target) => titleMatch(posting.jobTitle, target) === best)!;
     if (best >= 0.75) {
       earned += weights.title * best;
-      reasons.push({ factor: 'title', effect: 'plus', label: `Title matches "${bestTarget}"` });
+      reasons.push({
+        factor: 'title',
+        effect: 'plus',
+        label: `Title matches "${bestTarget}"`,
+        i18nKey: 'title.matches',
+        i18nParams: { target: bestTarget },
+      });
     } else if (best >= 0.5) {
       earned += weights.title * best * 0.6;
-      reasons.push({ factor: 'title', effect: 'plus', label: `Title is close to "${bestTarget}"` });
+      reasons.push({
+        factor: 'title',
+        effect: 'plus',
+        label: `Title is close to "${bestTarget}"`,
+        i18nKey: 'title.close',
+        i18nParams: { target: bestTarget },
+      });
     } else {
-      reasons.push({ factor: 'title', effect: 'minus', label: 'Title is not one you are looking for' });
+      reasons.push({
+        factor: 'title',
+        effect: 'minus',
+        label: 'Title is not one you are looking for',
+        i18nKey: 'title.mismatch',
+      });
     }
   }
 
@@ -154,8 +175,11 @@ export function scoreFit(
         Math.max(0, (semanticSimilarity - weights.semanticFloor) / (weights.semanticCeiling - weights.semanticFloor)),
       );
       earned += weights.summary * share;
-      if (share >= 0.6) reasons.push({ factor: 'summary', effect: 'plus', label: 'Reads close to your profile' });
-      else if (share <= 0.2) reasons.push({ factor: 'summary', effect: 'minus', label: 'Reads far from your profile' });
+      if (share >= 0.6) {
+        reasons.push({ factor: 'summary', effect: 'plus', label: 'Reads close to your profile', i18nKey: 'summary.close' });
+      } else if (share <= 0.2) {
+        reasons.push({ factor: 'summary', effect: 'minus', label: 'Reads far from your profile', i18nKey: 'summary.far' });
+      }
     }
   }
 
@@ -165,16 +189,22 @@ export function scoreFit(
     const matched = profile.locations.find((place) => where.includes(locationKey(place)));
     if (matched) {
       earned += weights.location;
-      reasons.push({ factor: 'location', effect: 'plus', label: `In ${matched}` });
+      reasons.push({ factor: 'location', effect: 'plus', label: `In ${matched}`, i18nKey: 'location.matched', i18nParams: { place: matched } });
     } else if (posting.workMode === 'remote' && profile.workModes.includes('remote')) {
       // A remote role is in every location the user is willing to work remotely from.
       earned += weights.location;
-      reasons.push({ factor: 'location', effect: 'plus', label: 'Remote, so location does not matter' });
+      reasons.push({ factor: 'location', effect: 'plus', label: 'Remote, so location does not matter', i18nKey: 'location.remote' });
     } else if (!posting.location) {
       earned += weights.location / 2;
-      reasons.push({ factor: 'location', effect: 'neutral', label: 'Location not stated' });
+      reasons.push({ factor: 'location', effect: 'neutral', label: 'Location not stated', i18nKey: 'location.notStated' });
     } else {
-      reasons.push({ factor: 'location', effect: 'minus', label: `In ${posting.location}, not a place you listed` });
+      reasons.push({
+        factor: 'location',
+        effect: 'minus',
+        label: `In ${posting.location}, not a place you listed`,
+        i18nKey: 'location.mismatch',
+        i18nParams: { location: posting.location },
+      });
     }
   }
 
@@ -182,12 +212,14 @@ export function scoreFit(
     possible += weights.workMode;
     if (posting.workMode === 'unspecified') {
       earned += weights.workMode / 2;
-      reasons.push({ factor: 'workMode', effect: 'neutral', label: 'Work mode not stated' });
+      reasons.push({ factor: 'workMode', effect: 'neutral', label: 'Work mode not stated', i18nKey: 'workMode.notStated' });
     } else if (profile.workModes.includes(posting.workMode)) {
       earned += weights.workMode;
-      reasons.push({ factor: 'workMode', effect: 'plus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, as you want` });
+      const mode = capitalize(WORK_MODE_WORDS[posting.workMode]);
+      reasons.push({ factor: 'workMode', effect: 'plus', label: `${mode}, as you want`, i18nKey: 'workMode.matched', i18nParams: { mode } });
     } else {
-      reasons.push({ factor: 'workMode', effect: 'minus', label: `${capitalize(WORK_MODE_WORDS[posting.workMode])}, which you did not pick` });
+      const mode = capitalize(WORK_MODE_WORDS[posting.workMode]);
+      reasons.push({ factor: 'workMode', effect: 'minus', label: `${mode}, which you did not pick`, i18nKey: 'workMode.mismatch', i18nParams: { mode } });
     }
   }
 
@@ -200,16 +232,22 @@ export function scoreFit(
     const top = posting.salaryMax ?? posting.salaryMin;
     if (top === null || !comparable) {
       earned += weights.salary / 2;
-      reasons.push({
-        factor: 'salary',
-        effect: 'neutral',
-        label: top === null ? 'Salary not stated' : `Salary is in ${posting.salaryCurrency}, not ${profile.salaryCurrency}`,
-      });
+      reasons.push(
+        top === null
+          ? { factor: 'salary', effect: 'neutral', label: 'Salary not stated', i18nKey: 'salary.notStated' }
+          : {
+              factor: 'salary',
+              effect: 'neutral',
+              label: `Salary is in ${posting.salaryCurrency}, not ${profile.salaryCurrency}`,
+              i18nKey: 'salary.currencyMismatch',
+              i18nParams: { postingCurrency: posting.salaryCurrency!, profileCurrency: profile.salaryCurrency! },
+            },
+      );
     } else if (top < profile.salaryFloor) {
-      reasons.push({ factor: 'salary', effect: 'minus', label: 'Salary tops out below your floor' });
+      reasons.push({ factor: 'salary', effect: 'minus', label: 'Salary tops out below your floor', i18nKey: 'salary.belowFloor' });
     } else {
       earned += weights.salary;
-      reasons.push({ factor: 'salary', effect: 'plus', label: 'Salary reaches your floor' });
+      reasons.push({ factor: 'salary', effect: 'plus', label: 'Salary reaches your floor', i18nKey: 'salary.reachesFloor' });
     }
   }
 
@@ -217,7 +255,15 @@ export function scoreFit(
     possible += weights.keywords;
     const hits = profile.includeKeywords.filter((keyword) => containsKeyword(text, keyword));
     earned += weights.keywords * Math.min(1, hits.length / Math.min(3, profile.includeKeywords.length));
-    if (hits.length > 0) reasons.push({ factor: 'keywords', effect: 'plus', label: `Mentions ${hits.join(', ')}` });
+    if (hits.length > 0) {
+      reasons.push({
+        factor: 'keywords',
+        effect: 'plus',
+        label: `Mentions ${hits.join(', ')}`,
+        i18nKey: 'keywords.mentions',
+        i18nParams: { keywords: hits.join(', ') },
+      });
+    }
   }
 
   let score = possible > 0 ? (earned / possible) * 100 : 50;
@@ -225,7 +271,13 @@ export function scoreFit(
   const excluded = profile.excludeKeywords.filter((keyword) => containsKeyword(text, keyword));
   if (excluded.length > 0) {
     score -= weights.excludedPenalty * excluded.length;
-    reasons.unshift({ factor: 'excluded', effect: 'minus', label: `Mentions ${excluded.join(', ')}, which you want to avoid` });
+    reasons.unshift({
+      factor: 'excluded',
+      effect: 'minus',
+      label: `Mentions ${excluded.join(', ')}, which you want to avoid`,
+      i18nKey: 'excluded.mentions',
+      i18nParams: { keywords: excluded.join(', ') },
+    });
   }
 
   return {

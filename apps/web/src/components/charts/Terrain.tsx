@@ -12,7 +12,7 @@
  * at percentage positions.
  */
 
-import { monthName } from '@jobtrack/shared';
+import { useTranslation } from 'react-i18next';
 import { palette } from '../../theme.js';
 
 export interface TerrainPoint {
@@ -87,6 +87,7 @@ export interface TerrainProps {
 }
 
 export function Terrain({ points, height = 170 }: TerrainProps) {
+  const { t, i18n } = useTranslation('charts');
   if (points.length < 2) return null;
 
   const counts = points.map((point) => point.count);
@@ -144,7 +145,11 @@ export function Terrain({ points, height = 170 }: TerrainProps) {
             <path d="M1.5 1.5 L13 5.5 L1.5 9.5 Z" fill={palette.series2} />
           </svg>
           <span>
-            Peak: {peak.count} in {monthName(peak.month).slice(0, 3)} {peak.year}
+            {t('terrain.peak', {
+              count: peak.count,
+              month: new Intl.DateTimeFormat(i18n.language, { month: 'short' }).format(new Date(Date.UTC(peak.year, peak.month - 1, 1))),
+              year: peak.year,
+            })}
           </span>
         </div>
       )}

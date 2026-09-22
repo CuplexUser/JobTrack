@@ -1,0 +1,26 @@
+{
+  "list.title": "Företag",
+  "list.searchPlaceholder": "Hitta ett företag",
+  "list.columns.company": "Företag",
+  "list.columns.applications": "Ansökningar",
+  "list.columns.active": "Aktiva",
+  "list.columns.lastApplied": "Senast ansökt",
+  "list.columns.tags": "Etiketter",
+
+  "detail.backToCompanies": "Tillbaka till företag",
+  "detail.stats.applications": "Ansökningar",
+  "detail.stats.stillActive": "Fortfarande aktiva",
+  "detail.tags.title": "Företagsetiketter",
+  "detail.tags.placeholder": "fintech, distansarbete…",
+  "detail.history.title": "Ansökningshistorik",
+  "detail.history.columns.applied": "Ansökt",
+  "detail.history.columns.jobTitle": "Titel",
+  "detail.history.columns.status": "Status",
+  "detail.history.columns.source": "Källa",
+  "detail.notes.title": "Anteckningar om {{company}}",
+  "detail.notes.addButton": "Lägg till anteckning",
+  "detail.notes.empty": "Inga anteckningar om detta företag",
+  "detail.notes.deleteConfirmTitle": "Radera denna anteckning?",
+  "detail.notes.deleteConfirmOk": "Radera",
+  "detail.notes.deleteSuccess": "Anteckningen raderad"
+}

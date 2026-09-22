@@ -12,7 +12,7 @@
 
 import { useState } from 'react';
 import { Flex, Typography } from 'antd';
-import { monthName } from '@jobtrack/shared';
+import { useTranslation } from 'react-i18next';
 import { palette } from '../../theme.js';
 
 export interface BarPoint {
@@ -27,11 +27,13 @@ export interface BarSeriesProps {
 }
 
 /** "Mar 2026", the label under a bar and in its tooltip. */
-function label(point: BarPoint): string {
-  return `${monthName(point.month).slice(0, 3)} ${point.year}`;
+function label(point: BarPoint, language: string): string {
+  const month = new Intl.DateTimeFormat(language, { month: 'short' }).format(new Date(Date.UTC(point.year, point.month - 1, 1)));
+  return `${month} ${point.year}`;
 }
 
 export function BarSeries({ points, height = 140 }: BarSeriesProps) {
+  const { t, i18n } = useTranslation('charts');
   const [hovered, setHovered] = useState<number | null>(null);
 
   if (points.length === 0) return null;
@@ -50,11 +52,11 @@ export function BarSeries({ points, height = 140 }: BarSeriesProps) {
       <Flex justify="space-between" align="baseline" style={{ marginBottom: 8 }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
           {active
-            ? `${label(active)}: ${active.count} application${active.count === 1 ? '' : 's'}`
-            : `${total} application${total === 1 ? '' : 's'} over ${points.length} months`}
+            ? t('barSeries.hoverSummary', { month: label(active, i18n.language), count: active.count })
+            : t('barSeries.totalSummary', { count: total, months: points.length })}
         </Typography.Text>
         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-          peak {max}
+          {t('barSeries.peak', { count: max })}
         </Typography.Text>
       </Flex>
 
@@ -62,11 +64,11 @@ export function BarSeries({ points, height = 140 }: BarSeriesProps) {
         viewBox={`0 0 ${points.length * step} ${viewHeight}`}
         preserveAspectRatio="none"
         role="img"
-        aria-label={`Applications per month, ${label(points[0]!)} to ${label(points.at(-1)!)}. Peak ${max} in one month, ${total} in total.`}
+        aria-label={t('barSeries.ariaLabel', { from: label(points[0]!, i18n.language), to: label(points.at(-1)!, i18n.language), peak: max, total })}
         style={{ display: 'block', width: '100%', height }}
         onMouseLeave={() => setHovered(null)}
       >
-        <title>Applications per month</title>
+        <title>{t('barSeries.title')}</title>
         {points.map((point, index) => {
           const barHeight = point.count === 0 ? 0 : Math.max((point.count / max) * viewHeight, 2);
           return (
@@ -92,7 +94,7 @@ export function BarSeries({ points, height = 140 }: BarSeriesProps) {
       <Flex justify="space-between" style={{ marginTop: 6 }}>
         {[points[0]!, points[Math.floor(points.length / 2)]!, points.at(-1)!].map((point, index) => (
           <Typography.Text key={index} type="secondary" style={{ fontSize: 11 }}>
-            {label(point)}
+            {label(point, i18n.language)}
           </Typography.Text>
         ))}
       </Flex>

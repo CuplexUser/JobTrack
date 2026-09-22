@@ -18,6 +18,7 @@
 import { useState } from 'react';
 import { Alert, Button, Flex, Input, Modal, Space, Tabs, Typography } from 'antd';
 import { LinkOutlined, FileTextOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { PostingDraft } from '@jobtrack/shared';
 import { api } from '../api/index.js';
 import { ApiError, type IngestResponse } from '../api/client.js';
@@ -34,6 +35,7 @@ export interface PostingIngestModalProps {
 }
 
 export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalProps) {
+  const { t } = useTranslation('import');
   const [tab, setTab] = useState<'link' | 'text'>(DEMO ? 'text' : 'link');
   const [url, setUrl] = useState('');
   const [text, setText] = useState('');
@@ -63,13 +65,11 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
       if (outcome.draft.companyName.trim() === '' || outcome.draft.jobTitle.trim() === '') {
         // A draft this thin is worse than none: it would silently create a company from a
         // page heading. Say what is missing and let the form be filled in by hand.
-        setError(
-          'Could not make out the company and job title. Open the form and fill them in, or paste more of the posting.',
-        );
+        setError(t('posting.thinDraftError'));
       }
       setResult(outcome);
     } catch (caught) {
-      setError(caught instanceof Error ? caught.message : 'Could not read that posting');
+      setError(caught instanceof Error ? caught.message : t('posting.readError'));
       // A site that refuses to be read is the expected case, not a fault — so move to the
       // tab that always works instead of leaving the user on the one that just failed.
       if (caught instanceof ApiError && caught.code === 'ingest_blocked') setTab('text');
@@ -84,12 +84,12 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
     <Modal
       open={open}
       onCancel={handleClose}
-      title="Save from a posting"
+      title={t('posting.title')}
       width={640}
       destroyOnHidden
       footer={
         <Flex justify="end" gap={8}>
-          <Button onClick={handleClose}>Cancel</Button>
+          <Button onClick={handleClose}>{t('posting.cancel')}</Button>
           <Button
             type="primary"
             disabled={!draft}
@@ -99,7 +99,7 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
               reset();
             }}
           >
-            Review and save
+            {t('posting.reviewAndSave')}
           </Button>
         </Flex>
       }
@@ -116,24 +116,22 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
             key: 'link',
             label: (
               <span>
-                <LinkOutlined /> Paste a link
+                <LinkOutlined /> {t('posting.tabLink')}
               </span>
             ),
             disabled: DEMO,
             children: (
               <Space direction="vertical" size={12} style={{ width: '100%' }}>
                 <Input.Search
-                  placeholder="https://boards.greenhouse.io/…"
+                  placeholder={t('posting.linkPlaceholder')}
                   value={url}
-                  enterButton="Read"
+                  enterButton={t('posting.read')}
                   loading={busy}
                   onChange={(event) => setUrl(event.target.value)}
                   onSearch={(value) => value.trim() && void run(() => api.ingestUrl(value.trim()))}
                 />
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  Works on most company career pages and applicant tracking systems. LinkedIn
-                  and Indeed block automated readers. For those, copy the posting and use
-                  the other tab.
+                  {t('posting.linkHelp')}
                 </Typography.Text>
               </Space>
             ),
@@ -142,7 +140,7 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
             key: 'text',
             label: (
               <span>
-                <FileTextOutlined /> Paste the text
+                <FileTextOutlined /> {t('posting.tabText')}
               </span>
             ),
             children: (
@@ -150,20 +148,19 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
                 <Input.TextArea
                   rows={8}
                   value={text}
-                  placeholder={'Backend Engineer at Spotify\nStockholm, hybrid\nSalary: SEK 55 000 - 70 000'}
+                  placeholder={t('posting.textPlaceholder')}
                   onChange={(event) => setText(event.target.value)}
                 />
                 <Flex justify="space-between" align="center" gap={12} wrap>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    Everything you paste is kept as the opening&apos;s note, so nothing is lost
-                    to a wrong guess.
+                    {t('posting.textHelp')}
                   </Typography.Text>
                   <Button
                     loading={busy}
                     disabled={text.trim() === ''}
                     onClick={() => void run(() => api.ingestText(text, url.trim() || undefined))}
                   >
-                    Read
+                    {t('posting.read')}
                   </Button>
                 </Flex>
               </Space>
@@ -177,11 +174,11 @@ export function PostingIngestModal({ open, onClose, onUse }: PostingIngestModalP
       {draft && (
         <Space direction="vertical" size={8} style={{ width: '100%', marginTop: 16 }}>
           <Typography.Text strong>
-            {draft.jobTitle || 'Untitled role'}
-            {draft.companyName ? ` at ${draft.companyName}` : ''}
+            {draft.jobTitle || t('posting.untitledRole')}
+            {draft.companyName ? `${t('posting.at')}${draft.companyName}` : ''}
           </Typography.Text>
           <Typography.Text type="secondary">
-            {[draft.location, draft.sourceName].filter(Boolean).join(' · ') || 'No location found'}
+            {[draft.location, draft.sourceName].filter(Boolean).join(' · ') || t('posting.noLocationFound')}
           </Typography.Text>
           {/* The point of routing capture through the API: the same verdict the New
               Application form shows, at the moment you are about to save. */}

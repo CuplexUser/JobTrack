@@ -1,0 +1,27 @@
+{
+  "title.matches": "Title matches \"{{target}}\"",
+  "title.close": "Title is close to \"{{target}}\"",
+  "title.mismatch": "Title is not one you are looking for",
+
+  "summary.close": "Reads close to your profile",
+  "summary.far": "Reads far from your profile",
+
+  "location.matched": "In {{place}}",
+  "location.remote": "Remote, so location does not matter",
+  "location.notStated": "Location not stated",
+  "location.mismatch": "In {{location}}, not a place you listed",
+
+  "workMode.notStated": "Work mode not stated",
+  "workMode.matched": "{{mode}}, as you want",
+  "workMode.mismatch": "{{mode}}, which you did not pick",
+
+  "salary.notStated": "Salary not stated",
+  "salary.currencyMismatch": "Salary is in {{postingCurrency}}, not {{profileCurrency}}",
+  "salary.belowFloor": "Salary tops out below your floor",
+  "salary.reachesFloor": "Salary reaches your floor",
+
+  "keywords.mentions": "Mentions {{keywords}}",
+  "excluded.mentions": "Mentions {{keywords}}, which you want to avoid",
+
+  "semanticPending": "Your summary is not compared yet while the search model loads."
+}

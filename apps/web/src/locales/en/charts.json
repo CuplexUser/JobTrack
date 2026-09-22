@@ -1,0 +1,37 @@
+{
+  "barSeries.title": "Applications per month",
+  "barSeries.hoverSummary_one": "{{month}}: {{count}} application",
+  "barSeries.hoverSummary_other": "{{month}}: {{count}} applications",
+  "barSeries.totalSummary_one": "{{count}} application over {{months}} months",
+  "barSeries.totalSummary_other": "{{count}} applications over {{months}} months",
+  "barSeries.peak": "peak {{count}}",
+  "barSeries.ariaLabel": "Applications per month, {{from}} to {{to}}. Peak {{peak}} in one month, {{total}} in total.",
+
+  "funnel.ofPrevious": "{{percent}}% of previous",
+  "funnel.stageAriaLabel_one": "{{status}}: {{count}} application ever reached this stage",
+  "funnel.stageAriaLabel_other": "{{status}}: {{count}} applications ever reached this stage",
+  "funnel.footnote": "Counted from your status history: an application that interviewed and was then turned down still counts at every stage it reached.",
+
+  "timeBars.applicationsCount_one": "{{count}} application",
+  "timeBars.applicationsCount_other": "{{count}} applications",
+  "timeBars.openingsSavedCount_one": "{{count}} opening saved",
+  "timeBars.openingsSavedCount_other": "{{count}} openings saved",
+  "timeBars.and": "and",
+  "timeBars.legendApplications": "Applications",
+  "timeBars.legendOpeningsSaved": "Openings saved",
+  "timeBars.groupAriaLabel": "Applications and openings saved, {{from}} to {{to}}. Peak {{peak}}.",
+
+  "rankedBars.showInApplications": "Show these {{count}} in Applications",
+
+  "calendarHeatmap.dayCount_one": "{{date}}: {{count}} application",
+  "calendarHeatmap.dayCount_other": "{{date}}: {{count}} applications",
+  "calendarHeatmap.noApplications": "No applications on these days",
+  "calendarHeatmap.busiestDay": "Busiest day: {{summary}}",
+  "calendarHeatmap.weekdayMon": "Mon",
+  "calendarHeatmap.weekdayWed": "Wed",
+  "calendarHeatmap.weekdayFri": "Fri",
+  "calendarHeatmap.less": "Less",
+  "calendarHeatmap.more": "More",
+
+  "terrain.peak": "Peak: {{count}} in {{month}} {{year}}"
+}

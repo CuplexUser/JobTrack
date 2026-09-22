@@ -5,6 +5,7 @@
 
 import { useState } from 'react';
 import { App as AntApp, Button, Card, Descriptions, Flex, Segmented, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import {
   DEFAULT_REMEMBER_MODES,
   countPreferences,
@@ -15,26 +16,19 @@ import {
   type RememberMode,
 } from '../preferences.js';
 
-const GROUPS: { group: PreferenceGroup; label: string; covers: string }[] = [
-  {
-    group: 'view',
-    label: 'Sorting and layout',
-    covers: 'Sort order, rows per page, the chart grouping on Statistics and the tab under Needs attention.',
-  },
-  {
-    group: 'filters',
-    label: 'Searches and filters',
-    covers: 'Search text, status, tag and location filters, date ranges, and Active or Archived openings.',
-  },
+const GROUPS: { group: PreferenceGroup; labelKey: string; coversKey: string }[] = [
+  { group: 'view', labelKey: 'remember.groups.view.label', coversKey: 'remember.groups.view.covers' },
+  { group: 'filters', labelKey: 'remember.groups.filters.label', coversKey: 'remember.groups.filters.covers' },
 ];
 
-const MODE_OPTIONS: { label: string; value: RememberMode }[] = [
-  { label: 'Always', value: 'always' },
-  { label: 'Until the tab closes', value: 'session' },
-  { label: 'Never', value: 'off' },
+const MODE_KEYS: { key: string; value: RememberMode }[] = [
+  { key: 'remember.modes.always', value: 'always' },
+  { key: 'remember.modes.session', value: 'session' },
+  { key: 'remember.modes.off', value: 'off' },
 ];
 
 export function RememberCard() {
+  const { t } = useTranslation('settings');
   const { message } = AntApp.useApp();
   const [modes, setModes] = useState(loadRememberModes);
   const [count, setCount] = useState(countPreferences);
@@ -48,32 +42,29 @@ export function RememberCard() {
   function forget(): void {
     forgetPreferences();
     setCount(countPreferences());
-    message.success('Forgotten. Pages start from their defaults.');
+    message.success(t('remember.forgetSuccess'));
   }
 
   return (
     <Card
-      title="Remembered in this browser"
+      title={t('remember.title')}
       extra={
         <Button size="small" disabled={count === 0} onClick={forget}>
-          Forget now
+          {t('remember.forgetButton')}
         </Button>
       }
     >
       <Flex vertical gap={12}>
-        <Typography.Text type="secondary">
-          Pages keep how you left them when you come back. This is stored in this browser only, not
-          in the database, so another browser or computer keeps its own.
-        </Typography.Text>
+        <Typography.Text type="secondary">{t('remember.description')}</Typography.Text>
         <Descriptions size="small" column={1} bordered>
-          {GROUPS.map(({ group, label, covers }) => (
+          {GROUPS.map(({ group, labelKey, coversKey }) => (
             <Descriptions.Item
               key={group}
               label={
                 <Flex vertical>
-                  <span>{label}</span>
+                  <span>{t(labelKey)}</span>
                   <Typography.Text type="secondary" style={{ fontSize: 12, fontWeight: 'normal' }}>
-                    {covers}
+                    {t(coversKey)}
                   </Typography.Text>
                 </Flex>
               }
@@ -81,9 +72,12 @@ export function RememberCard() {
               <Segmented<RememberMode>
                 value={modes[group]}
                 onChange={(mode) => change(group, mode)}
-                options={MODE_OPTIONS.map((option) => ({
-                  ...option,
-                  label: option.value === DEFAULT_REMEMBER_MODES[group] ? `${option.label} (default)` : option.label,
+                options={MODE_KEYS.map((option) => ({
+                  value: option.value,
+                  label:
+                    option.value === DEFAULT_REMEMBER_MODES[group]
+                      ? t('remember.modeDefaultSuffix', { label: t(option.key) })
+                      : t(option.key),
                 }))}
               />
             </Descriptions.Item>

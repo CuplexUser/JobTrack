@@ -9,6 +9,7 @@
 import { useEffect, useMemo } from 'react';
 import { App as AntApp, AutoComplete, Button, Col, DatePicker, Drawer, Form, Input, Row, Select, Space } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { RELATIONSHIPS, RELATIONSHIP_LABELS, type ContactView, type Relationship } from '@jobtrack/shared';
 import { useCompanySuggestions, useSaveContact } from '../api/hooks.js';
 import { ApiError } from '../api/client.js';
@@ -36,6 +37,7 @@ interface FormValues {
 }
 
 export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: ContactDrawerProps) {
+  const { t } = useTranslation('contacts');
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const save = useSaveContact();
@@ -94,73 +96,73 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
     };
     try {
       const saved = await save.mutateAsync({ id: contact?.id, body });
-      message.success(contact ? 'Person updated' : 'Person added');
+      message.success(contact ? t('form.updateSuccess') : t('form.addSuccess'));
       onSaved?.(saved);
       onClose();
     } catch (error) {
       if (error instanceof ApiError && error.fieldErrors.length > 0) {
         form.setFields(error.fieldErrors.map((field) => ({ name: field.path as never, errors: [field.message] })));
       } else {
-        message.error(error instanceof Error ? error.message : 'Could not save');
+        message.error(error instanceof Error ? error.message : t('form.saveError'));
       }
     }
   }
 
   return (
     <Drawer
-      title={contact ? `Edit ${contact.name}` : 'Add a person'}
+      title={contact ? t('form.editTitle', { name: contact.name }) : t('form.addTitle')}
       open={open}
       onClose={onClose}
       width={560}
       destroyOnHidden
       extra={
         <Space>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('form.cancel')}</Button>
           <Button type="primary" loading={save.isPending} onClick={() => form.submit()}>
-            Save
+            {t('form.save')}
           </Button>
         </Space>
       }
     >
       <Form form={form} layout="vertical" onFinish={handleFinish} requiredMark="optional">
-        <Form.Item name="name" label="Name" rules={[{ required: true, message: 'Name is required' }]}>
+        <Form.Item name="name" label={t('form.name.label')} rules={[{ required: true, message: t('form.name.required') }]}>
           {/* oxlint-disable-next-line jsx-a11y/no-autofocus -- the drawer opens on a click
               or a keystroke, and the name is the field it opened to collect. */}
-          <Input autoFocus placeholder="Anna Svensson" />
+          <Input autoFocus placeholder={t('form.name.placeholder')} />
         </Form.Item>
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="companyName" label="Works at">
-              <AutoComplete options={companyOptions} placeholder="Company" filterOption={false} allowClear />
+            <Form.Item name="companyName" label={t('form.companyName.label')}>
+              <AutoComplete options={companyOptions} placeholder={t('form.companyName.placeholder')} filterOption={false} allowClear />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="headline" label="Their role">
-              <Input placeholder="Engineering Manager" />
+            <Form.Item name="headline" label={t('form.headline.label')}>
+              <Input placeholder={t('form.headline.placeholder')} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="relationship" label="How you know them">
+            <Form.Item name="relationship" label={t('form.relationship.label')}>
               <Select options={RELATIONSHIPS.map((value) => ({ value, label: RELATIONSHIP_LABELS[value] }))} />
             </Form.Item>
           </Col>
           <Col span={12}>
             <Form.Item
               name="reconnectOn"
-              label="Reconnect on"
-              tooltip="Shows up on the dashboard when the day comes"
+              label={t('form.reconnectOn.label')}
+              tooltip={t('form.reconnectOn.tooltip')}
             >
               <DatePicker
                 style={{ width: '100%' }}
                 format="YYYY-MM-DD"
                 presets={[
-                  { label: 'In a week', value: dayjs().add(1, 'week') },
-                  { label: 'In a month', value: dayjs().add(1, 'month') },
-                  { label: 'In three months', value: dayjs().add(3, 'month') },
+                  { label: t('form.reconnectOn.presets.week'), value: dayjs().add(1, 'week') },
+                  { label: t('form.reconnectOn.presets.month'), value: dayjs().add(1, 'month') },
+                  { label: t('form.reconnectOn.presets.threeMonths'), value: dayjs().add(3, 'month') },
                 ]}
               />
             </Form.Item>
@@ -169,23 +171,23 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
 
         <Row gutter={12}>
           <Col span={12}>
-            <Form.Item name="email" label="Email" rules={[{ type: 'email', message: 'That is not an email address' }]}>
+            <Form.Item name="email" label={t('form.email.label')} rules={[{ type: 'email', message: t('form.email.invalid') }]}>
               <Input />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="phone" label="Phone">
+            <Form.Item name="phone" label={t('form.phone.label')}>
               <Input />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="linkedinUrl" label="LinkedIn profile">
-          <Input placeholder="https://www.linkedin.com/in/..." />
+        <Form.Item name="linkedinUrl" label={t('form.linkedinUrl.label')}>
+          <Input placeholder={t('form.linkedinUrl.placeholder')} />
         </Form.Item>
 
-        <Form.Item name="about" label="Notes">
-          <Input.TextArea rows={5} placeholder="Where you met, what they work on, what you talked about" />
+        <Form.Item name="about" label={t('form.about.label')}>
+          <Input.TextArea rows={5} placeholder={t('form.about.placeholder')} />
         </Form.Item>
       </Form>
     </Drawer>

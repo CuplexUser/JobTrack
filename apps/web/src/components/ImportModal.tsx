@@ -15,6 +15,7 @@ import { InboxOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
+import { useTranslation } from 'react-i18next';
 import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
 import { api, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from '../api/index.js';
 
@@ -23,11 +24,6 @@ const VERDICT_COLOR: Record<ImportPreviewRow['verdict'], string> = {
   duplicate: 'default',
   error: 'red',
 };
-const VERDICT_LABEL: Record<ImportPreviewRow['verdict'], string> = {
-  new: 'New',
-  duplicate: 'Duplicate, skipped',
-  error: 'Error',
-};
 
 export interface ImportModalProps {
   open: boolean;
@@ -35,6 +31,7 @@ export interface ImportModalProps {
 }
 
 export function ImportModal({ open, onClose }: ImportModalProps) {
+  const { t } = useTranslation('import');
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<'csv' | 'xlsx'>('csv');
@@ -64,7 +61,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
     api
       .previewImport(uploaded, detectedFormat)
       .then(setPreview)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Could not read that file'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : t('applications.readError')))
       .finally(() => setLoading(false));
     return false; // Ant Design's own upload machinery never runs; the calls above own it.
   };
@@ -82,30 +79,30 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(err instanceof Error ? err.message : t('applications.importFailed'));
     } finally {
       setLoading(false);
     }
   }
 
   const columns: ColumnsType<ImportPreviewRow> = [
-    { title: 'Row', dataIndex: 'rowNumber', width: 60 },
-    { title: 'Position', dataIndex: 'jobTitle', ellipsis: true },
-    { title: 'Company', dataIndex: 'companyName', ellipsis: true },
-    { title: 'Date', dataIndex: 'appliedOn', width: 110 },
+    { title: t('applications.columns.row'), dataIndex: 'rowNumber', width: 60 },
+    { title: t('applications.columns.position'), dataIndex: 'jobTitle', ellipsis: true },
+    { title: t('applications.columns.company'), dataIndex: 'companyName', ellipsis: true },
+    { title: t('applications.columns.date'), dataIndex: 'appliedOn', width: 110 },
     {
-      title: 'Status',
+      title: t('applications.columns.status'),
       dataIndex: 'status',
       width: 110,
       render: (value: ApplicationStatus | null) => (value ? STATUS_LABELS[value] : '—'),
     },
     {
-      title: 'Result',
+      title: t('applications.columns.result'),
       dataIndex: 'verdict',
       width: 200,
       render: (verdict: ImportPreviewRow['verdict'], row) => (
         <Space direction="vertical" size={0}>
-          <Tag color={VERDICT_COLOR[verdict]}>{VERDICT_LABEL[verdict]}</Tag>
+          <Tag color={VERDICT_COLOR[verdict]}>{t(`applications.verdict.${verdict}`)}</Tag>
           {row.errors.length > 0 && (
             <Typography.Text type="danger" style={{ fontSize: 12 }}>
               {row.errors.join('; ')}
@@ -117,20 +114,16 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
   ];
 
   return (
-    <Modal title="Import applications" open={open} onCancel={handleClose} width={800} footer={null} destroyOnHidden>
+    <Modal title={t('applications.title')} open={open} onCancel={handleClose} width={800} footer={null} destroyOnHidden>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {!preview && !result && (
           <>
-            <Typography.Paragraph type="secondary">
-              CSV or .xlsx with the same columns Export produces: Position, Company,
-              Location, Date, Status, Notes. Location is optional. Rows that exactly match
-              an application you have already logged are skipped automatically.
-            </Typography.Paragraph>
+            <Typography.Paragraph type="secondary">{t('applications.description')}</Typography.Paragraph>
             <Upload.Dragger accept=".csv,.xlsx" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">Click or drag a CSV or Excel file here</p>
+              <p className="ant-upload-text">{t('applications.dropzone')}</p>
             </Upload.Dragger>
           </>
         )}
@@ -140,9 +133,9 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
         {preview && !result && (
           <>
             <Space wrap>
-              <Tag color="green">{preview.totals.new} new</Tag>
-              <Tag>{preview.totals.duplicate} duplicate, will be skipped</Tag>
-              {preview.totals.error > 0 && <Tag color="red">{preview.totals.error} error</Tag>}
+              <Tag color="green">{t('applications.newCount', { count: preview.totals.new })}</Tag>
+              <Tag>{t('applications.duplicateCount', { count: preview.totals.duplicate })}</Tag>
+              {preview.totals.error > 0 && <Tag color="red">{t('applications.errorCount', { count: preview.totals.error })}</Tag>}
             </Space>
             {preview.fileErrors.map((message) => (
               <Alert key={message} type="warning" showIcon message={message} />
@@ -156,9 +149,9 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
               scroll={{ y: 320 }}
             />
             <Space>
-              <Button onClick={reset}>Choose a different file</Button>
+              <Button onClick={reset}>{t('applications.chooseAnother')}</Button>
               <Button type="primary" loading={loading} disabled={preview.totals.new === 0} onClick={handleCommit}>
-                Import {preview.totals.new} application{preview.totals.new === 1 ? '' : 's'}
+                {t('applications.importButton', { count: preview.totals.new })}
               </Button>
             </Space>
           </>
@@ -167,14 +160,14 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
         {result && (
           <Result
             status={result.failed > 0 ? 'warning' : 'success'}
-            title={`Imported ${result.created} application${result.created === 1 ? '' : 's'}`}
+            title={t('applications.resultTitle', { count: result.created })}
             subTitle={
-              `${result.skipped} duplicate row${result.skipped === 1 ? '' : 's'} skipped` +
-              (result.failed > 0 ? `, ${result.failed} row${result.failed === 1 ? '' : 's'} failed` : '')
+              t('applications.skippedRows', { count: result.skipped }) +
+              (result.failed > 0 ? t('applications.failedRows', { count: result.failed }) : '')
             }
             extra={
               <Button type="primary" onClick={handleClose}>
-                Done
+                {t('applications.done')}
               </Button>
             }
           />

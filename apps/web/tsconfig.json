@@ -8,9 +8,10 @@
     "lib": ["ES2023", "DOM", "DOM.Iterable"],
     "module": "Preserve",
     "moduleResolution": "Bundler",
+    "resolveJsonModule": true,
     "jsx": "react-jsx",
     "types": ["vite/client"]
   },
-  "include": ["src/**/*"],
+  "include": ["src/**/*", "src/**/*.json"],
   "references": [{ "path": "../../packages/shared" }, { "path": "../api" }]
 }

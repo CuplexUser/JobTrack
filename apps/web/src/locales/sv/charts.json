@@ -1,0 +1,37 @@
+{
+  "barSeries.title": "Ansökningar per månad",
+  "barSeries.hoverSummary_one": "{{month}}: {{count}} ansökan",
+  "barSeries.hoverSummary_other": "{{month}}: {{count}} ansökningar",
+  "barSeries.totalSummary_one": "{{count}} ansökan över {{months}} månader",
+  "barSeries.totalSummary_other": "{{count}} ansökningar över {{months}} månader",
+  "barSeries.peak": "topp {{count}}",
+  "barSeries.ariaLabel": "Ansökningar per månad, {{from}} till {{to}}. Topp {{peak}} under en månad, {{total}} totalt.",
+
+  "funnel.ofPrevious": "{{percent}}% av föregående",
+  "funnel.stageAriaLabel_one": "{{status}}: {{count}} ansökan har någonsin nått detta steg",
+  "funnel.stageAriaLabel_other": "{{status}}: {{count}} ansökningar har någonsin nått detta steg",
+  "funnel.footnote": "Räknat från din statushistorik: en ansökan som intervjuades och sedan tackades nej till räknas fortfarande vid varje steg den nådde.",
+
+  "timeBars.applicationsCount_one": "{{count}} ansökan",
+  "timeBars.applicationsCount_other": "{{count}} ansökningar",
+  "timeBars.openingsSavedCount_one": "{{count}} sparad tjänst",
+  "timeBars.openingsSavedCount_other": "{{count}} sparade tjänster",
+  "timeBars.and": "och",
+  "timeBars.legendApplications": "Ansökningar",
+  "timeBars.legendOpeningsSaved": "Sparade tjänster",
+  "timeBars.groupAriaLabel": "Ansökningar och sparade tjänster, {{from}} till {{to}}. Topp {{peak}}.",
+
+  "rankedBars.showInApplications": "Visa dessa {{count}} i Ansökningar",
+
+  "calendarHeatmap.dayCount_one": "{{date}}: {{count}} ansökan",
+  "calendarHeatmap.dayCount_other": "{{date}}: {{count}} ansökningar",
+  "calendarHeatmap.noApplications": "Inga ansökningar dessa dagar",
+  "calendarHeatmap.busiestDay": "Mest aktiva dagen: {{summary}}",
+  "calendarHeatmap.weekdayMon": "Mån",
+  "calendarHeatmap.weekdayWed": "Ons",
+  "calendarHeatmap.weekdayFri": "Fre",
+  "calendarHeatmap.less": "Mindre",
+  "calendarHeatmap.more": "Mer",
+
+  "terrain.peak": "Topp: {{count}} i {{month}} {{year}}"
+}

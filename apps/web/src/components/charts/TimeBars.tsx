@@ -9,6 +9,8 @@
 
 import { useState } from 'react';
 import { Flex, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { palette } from '../../theme.js';
 
 export interface TimeBucket {
@@ -25,10 +27,8 @@ export interface TimeBarsProps {
   onSelect?: (bucket: TimeBucket) => void;
 }
 
-const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-
-function describe(point: TimeBucket): string {
-  return `${point.label}: ${plural(point.applications, 'application', 'applications')}, ${plural(point.openings, 'opening saved', 'openings saved')}`;
+function describe(point: TimeBucket, t: TFunction<'charts'>): string {
+  return `${point.label}: ${t('timeBars.applicationsCount', { count: point.applications })}, ${t('timeBars.openingsSavedCount', { count: point.openings })}`;
 }
 
 function Swatch({ color, label }: { color: string; label: string }) {
@@ -43,6 +43,7 @@ function Swatch({ color, label }: { color: string; label: string }) {
 }
 
 export function TimeBars({ points, height = 180, onSelect }: TimeBarsProps) {
+  const { t } = useTranslation('charts');
   const [hovered, setHovered] = useState<number | null>(null);
   if (points.length === 0) return null;
 
@@ -72,18 +73,18 @@ export function TimeBars({ points, height = 180, onSelect }: TimeBarsProps) {
       <Flex justify="space-between" align="baseline" wrap gap={8} style={{ marginBottom: 8 }}>
         <Typography.Text type="secondary" style={{ fontSize: 12 }} aria-live="polite">
           {active
-            ? describe(active)
-            : `${plural(applications, 'application', 'applications')} and ${plural(openings, 'opening saved', 'openings saved')}`}
+            ? describe(active, t)
+            : `${t('timeBars.applicationsCount', { count: applications })} ${t('timeBars.and')} ${t('timeBars.openingsSavedCount', { count: openings })}`}
         </Typography.Text>
         <Flex gap={12}>
-          <Swatch color={palette.series1} label="Applications" />
-          <Swatch color={palette.series2} label="Openings saved" />
+          <Swatch color={palette.series1} label={t('timeBars.legendApplications')} />
+          <Swatch color={palette.series2} label={t('timeBars.legendOpeningsSaved')} />
         </Flex>
       </Flex>
 
       <div
         role="group"
-        aria-label={`Applications and openings saved, ${points[0]!.label} to ${points.at(-1)!.label}. Peak ${max}.`}
+        aria-label={t('timeBars.groupAriaLabel', { from: points[0]!.label, to: points.at(-1)!.label, peak: max })}
         style={{ position: 'relative', height, display: 'flex', alignItems: 'stretch', borderBottom: `1px solid ${palette.border}` }}
         onMouseLeave={() => setHovered(null)}
       >
@@ -100,7 +101,7 @@ export function TimeBars({ points, height = 180, onSelect }: TimeBarsProps) {
           <button
             key={point.start}
             type="button"
-            aria-label={describe(point)}
+            aria-label={describe(point, t)}
             onMouseEnter={() => setHovered(index)}
             onFocus={() => setHovered(index)}
             onBlur={() => setHovered(null)}

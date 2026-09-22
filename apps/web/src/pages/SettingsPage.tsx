@@ -38,6 +38,7 @@ import {
   RobotOutlined,
   UserOutlined,
 } from '@ant-design/icons';
+import { Trans, useTranslation } from 'react-i18next';
 import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/index.js';
 import { parse, usePreference } from '../preferences.js';
 
@@ -52,26 +53,31 @@ import { ProfileCard } from '../components/ProfileCard.js';
 import { FitWeightsCard } from '../components/FitWeightsCard.js';
 import { AutomationCard } from '../components/AutomationCard.js';
 import { RememberCard } from '../components/RememberCard.js';
+import { LanguageCard } from '../components/LanguageCard.js';
 
-const TABLE_LABELS: Record<string, string> = {
-  companies: 'Companies',
-  applications: 'Applications',
-  tags: 'Tags',
-  tagLinks: 'Tag links',
-  notes: 'Notes',
-  statusEvents: 'Status events',
-  jobOpenings: 'Job openings',
-  contacts: 'People',
-  interactions: 'Interactions',
-  contactLinks: 'People links',
-  appSettings: 'Settings',
-};
+function useTableLabels(): Record<string, string> {
+  const { t } = useTranslation('settings');
+  return {
+    companies: t('table.companies'),
+    applications: t('table.applications'),
+    tags: t('table.tags'),
+    tagLinks: t('table.tagLinks'),
+    notes: t('table.notes'),
+    statusEvents: t('table.statusEvents'),
+    jobOpenings: t('table.jobOpenings'),
+    contacts: t('table.contacts'),
+    interactions: t('table.interactions'),
+    contactLinks: t('table.contactLinks'),
+    appSettings: t('table.appSettings'),
+  };
+}
 
 function CountList({ counts }: { counts: Record<string, number> }) {
+  const tableLabels = useTableLabels();
   return (
     <Descriptions size="small" column={2} bordered>
       {Object.entries(counts).map(([table, count]) => (
-        <Descriptions.Item key={table} label={TABLE_LABELS[table] ?? table}>
+        <Descriptions.Item key={table} label={tableLabels[table] ?? table}>
           {count}
         </Descriptions.Item>
       ))}
@@ -80,6 +86,7 @@ function CountList({ counts }: { counts: Record<string, number> }) {
 }
 
 function DatabaseCard() {
+  const { t } = useTranslation('settings');
   const { message } = AntApp.useApp();
   const { data, isLoading } = useDbTargets();
   const switchDb = useSwitchDb();
@@ -93,15 +100,14 @@ function DatabaseCard() {
 
   function confirmSwitch(target: string): void {
     Modal.confirm({
-      title: `Switch to "${target}"?`,
-      content:
-        'The server restarts to connect to the new target. This page will reconnect and reload automatically once it is back. Under `npm run dev`, you may need to restart it by hand.',
-      okText: 'Switch and restart',
+      title: t('database.confirmSwitchTitle', { target }),
+      content: t('database.confirmSwitchContent'),
+      okText: t('database.confirmSwitchOk'),
       onOk: async () => {
         try {
           await switchDb.mutateAsync(target);
         } catch (error) {
-          message.error(error instanceof Error ? error.message : 'Could not switch database');
+          message.error(error instanceof Error ? error.message : t('database.switchError'));
           return;
         }
         setReconnecting(true);
@@ -122,8 +128,8 @@ function DatabaseCard() {
 
   if (reconnecting) {
     return (
-      <Card title="Database">
-        <Result icon={<ReloadOutlined spin />} title="Reconnecting…" subTitle="Waiting for the server to come back up." />
+      <Card title={t('database.title')}>
+        <Result icon={<ReloadOutlined spin />} title={t('database.reconnecting')} subTitle={t('database.reconnectingSubtitle')} />
       </Card>
     );
   }
@@ -131,18 +137,18 @@ function DatabaseCard() {
   const targets = data?.targets ?? [];
 
   return (
-    <Card title="Database" loading={isLoading}>
+    <Card title={t('database.title')} loading={isLoading}>
       <Space direction="vertical" size={12} style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Connection settings live in <code>.env</code> and are never shown or editable here.
-          {targets.length <= 1 && ' Only one target is configured, so there is nothing to switch between.'}
+          <Trans i18nKey="database.envNote" t={t} components={{ code: <code /> }} />
+          {targets.length <= 1 && t('database.onlyOneTarget')}
         </Typography.Paragraph>
 
         <Descriptions size="small" column={1} bordered>
-          <Descriptions.Item label="Active target">
+          <Descriptions.Item label={t('database.activeTarget')}>
             <Space>
               <DatabaseOutlined />
-              {data?.active} ({targets.find((t) => t.name === data?.active)?.driver})
+              {data?.active} ({targets.find((target) => target.name === data?.active)?.driver})
             </Space>
           </Descriptions.Item>
         </Descriptions>
@@ -152,7 +158,7 @@ function DatabaseCard() {
             <Select
               style={{ width: 220 }}
               value={selected ?? data?.active}
-              options={targets.map((t) => ({ value: t.name, label: `${t.name} (${t.driver})` }))}
+              options={targets.map((target) => ({ value: target.name, label: `${target.name} (${target.driver})` }))}
               onChange={setSelected}
             />
             <Button
@@ -161,7 +167,7 @@ function DatabaseCard() {
               loading={switchDb.isPending}
               onClick={() => selected && confirmSwitch(selected)}
             >
-              Switch
+              {t('database.switchButton')}
             </Button>
           </Space>
         )}
@@ -171,6 +177,7 @@ function DatabaseCard() {
 }
 
 function BackupCard() {
+  const { t, i18n } = useTranslation('settings');
   const { message } = AntApp.useApp();
   const [file, setFile] = useState<File | null>(null);
   const [preview, setPreview] = useState<BackupPreviewResponse | null>(null);
@@ -198,7 +205,7 @@ function BackupCard() {
     api
       .previewBackup(uploaded)
       .then(setPreview)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Could not read that file'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : t('backup.readError')))
       .finally(() => setLoading(false));
     return false;
   };
@@ -206,9 +213,9 @@ function BackupCard() {
   function handleCommit(): void {
     if (!file) return;
     Modal.confirm({
-      title: 'Replace all data in the active database?',
-      content: 'Every table is wiped and recreated from this backup. This cannot be undone.',
-      okText: 'Restore',
+      title: t('backup.confirmTitle'),
+      content: t('backup.confirmContent'),
+      okText: t('backup.restoreAction'),
       okButtonProps: { danger: true },
       onOk: async () => {
         setLoading(true);
@@ -217,7 +224,7 @@ function BackupCard() {
           const response = await api.commitBackup(file);
           setResult(response);
         } catch (err) {
-          message.error(err instanceof Error ? err.message : 'Restore failed');
+          message.error(err instanceof Error ? err.message : t('backup.restoreFailed'));
         } finally {
           setLoading(false);
         }
@@ -226,14 +233,10 @@ function BackupCard() {
   }
 
   return (
-    <Card title="Backup & restore">
+    <Card title={t('backup.title')}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          A full-fidelity snapshot of every table: every field, every relation, driver-agnostic.
-          Not the same as the CSV/Excel export elsewhere in the app, which is a lossy report meant
-          for people to read. This file is scrambled (gzip + obfuscation) so it isn't plain,
-          readable JSON at rest. That's an obfuscation step, not encryption, and does not
-          protect the personal data inside from anyone who actually wants it.
+          {t('backup.description')}
         </Typography.Paragraph>
 
         <Button
@@ -242,20 +245,20 @@ function BackupCard() {
             window.location.href = api.backupExportUrl;
           }}
         >
-          Export backup
+          {t('backup.exportButton')}
         </Button>
 
-        <Button onClick={() => setRestoreOpen(true)}>Restore from backup…</Button>
+        <Button onClick={() => setRestoreOpen(true)}>{t('backup.restoreButton')}</Button>
       </Space>
 
-      <Modal title="Restore from backup" open={restoreOpen} onCancel={handleClose} width={600} footer={null} destroyOnHidden>
+      <Modal title={t('backup.restoreModalTitle')} open={restoreOpen} onCancel={handleClose} width={600} footer={null} destroyOnHidden>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           {!preview && !result && (
             <Upload.Dragger accept=".jtbak" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">Click or drag a JobTrack backup file (.jtbak) here</p>
+              <p className="ant-upload-text">{t('backup.dropzone')}</p>
             </Upload.Dragger>
           )}
 
@@ -264,14 +267,13 @@ function BackupCard() {
           {preview && !result && (
             <>
               <Typography.Text type="secondary">
-                Backup taken {new Date(preview.exportedAt).toLocaleString()}. Restoring will replace everything
-                currently in the active database with:
+                {t('backup.previewInfo', { date: new Date(preview.exportedAt).toLocaleString(i18n.language) })}
               </Typography.Text>
               <CountList counts={preview.counts} />
               <Space>
-                <Button onClick={reset}>Choose a different file</Button>
+                <Button onClick={reset}>{t('backup.chooseAnotherFile')}</Button>
                 <Button type="primary" danger loading={loading} onClick={handleCommit}>
-                  Restore
+                  {t('backup.restoreAction')}
                 </Button>
               </Space>
             </>
@@ -280,12 +282,12 @@ function BackupCard() {
           {result && (
             <Result
               status="success"
-              title="Restore complete"
+              title={t('backup.restoreComplete')}
               extra={
                 <Space direction="vertical" style={{ width: '100%' }}>
                   <CountList counts={result.counts} />
                   <Button type="primary" onClick={() => window.location.reload()}>
-                    Reload
+                    {t('backup.reload')}
                   </Button>
                 </Space>
               }
@@ -300,6 +302,7 @@ function BackupCard() {
 const CONFIRM_PHRASE = 'CLEAR';
 
 function DataCard() {
+  const { t } = useTranslation('settings');
   const { message } = AntApp.useApp();
   const { data: status, isLoading } = useDataStatus();
   const clearDb = useClearDatabase();
@@ -315,29 +318,28 @@ function DataCard() {
   function handleClear(): void {
     clearDb.mutate(undefined, {
       onSuccess: () => {
-        message.success('Database cleared');
+        message.success(t('data.clearSuccess'));
         closeClear();
       },
-      onError: (error) => message.error(error instanceof Error ? error.message : 'Could not clear the database'),
+      onError: (error) => message.error(error instanceof Error ? error.message : t('data.clearError')),
     });
   }
 
   function handleSeed(): void {
     seedDb.mutate(undefined, {
       onSuccess: (result) =>
-        message.success(`Seeded ${result.applications} applications and ${result.companies} companies`),
-      onError: (error) => message.error(error instanceof Error ? error.message : 'Could not seed the database'),
+        message.success(t('data.seedSuccess', { applications: result.applications, companies: result.companies })),
+      onError: (error) => message.error(error instanceof Error ? error.message : t('data.seedError')),
     });
   }
 
   const counts = status?.counts ?? {};
 
   return (
-    <Card title="Reset & demo data" loading={isLoading}>
+    <Card title={t('data.title')} loading={isLoading}>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-          Wipe everything in the active database, or (only while it's empty) fill it with a
-          realistic multi-year demo dataset to explore the app with.
+          {t('data.description')}
         </Typography.Paragraph>
 
         {!status?.empty && <CountList counts={counts} />}
@@ -345,25 +347,26 @@ function DataCard() {
         <Space wrap>
           {status?.empty && (
             <Button type="primary" icon={<ExperimentOutlined />} loading={seedDb.isPending} onClick={handleSeed}>
-              Seed with demo data
+              {t('data.seedButton')}
             </Button>
           )}
           <Button danger disabled={status?.empty} onClick={() => setClearOpen(true)}>
-            Clear database…
+            {t('data.clearButton')}
           </Button>
         </Space>
       </Space>
 
-      <Modal title="Clear the active database?" open={clearOpen} onCancel={closeClear} footer={null} destroyOnHidden>
+      <Modal title={t('data.clearModalTitle')} open={clearOpen} onCancel={closeClear} footer={null} destroyOnHidden>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          <Alert
-            type="warning"
-            showIcon
-            message="This permanently deletes every row below. There is no undo. Export a backup first if you might want this data again."
-          />
+          <Alert type="warning" showIcon message={t('data.clearWarning')} />
           <CountList counts={counts} />
           <Typography.Text>
-            Type <Typography.Text code>{CONFIRM_PHRASE}</Typography.Text> to confirm.
+            <Trans
+              i18nKey="data.confirmPhraseInstruction"
+              t={t}
+              values={{ phrase: CONFIRM_PHRASE }}
+              components={{ code: <Typography.Text code /> }}
+            />
           </Typography.Text>
           <Input
             value={confirmText}
@@ -372,7 +375,7 @@ function DataCard() {
             onPressEnter={() => confirmText === CONFIRM_PHRASE && handleClear()}
           />
           <Space>
-            <Button onClick={closeClear}>Cancel</Button>
+            <Button onClick={closeClear}>{t('data.cancel')}</Button>
             <Button
               danger
               type="primary"
@@ -380,7 +383,7 @@ function DataCard() {
               loading={clearDb.isPending}
               onClick={handleClear}
             >
-              Clear database
+              {t('data.clearConfirmButton')}
             </Button>
           </Space>
         </Space>
@@ -400,13 +403,14 @@ function DataCard() {
  * package's.
  */
 function AboutCard() {
+  const { t } = useTranslation('settings');
   const { data, isLoading } = useMeta();
   const build = data ? `${data.name} ${data.version}` : '';
 
   return (
-    <Card title="About" loading={isLoading}>
+    <Card title={t('about.title')} loading={isLoading}>
       <Descriptions size="small" column={1} bordered>
-        <Descriptions.Item label="Running">
+        <Descriptions.Item label={t('about.running')}>
           <Space>
             <InfoCircleOutlined />
             <Typography.Text copyable={{ text: build }}>
@@ -414,7 +418,7 @@ function AboutCard() {
             </Typography.Text>
           </Space>
         </Descriptions.Item>
-        <Descriptions.Item label="Database driver">{data?.driver}</Descriptions.Item>
+        <Descriptions.Item label={t('about.databaseDriver')}>{data?.driver}</Descriptions.Item>
       </Descriptions>
     </Card>
   );
@@ -424,12 +428,13 @@ const SETTINGS_TABS = ['profile', 'automation', 'browser', 'database', 'about'] 
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function SettingsPage() {
+  const { t } = useTranslation('settings');
   const [tab, setTab] = usePreference<SettingsTab>('view', 'settings.tab', 'profile', parse.oneOf(SETTINGS_TABS));
 
   return (
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Typography.Title level={4} style={{ margin: 0 }}>
-        Settings
+        {t('title')}
       </Typography.Title>
       <Tabs
         activeKey={tab}
@@ -439,7 +444,7 @@ export function SettingsPage() {
             key: 'profile',
             label: (
               <span>
-                <UserOutlined /> Profile
+                <UserOutlined /> {t('tabs.profile')}
               </span>
             ),
             children: (
@@ -453,7 +458,7 @@ export function SettingsPage() {
             key: 'automation',
             label: (
               <span>
-                <RobotOutlined /> Automation
+                <RobotOutlined /> {t('tabs.automation')}
               </span>
             ),
             children: <AutomationCard />,
@@ -462,16 +467,21 @@ export function SettingsPage() {
             key: 'browser',
             label: (
               <span>
-                <DesktopOutlined /> Browser
+                <DesktopOutlined /> {t('tabs.browser')}
               </span>
             ),
-            children: <RememberCard />,
+            children: (
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <LanguageCard />
+                <RememberCard />
+              </Space>
+            ),
           },
           {
             key: 'database',
             label: (
               <span>
-                <DatabaseOutlined /> Database
+                <DatabaseOutlined /> {t('tabs.database')}
               </span>
             ),
             children: (
@@ -486,7 +496,7 @@ export function SettingsPage() {
             key: 'about',
             label: (
               <span>
-                <InfoCircleOutlined /> About
+                <InfoCircleOutlined /> {t('tabs.about')}
               </span>
             ),
             children: <AboutCard />,

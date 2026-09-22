@@ -9,6 +9,7 @@
 import type { ReactNode } from 'react';
 import { Flex, Typography } from 'antd';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
 import { palette } from '../../theme.js';
 
 export interface RankedRow {
@@ -32,6 +33,7 @@ export interface RankedBarsProps {
 }
 
 export function RankedBars({ rows, title, mutedKeys = ['__other', '__unspecified'] }: RankedBarsProps) {
+  const { t } = useTranslation('charts');
   const max = Math.max(...rows.map((row) => row.count), 1);
 
   return (
@@ -47,7 +49,7 @@ export function RankedBars({ rows, title, mutedKeys = ['__other', '__unspecified
               <span style={{ minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                 {row.labelNode ??
                   (row.href ? (
-                    <Link to={row.href} title={`Show these ${row.count} in Applications`}>
+                    <Link to={row.href} title={t('rankedBars.showInApplications', { count: row.count })}>
                       {row.label}
                     </Link>
                   ) : (

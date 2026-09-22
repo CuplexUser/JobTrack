@@ -29,6 +29,7 @@ import {
   PushpinFilled,
   SearchOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { NoteTarget, NoteWithTarget } from '@jobtrack/shared';
 import { useDeleteNote, useNotes } from '../api/hooks.js';
 import { NoteModal } from '../components/NoteModal.js';
@@ -37,6 +38,7 @@ import { parse, usePreference } from '../preferences.js';
 type Scope = 'all' | NoteTarget;
 
 export function NotesPage() {
+  const { t } = useTranslation('notes');
   const { message } = AntApp.useApp();
   const [scope, setScope] = usePreference<Scope>('filters', 'notes.scope', 'all', parse.oneOf(['all', 'standalone', 'company', 'application']));
   const [query, setQuery] = usePreference('filters', 'notes.search', '', parse.string);
@@ -64,21 +66,21 @@ export function NotesPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Flex justify="space-between" align="center" wrap gap={12}>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Notes
+          {t('page.title')}
         </Typography.Title>
         <Space>
           <Segmented
             value={scope}
             onChange={(value) => setScope(value as Scope)}
             options={[
-              { label: 'All', value: 'all' },
-              { label: 'Standalone', value: 'standalone' },
-              { label: 'Companies', value: 'company' },
-              { label: 'Applications', value: 'application' },
+              { label: t('page.scopeAll'), value: 'all' },
+              { label: t('page.scopeStandalone'), value: 'standalone' },
+              { label: t('page.scopeCompany'), value: 'company' },
+              { label: t('page.scopeApplication'), value: 'application' },
             ]}
           />
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setCreating(true)}>
-            New note
+            {t('page.newNote')}
           </Button>
         </Space>
       </Flex>
@@ -86,7 +88,7 @@ export function NotesPage() {
       <Input
         allowClear
         prefix={<SearchOutlined />}
-        placeholder="Search notes by title, body, or what they're attached to"
+        placeholder={t('page.searchPlaceholder')}
         value={query}
         onChange={(event) => setQuery(event.target.value)}
       />
@@ -95,7 +97,7 @@ export function NotesPage() {
         {notes.length === 0 ? (
           <Empty
             image={Empty.PRESENTED_IMAGE_SIMPLE}
-            description={query ? `Nothing matched “${query}”` : 'No notes here yet'}
+            description={query ? t('page.emptySearch', { query }) : t('page.emptyNone')}
           />
         ) : (
           <List
@@ -111,12 +113,12 @@ export function NotesPage() {
                   />,
                   <Popconfirm
                     key="delete"
-                    title="Delete this note?"
-                    okText="Delete"
+                    title={t('page.deleteConfirmTitle')}
+                    okText={t('page.delete')}
                     okButtonProps={{ danger: true }}
                     onConfirm={async () => {
                       await remove.mutateAsync(note.id);
-                      message.success('Note deleted');
+                      message.success(t('page.deletedMessage'));
                     }}
                   >
                     <Button type="text" danger icon={<DeleteOutlined />} />
@@ -159,8 +161,9 @@ export function NotesPage() {
 }
 
 function TargetTag({ note }: { note: NoteWithTarget }) {
-  if (note.targetType === 'standalone') return <Tag>general</Tag>;
-  if (!note.targetId) return <Tag>unlinked</Tag>;
+  const { t } = useTranslation('notes');
+  if (note.targetType === 'standalone') return <Tag>{t('page.targetGeneral')}</Tag>;
+  if (!note.targetId) return <Tag>{t('page.targetUnlinked')}</Tag>;
 
   const to =
     note.targetType === 'company' ? `/companies/${note.targetId}` : `/applications/${note.targetId}`;
@@ -168,7 +171,7 @@ function TargetTag({ note }: { note: NoteWithTarget }) {
   return (
     <Link to={to}>
       <Tag color="blue">
-        {note.targetType}: {note.targetLabel ?? 'view'}
+        {t(`page.targetType.${note.targetType}`)}: {note.targetLabel ?? t('page.targetView')}
       </Tag>
     </Link>
   );

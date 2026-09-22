@@ -1,0 +1,14 @@
+{
+  "nav.dashboard": "Översikt",
+  "nav.statistics": "Statistik",
+  "nav.applications": "Ansökningar",
+  "nav.openings": "Lediga tjänster",
+  "nav.companies": "Företag",
+  "nav.people": "Personer",
+  "nav.notes": "Anteckningar",
+  "nav.settings": "Inställningar",
+  "theme.button": "Tema",
+  "theme.ariaLabel": "Tema-inställningar",
+  "theme.light": "Ljust",
+  "theme.dark": "Mörkt"
+}

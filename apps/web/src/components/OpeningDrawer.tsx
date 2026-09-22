@@ -8,6 +8,7 @@
 
 import { useEffect, useMemo } from 'react';
 import { App as AntApp, AutoComplete, Button, Col, DatePicker, Drawer, Form, Input, InputNumber, Row, Select, Space, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import dayjs, { type Dayjs } from 'dayjs';
 import {
   WORK_MODES,
@@ -46,6 +47,7 @@ interface FormValues {
 }
 
 export function OpeningDrawer({ open, onClose, opening, draft }: OpeningDrawerProps) {
+  const { t } = useTranslation('openings');
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const isEdit = Boolean(opening);
@@ -117,10 +119,10 @@ export function OpeningDrawer({ open, onClose, opening, draft }: OpeningDrawerPr
     try {
       if (opening) {
         await update.mutateAsync({ id: opening.id, body: payload });
-        message.success('Opening updated');
+        message.success(t('drawer.updatedMessage'));
       } else {
         await create.mutateAsync(payload);
-        message.success('Opening saved');
+        message.success(t('drawer.savedMessage'));
       }
       onClose();
     } catch (error) {
@@ -131,95 +133,93 @@ export function OpeningDrawer({ open, onClose, opening, draft }: OpeningDrawerPr
             errors: [issue.message],
           })),
         );
-        message.error('Please check the highlighted fields');
+        message.error(t('drawer.validationError'));
       } else {
-        message.error(error instanceof Error ? error.message : 'Could not save');
+        message.error(error instanceof Error ? error.message : t('drawer.saveError'));
       }
     }
   }
 
   return (
     <Drawer
-      title={isEdit ? 'Edit opening' : 'Save opening for later'}
+      title={isEdit ? t('drawer.editTitle') : t('drawer.createTitle')}
       open={open}
       onClose={onClose}
       width={560}
       destroyOnHidden
       extra={
         <Space>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('drawer.cancel')}</Button>
           <Button type="primary" loading={create.isPending || update.isPending} onClick={() => form.submit()}>
-            {isEdit ? 'Save changes' : 'Save opening'}
+            {isEdit ? t('drawer.saveChanges') : t('drawer.saveOpening')}
           </Button>
         </Space>
       }
     >
       <Typography.Paragraph type="secondary">
-        {draft && !isEdit
-          ? 'Read from the posting. Check it over before saving. Anything the parser could not find is blank rather than guessed.'
-          : 'For a role you found but are not ready to apply to yet. No status, no tags, just enough to find it again. Convert it into a real application when you are ready.'}
+        {draft && !isEdit ? t('drawer.draftNote') : t('drawer.manualNote')}
       </Typography.Paragraph>
 
       <Form form={form} layout="vertical" onFinish={handleSubmit} requiredMark="optional">
         <Row gutter={16}>
           <Col span={12}>
-            <Form.Item name="companyName" label="Company" rules={[{ required: true, message: 'Company is required' }]}>
-              <AutoComplete options={companyOptions} placeholder="Start typing to see existing companies" filterOption={false} allowClear />
+            <Form.Item name="companyName" label={t('drawer.companyLabel')} rules={[{ required: true, message: t('drawer.companyRequired') }]}>
+              <AutoComplete options={companyOptions} placeholder={t('drawer.companyPlaceholder')} filterOption={false} allowClear />
             </Form.Item>
           </Col>
           <Col span={12}>
-            <Form.Item name="jobTitle" label="Job title" rules={[{ required: true, message: 'Job title is required' }]}>
-              <Input placeholder="Backend Engineer" />
+            <Form.Item name="jobTitle" label={t('drawer.jobTitleLabel')} rules={[{ required: true, message: t('drawer.jobTitleRequired') }]}>
+              <Input placeholder={t('drawer.jobTitlePlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item name="savedOn" label="Found on" rules={[{ required: true, message: 'Date is required' }]}>
+            <Form.Item name="savedOn" label={t('drawer.savedOnLabel')} rules={[{ required: true, message: t('drawer.dateRequired') }]}>
               <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" disabled={isEdit} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="workMode" label="Work mode">
+            <Form.Item name="workMode" label={t('drawer.workModeLabel')}>
               <Select options={WORK_MODES.map((m) => ({ value: m, label: WORK_MODE_LABELS[m] }))} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="location" label="Location">
-              <Input placeholder="Stockholm" />
+            <Form.Item name="location" label={t('drawer.locationLabel')}>
+              <Input placeholder={t('drawer.locationPlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item name="salaryMin" label="Salary from">
+            <Form.Item name="salaryMin" label={t('drawer.salaryMinLabel')}>
               <InputNumber style={{ width: '100%' }} min={0} step={10000} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="salaryMax" label="Salary to">
+            <Form.Item name="salaryMax" label={t('drawer.salaryMaxLabel')}>
               <InputNumber style={{ width: '100%' }} min={0} step={10000} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="salaryCurrency" label="Currency">
-              <Input placeholder="SEK" maxLength={8} />
+            <Form.Item name="salaryCurrency" label={t('drawer.currencyLabel')}>
+              <Input placeholder={t('drawer.currencyPlaceholder')} maxLength={8} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="sourceName" label="Source">
-          <Input placeholder="LinkedIn, referral…" />
+        <Form.Item name="sourceName" label={t('drawer.sourceLabel')}>
+          <Input placeholder={t('drawer.sourcePlaceholder')} />
         </Form.Item>
 
-        <Form.Item name="jobUrl" label="Job posting URL">
-          <Input placeholder="https://…" />
+        <Form.Item name="jobUrl" label={t('drawer.jobUrlLabel')}>
+          <Input placeholder={t('drawer.jobUrlPlaceholder')} />
         </Form.Item>
 
-        <Form.Item name="notes" label="Notes">
-          <Input.TextArea rows={4} placeholder="Why this looked interesting, what you're missing to apply…" />
+        <Form.Item name="notes" label={t('drawer.notesLabel')}>
+          <Input.TextArea rows={4} placeholder={t('drawer.notesPlaceholder')} />
         </Form.Item>
       </Form>
     </Drawer>

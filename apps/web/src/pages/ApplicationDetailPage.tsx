@@ -34,6 +34,7 @@ import {
   PlusOutlined,
   PushpinFilled,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
@@ -53,6 +54,7 @@ import { NoteModal } from '../components/NoteModal.js';
 import { ApplicationPeopleCard } from '../components/PeopleCard.js';
 
 export function ApplicationDetailPage() {
+  const { t } = useTranslation('applications');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
@@ -71,7 +73,7 @@ export function ApplicationDetailPage() {
   async function setStatus(status: string): Promise<void> {
     if (!id) return;
     await changeStatus.mutateAsync({ id, body: { status, comment: null } });
-    message.success(`Moved to ${STATUS_LABELS[status as never]}`);
+    message.success(t('detail.movedMessage', { status: STATUS_LABELS[status as never] }));
   }
 
   return (
@@ -84,14 +86,14 @@ export function ApplicationDetailPage() {
             style={{ padding: 0 }}
             onClick={() => navigate('/applications')}
           >
-            Back to applications
+            {t('detail.back')}
           </Button>
           <Typography.Title level={3} style={{ margin: 0 }}>
             {data.jobTitle}
           </Typography.Title>
           <Space size={8} wrap>
             <Link to={`/companies/${data.company.id}`}>{data.company.name}</Link>
-            <Typography.Text type="secondary">applied {data.appliedOn}</Typography.Text>
+            <Typography.Text type="secondary">{t('detail.appliedOn', { date: data.appliedOn })}</Typography.Text>
             <StatusTag status={data.status} />
           </Space>
         </Space>
@@ -99,7 +101,7 @@ export function ApplicationDetailPage() {
         <Space wrap>
           {advance && (
             <Button type="primary" onClick={() => void setStatus(advance)}>
-              Move to {STATUS_LABELS[advance]}
+              {t('detail.moveTo', { status: STATUS_LABELS[advance] })}
             </Button>
           )}
           <Select
@@ -109,17 +111,17 @@ export function ApplicationDetailPage() {
             options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
           />
           <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
-            Edit
+            {t('detail.edit')}
           </Button>
           <Popconfirm
-            title="Delete this application?"
-            description="Its notes and status history go too. This cannot be undone."
-            okText="Delete"
+            title={t('detail.deleteTitle')}
+            description={t('detail.deleteDescription')}
+            okText={t('detail.deleteConfirm')}
             okButtonProps={{ danger: true }}
             onConfirm={async () => {
               if (!id) return;
               await remove.mutateAsync(id);
-              message.success('Application deleted');
+              message.success(t('detail.deletedMessage'));
               navigate('/applications');
             }}
           >
@@ -131,22 +133,22 @@ export function ApplicationDetailPage() {
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={14}>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Card title="Details">
+            <Card title={t('detail.details')}>
               <Descriptions column={{ xs: 1, sm: 2 }} size="small" bordered>
-                <Descriptions.Item label="Company">{data.company.name}</Descriptions.Item>
-                <Descriptions.Item label="Applied on">{data.appliedOn}</Descriptions.Item>
-                <Descriptions.Item label="Location">{data.location ?? '—'}</Descriptions.Item>
-                <Descriptions.Item label="Work mode">
+                <Descriptions.Item label={t('detail.fields.company')}>{data.company.name}</Descriptions.Item>
+                <Descriptions.Item label={t('detail.fields.appliedOn')}>{data.appliedOn}</Descriptions.Item>
+                <Descriptions.Item label={t('detail.fields.location')}>{data.location ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label={t('detail.fields.workMode')}>
                   {WORK_MODE_LABELS[data.workMode]}
                 </Descriptions.Item>
-                <Descriptions.Item label="Source">{data.sourceName ?? '—'}</Descriptions.Item>
-                <Descriptions.Item label="Follow up">{data.followUpOn ?? '—'}</Descriptions.Item>
-                <Descriptions.Item label="Salary" span={2}>
+                <Descriptions.Item label={t('detail.fields.source')}>{data.sourceName ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label={t('detail.fields.followUp')}>{data.followUpOn ?? '—'}</Descriptions.Item>
+                <Descriptions.Item label={t('detail.fields.salary')} span={2}>
                   {data.salaryMin || data.salaryMax
                     ? `${data.salaryMin?.toLocaleString() ?? '?'} – ${data.salaryMax?.toLocaleString() ?? '?'} ${data.salaryCurrency ?? ''}`
                     : '—'}
                 </Descriptions.Item>
-                <Descriptions.Item label="Posting" span={2}>
+                <Descriptions.Item label={t('detail.fields.posting')} span={2}>
                   {data.jobUrl ? (
                     <a href={data.jobUrl} target="_blank" rel="noreferrer">
                       <Space size={4}>
@@ -158,7 +160,7 @@ export function ApplicationDetailPage() {
                     '—'
                   )}
                 </Descriptions.Item>
-                <Descriptions.Item label="Tags" span={2}>
+                <Descriptions.Item label={t('detail.fields.tags')} span={2}>
                   {data.tags.length > 0 ? (
                     <Space size={4} wrap>
                       {data.tags.map((tag) => (
@@ -178,9 +180,9 @@ export function ApplicationDetailPage() {
 
         <Col xs={24} lg={10}>
           <Space direction="vertical" size={16} style={{ width: '100%' }}>
-            <Card title="Status history">
+            <Card title={t('detail.statusHistory')}>
               {data.statusEvents.length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No changes recorded" />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('detail.noStatusChanges')} />
               ) : (
                 <Timeline
                   items={data.statusEvents.map((event) => ({
@@ -194,8 +196,8 @@ export function ApplicationDetailPage() {
                       <Space direction="vertical" size={0}>
                         <Typography.Text strong>
                           {event.fromStatus
-                            ? `${STATUS_LABELS[event.fromStatus]} → ${STATUS_LABELS[event.toStatus]}`
-                            : `Applied`}
+                            ? t('detail.statusChange', { from: STATUS_LABELS[event.fromStatus], to: STATUS_LABELS[event.toStatus] })
+                            : t('detail.appliedLabel')}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                           {event.occurredOn}
@@ -209,15 +211,15 @@ export function ApplicationDetailPage() {
             </Card>
 
             <Card
-              title={`Notes (${data.notes.length})`}
+              title={t('detail.notesTitle', { count: data.notes.length })}
               extra={
                 <Button size="small" icon={<PlusOutlined />} onClick={() => setAddingNote(true)}>
-                  Add note
+                  {t('detail.addNote')}
                 </Button>
               }
             >
               {data.notes.length === 0 ? (
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notes yet" />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('detail.noNotes')} />
               ) : (
                 <List
                   size="small"
@@ -233,12 +235,12 @@ export function ApplicationDetailPage() {
                         />,
                         <Popconfirm
                           key="delete"
-                          title="Delete this note?"
-                          okText="Delete"
+                          title={t('detail.deleteNoteTitle')}
+                          okText={t('detail.deleteConfirm')}
                           okButtonProps={{ danger: true }}
                           onConfirm={async () => {
                             await removeNote.mutateAsync(note.id);
-                            message.success('Note deleted');
+                            message.success(t('detail.noteDeletedMessage'));
                           }}
                         >
                           <Button type="text" danger icon={<DeleteOutlined />} />
@@ -255,7 +257,7 @@ export function ApplicationDetailPage() {
                         description={
                           <Typography.Paragraph
                             style={{ marginBottom: 0, whiteSpace: 'pre-wrap' }}
-                            ellipsis={{ rows: 4, expandable: true, symbol: 'more' }}
+                            ellipsis={{ rows: 4, expandable: true, symbol: t('detail.notesMore') }}
                           >
                             {note.body}
                           </Typography.Paragraph>

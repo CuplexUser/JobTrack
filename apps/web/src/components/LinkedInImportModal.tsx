@@ -12,12 +12,13 @@ import { Alert, Button, Modal, Result, Space, Statistic, Table, Tag, Typography,
 import { InboxOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import { useQueryClient } from '@tanstack/react-query';
+import { Trans, useTranslation } from 'react-i18next';
 import { api, type LinkedInCommitResponse, type LinkedInPreviewResponse, type LinkedInPreviewRow } from '../api/index.js';
 
-const VERDICT: Record<LinkedInPreviewRow['verdict'], { color: string; label: string }> = {
-  new: { color: 'green', label: 'New' },
-  duplicate: { color: 'default', label: 'Already added' },
-  error: { color: 'red', label: 'Skipped' },
+const VERDICT_COLOR: Record<LinkedInPreviewRow['verdict'], string> = {
+  new: 'green',
+  duplicate: 'default',
+  error: 'red',
 };
 
 export interface LinkedInImportModalProps {
@@ -26,6 +27,7 @@ export interface LinkedInImportModalProps {
 }
 
 export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps) {
+  const { t } = useTranslation('import');
   const queryClient = useQueryClient();
   const [csv, setCsv] = useState<string | null>(null);
   const [preview, setPreview] = useState<LinkedInPreviewResponse | null>(null);
@@ -54,7 +56,7 @@ export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps)
         setCsv(text);
         setPreview(await api.previewLinkedInImport(text));
       })
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : 'Could not read that file'))
+      .catch((err: unknown) => setError(err instanceof Error ? err.message : t('linkedin.readError')))
       .finally(() => setLoading(false));
     return false; // Ant Design's own upload machinery never runs; the calls above own it.
   };
@@ -72,54 +74,53 @@ export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps)
         }
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Import failed');
+      setError(err instanceof Error ? err.message : t('linkedin.importFailed'));
     } finally {
       setLoading(false);
     }
   }
 
   const columns: ColumnsType<LinkedInPreviewRow> = [
-    { title: 'Name', dataIndex: 'name', ellipsis: true },
+    { title: t('linkedin.columns.name'), dataIndex: 'name', ellipsis: true },
     {
-      title: 'Works at',
+      title: t('linkedin.columns.worksAt'),
       dataIndex: 'companyName',
       ellipsis: true,
       render: (value: string | null, row) =>
         value ? (
           <Space size={4}>
             <span>{value}</span>
-            {row.knownCompany && <Tag color="blue">in JobTrack</Tag>}
+            {row.knownCompany && <Tag color="blue">{t('linkedin.inJobTrack')}</Tag>}
           </Space>
         ) : null,
     },
-    { title: 'Role', dataIndex: 'headline', ellipsis: true },
+    { title: t('linkedin.columns.role'), dataIndex: 'headline', ellipsis: true },
     {
-      title: 'Result',
+      title: t('linkedin.columns.result'),
       dataIndex: 'verdict',
       width: 140,
-      render: (verdict: LinkedInPreviewRow['verdict']) => <Tag color={VERDICT[verdict].color}>{VERDICT[verdict].label}</Tag>,
+      render: (verdict: LinkedInPreviewRow['verdict']) => (
+        <Tag color={VERDICT_COLOR[verdict]}>{t(`linkedin.verdict.${verdict}`)}</Tag>
+      ),
     },
   ];
 
   return (
-    <Modal title="Import LinkedIn connections" open={open} onCancel={handleClose} width={860} footer={null} destroyOnHidden>
+    <Modal title={t('linkedin.title')} open={open} onCancel={handleClose} width={860} footer={null} destroyOnHidden>
       <Space direction="vertical" size={16} style={{ width: '100%' }}>
         {error && <Alert type="error" showIcon message={error} />}
 
         {!preview && !result && (
           <>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 0 }}>
-              LinkedIn lets you download your own data: open LinkedIn, go to Settings, then Data
-              privacy, then Get a copy of your data, and choose Connections. The file you get by
-              email is <Typography.Text code>Connections.csv</Typography.Text>. People already in
-              JobTrack are recognized and skipped, so importing a newer export later is safe.
+              <Trans i18nKey="linkedin.description" t={t} components={{ code: <Typography.Text code /> }} />
             </Typography.Paragraph>
             <Upload.Dragger accept=".csv" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
-              <p className="ant-upload-text">Click or drop Connections.csv here</p>
-              <p className="ant-upload-hint">Nothing is saved until you confirm</p>
+              <p className="ant-upload-text">{t('linkedin.dropzone')}</p>
+              <p className="ant-upload-hint">{t('linkedin.dropzoneHint')}</p>
             </Upload.Dragger>
           </>
         )}
@@ -130,10 +131,10 @@ export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps)
               <Alert key={message} type="error" showIcon message={message} />
             ))}
             <Space size={32} wrap>
-              <Statistic title="New people" value={preview.totals.new} />
-              <Statistic title="At companies in JobTrack" value={preview.totals.atKnownCompanies} />
-              <Statistic title="Already added" value={preview.totals.duplicate} />
-              {preview.totals.error > 0 && <Statistic title="Skipped" value={preview.totals.error} />}
+              <Statistic title={t('linkedin.newPeople')} value={preview.totals.new} />
+              <Statistic title={t('linkedin.atKnownCompanies')} value={preview.totals.atKnownCompanies} />
+              <Statistic title={t('linkedin.alreadyAdded')} value={preview.totals.duplicate} />
+              {preview.totals.error > 0 && <Statistic title={t('linkedin.skipped')} value={preview.totals.error} />}
             </Space>
             <Table<LinkedInPreviewRow>
               rowKey="rowNumber"
@@ -143,9 +144,9 @@ export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps)
               pagination={{ pageSize: 10, showSizeChanger: false }}
             />
             <Space>
-              <Button onClick={reset}>Choose a different file</Button>
+              <Button onClick={reset}>{t('linkedin.chooseAnother')}</Button>
               <Button type="primary" loading={loading} disabled={preview.totals.new === 0} onClick={handleCommit}>
-                Import {preview.totals.new} {preview.totals.new === 1 ? 'person' : 'people'}
+                {t('linkedin.importButton', { count: preview.totals.new })}
               </Button>
             </Space>
           </>
@@ -154,11 +155,11 @@ export function LinkedInImportModal({ open, onClose }: LinkedInImportModalProps)
         {result && (
           <Result
             status="success"
-            title={`Imported ${result.created} ${result.created === 1 ? 'person' : 'people'}`}
-            subTitle={result.skipped > 0 ? `${result.skipped} skipped because they were already added or had no name.` : undefined}
+            title={t('linkedin.resultTitle', { count: result.created })}
+            subTitle={result.skipped > 0 ? t('linkedin.skippedSubtitle', { count: result.skipped }) : undefined}
             extra={
               <Button type="primary" onClick={handleClose}>
-                Done
+                {t('linkedin.done')}
               </Button>
             }
           />

@@ -11,6 +11,7 @@
 import { useMemo } from 'react';
 import type { FormInstance } from 'antd';
 import { App as AntApp, Flex, Form, Input, Modal, Select, Switch, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import type { Note, NoteTarget } from '@jobtrack/shared';
 import { useApplications, useCompanies, useSaveNote } from '../api/hooks.js';
 
@@ -39,6 +40,7 @@ interface NoteFormValues {
 }
 
 export function NoteModal({ open, note, onClose, target }: NoteModalProps) {
+  const { t } = useTranslation('notes');
   const [form] = Form.useForm<NoteFormValues>();
   const { message } = AntApp.useApp();
   const save = useSaveNote();
@@ -46,8 +48,8 @@ export function NoteModal({ open, note, onClose, target }: NoteModalProps) {
   return (
     <Modal
       open={open}
-      title={note ? 'Edit note' : 'New note'}
-      okText="Save"
+      title={note ? t('modal.editTitle') : t('modal.createTitle')}
+      okText={t('modal.save')}
       destroyOnHidden
       onCancel={onClose}
       afterOpenChange={(visible) => {
@@ -82,17 +84,17 @@ export function NoteModal({ open, note, onClose, target }: NoteModalProps) {
             pinned: values.pinned ?? false,
           },
         });
-        message.success(note ? 'Note updated' : 'Note saved');
+        message.success(note ? t('modal.updatedMessage') : t('modal.savedMessage'));
         onClose();
       }}
     >
       <Form form={form} layout="vertical">
-        <Form.Item name="title" label="Title" rules={[{ required: true, message: 'Title is required' }]}>
-          <Input placeholder="Interview prep, salary research…" />
+        <Form.Item name="title" label={t('modal.titleLabel')} rules={[{ required: true, message: t('modal.titleRequired') }]}>
+          <Input placeholder={t('modal.titlePlaceholder')} />
         </Form.Item>
 
-        <Form.Item name="body" label="Note">
-          <Input.TextArea rows={8} placeholder="Anything worth keeping" />
+        <Form.Item name="body" label={t('modal.noteLabel')}>
+          <Input.TextArea rows={8} placeholder={t('modal.notePlaceholder')} />
         </Form.Item>
 
         {target ? (
@@ -106,14 +108,14 @@ export function NoteModal({ open, note, onClose, target }: NoteModalProps) {
               <Input />
             </Form.Item>
             <Typography.Paragraph type="secondary" style={{ marginBottom: 16 }}>
-              Attached to {target.label}
+              {t('modal.attachedTo', { label: target.label })}
             </Typography.Paragraph>
           </>
         ) : (
           <TargetPicker form={form} />
         )}
 
-        <Form.Item name="pinned" label="Pinned" valuePropName="checked">
+        <Form.Item name="pinned" label={t('modal.pinnedLabel')} valuePropName="checked">
           <Switch />
         </Form.Item>
       </Form>
@@ -129,6 +131,7 @@ export function NoteModal({ open, note, onClose, target }: NoteModalProps) {
  * record has no use for either list.
  */
 function TargetPicker({ form }: { form: FormInstance<NoteFormValues> }) {
+  const { t } = useTranslation('notes');
   const targetType = Form.useWatch('targetType', form) ?? 'standalone';
 
   const { data: companyData } = useCompanies();
@@ -141,20 +144,20 @@ function TargetPicker({ form }: { form: FormInstance<NoteFormValues> }) {
     if (targetType === 'application') {
       return (applicationData?.items ?? []).map((a) => ({
         value: a.id,
-        label: `${a.jobTitle} at ${a.company.name}`,
+        label: t('picker.applicationOptionLabel', { jobTitle: a.jobTitle, companyName: a.company.name }),
       }));
     }
     return [];
-  }, [targetType, companyData, applicationData]);
+  }, [targetType, companyData, applicationData, t]);
 
   return (
     <Flex gap={12}>
-      <Form.Item name="targetType" label="Attach to" style={{ flex: 1 }}>
+      <Form.Item name="targetType" label={t('picker.attachToLabel')} style={{ flex: 1 }}>
         <Select
           options={[
-            { value: 'standalone', label: 'Nothing in particular' },
-            { value: 'company', label: 'A company' },
-            { value: 'application', label: 'An application' },
+            { value: 'standalone', label: t('picker.optionNothing') },
+            { value: 'company', label: t('picker.optionCompany') },
+            { value: 'application', label: t('picker.optionApplication') },
           ]}
           onChange={() => form.setFieldValue('targetId', null)}
         />
@@ -163,9 +166,9 @@ function TargetPicker({ form }: { form: FormInstance<NoteFormValues> }) {
       {targetType !== 'standalone' && (
         <Form.Item
           name="targetId"
-          label={targetType === 'company' ? 'Company' : 'Application'}
+          label={targetType === 'company' ? t('picker.companyLabel') : t('picker.applicationLabel')}
           style={{ flex: 2 }}
-          rules={[{ required: true, message: 'Pick what this note is about' }]}
+          rules={[{ required: true, message: t('picker.required') }]}
         >
           <Select showSearch optionFilterProp="label" options={targetOptions} />
         </Form.Item>

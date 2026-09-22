@@ -40,6 +40,7 @@ import {
   SwapOutlined,
 } from '@ant-design/icons';
 import dayjs, { type Dayjs } from 'dayjs';
+import { Trans, useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
@@ -72,6 +73,7 @@ type OpeningsView = 'active' | 'archived';
 type OpeningsOrder = 'newest' | 'fit';
 
 export function OpeningsPage() {
+  const { t } = useTranslation('openings');
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
 
@@ -151,44 +153,44 @@ export function OpeningsPage() {
           tags: values.tags ?? [],
         },
       });
-      message.success('Converted to an application');
+      message.success(t('page.convertedMessage'));
       setConverting(null);
       navigate(`/applications/${application.id}`);
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not convert');
+      message.error(error instanceof Error ? error.message : t('page.convertError'));
     }
   }
 
   async function handleRestore(row: RankedOpening): Promise<void> {
     try {
       await updateOpening.mutateAsync({ id: row.id, body: { archived: false } });
-      message.success('Opening restored');
+      message.success(t('page.restoredMessage'));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not restore');
+      message.error(error instanceof Error ? error.message : t('page.restoreError'));
     }
   }
 
   const baseColumns: ColumnsType<RankedOpening> = [
     ...(hasProfile
-      ? [{ title: 'Fit', key: 'fit', width: 70, render: (_: unknown, row: RankedOpening) => <FitBadge fit={row.fit} /> }]
+      ? [{ title: t('page.columns.fit'), key: 'fit', width: 70, render: (_: unknown, row: RankedOpening) => <FitBadge fit={row.fit} /> }]
       : []),
-    { title: 'Company', dataIndex: ['company', 'name'] },
-    { title: 'Job title', dataIndex: 'jobTitle' },
-    { title: 'Found on', dataIndex: 'savedOn', width: 120 },
+    { title: t('page.columns.company'), dataIndex: ['company', 'name'] },
+    { title: t('page.columns.jobTitle'), dataIndex: 'jobTitle' },
+    { title: t('page.columns.foundOn'), dataIndex: 'savedOn', width: 120 },
     {
-      title: 'Location',
+      title: t('page.columns.location'),
       key: 'location',
       render: (_, row) =>
         [row.location, WORK_MODE_LABELS[row.workMode]].filter(Boolean).join(' · ') || (
           <Typography.Text type="secondary">—</Typography.Text>
         ),
     },
-    { title: 'Source', dataIndex: 'sourceName', render: (v: string | null) => v ?? '—' },
+    { title: t('page.columns.source'), dataIndex: 'sourceName', render: (v: string | null) => v ?? '—' },
   ];
 
   const jobUrlButton = (row: RankedOpening) =>
     row.jobUrl && (
-      <Tooltip title="Open job posting">
+      <Tooltip title={t('page.openPosting')}>
         <Button
           size="small"
           icon={<LinkOutlined />}
@@ -201,14 +203,14 @@ export function OpeningsPage() {
 
   const deleteButton = (row: RankedOpening) => (
     <Popconfirm
-      title="Delete this opening?"
-      description="This removes it for good and cannot be undone."
+      title={t('page.deleteConfirmTitle')}
+      description={t('page.deleteConfirmDescription')}
       onConfirm={() => deleteOpening.mutate(row.id)}
-      okText="Delete"
+      okText={t('page.delete')}
       okButtonProps={{ danger: true }}
     >
       <Button size="small" danger>
-        Delete
+        {t('page.delete')}
       </Button>
     </Popconfirm>
   );
@@ -223,7 +225,7 @@ export function OpeningsPage() {
         <Space onClick={(event) => event.stopPropagation()}>
           {jobUrlButton(row)}
           <Button size="small" icon={<SwapOutlined />} onClick={() => openConvert(row)}>
-            Convert
+            {t('page.convert')}
           </Button>
           <Button
             size="small"
@@ -233,7 +235,7 @@ export function OpeningsPage() {
               setDrawerOpen(true);
             }}
           >
-            Edit
+            {t('page.edit')}
           </Button>
           {deleteButton(row)}
         </Space>
@@ -244,16 +246,16 @@ export function OpeningsPage() {
   const archivedColumns: ColumnsType<RankedOpening> = [
     ...baseColumns,
     {
-      title: 'Archived because',
+      title: t('page.columns.archivedBecause'),
       key: 'reason',
       width: 160,
       render: (_, row) =>
         row.convertedApplicationId ? (
           <Link to={`/applications/${row.convertedApplicationId}`}>
-            <Tag color="blue">Converted</Tag>
+            <Tag color="blue">{t('page.converted')}</Tag>
           </Link>
         ) : (
-          <Tag>Archived by hand</Tag>
+          <Tag>{t('page.archivedByHand')}</Tag>
         ),
     },
     {
@@ -269,7 +271,7 @@ export function OpeningsPage() {
             loading={updateOpening.isPending}
             onClick={() => handleRestore(row)}
           >
-            Restore
+            {t('page.restore')}
           </Button>
           {deleteButton(row)}
         </Space>
@@ -282,17 +284,15 @@ export function OpeningsPage() {
       <Flex justify="space-between" align="center">
         <Space direction="vertical" size={0}>
           <Typography.Title level={4} style={{ margin: 0 }}>
-            Job openings
+            {t('page.title')}
           </Typography.Title>
           <Typography.Text type="secondary">
-            {view === 'active'
-              ? "Saved for later. Convert one to a real application when you're ready to apply."
-              : 'Openings that were converted into an application or archived by hand.'}
+            {view === 'active' ? t('page.subtitleActive') : t('page.subtitleArchived')}
           </Typography.Text>
         </Space>
         <Space>
           <Button icon={<ImportOutlined />} onClick={() => setIngestOpen(true)}>
-            Save from posting
+            {t('page.saveFromPosting')}
           </Button>
           <Button
             type="primary"
@@ -303,7 +303,7 @@ export function OpeningsPage() {
               setDrawerOpen(true);
             }}
           >
-            Save opening for later
+            {t('page.saveForLater')}
           </Button>
         </Space>
       </Flex>
@@ -313,13 +313,13 @@ export function OpeningsPage() {
           value={view}
           onChange={setView}
           options={[
-            { label: `Active (${activeOpenings.length})`, value: 'active' },
-            { label: `Archived (${archivedOpenings.length})`, value: 'archived' },
+            { label: t('page.active', { count: activeOpenings.length }), value: 'active' },
+            { label: t('page.archived', { count: archivedOpenings.length }), value: 'archived' },
           ]}
         />
         <Input
           allowClear
-          placeholder="Search by title, company, location or notes"
+          placeholder={t('page.searchPlaceholder')}
           prefix={<SearchOutlined />}
           style={{ minWidth: 260 }}
           defaultValue={q}
@@ -332,7 +332,7 @@ export function OpeningsPage() {
           // `tags` mode: pick a location from this list, or type any fragment ("Sweden").
           mode="tags"
           allowClear
-          placeholder="Location"
+          placeholder={t('page.locationPlaceholder')}
           style={{ minWidth: 220 }}
           value={locations}
           onChange={(value: string[]) => setLocations(value.map((v) => v.trim()).filter(Boolean))}
@@ -344,14 +344,14 @@ export function OpeningsPage() {
             value={order}
             onChange={(value) => setOrder(value as OpeningsOrder)}
             options={[
-              { label: 'Newest first', value: 'newest' },
-              { label: 'Best fit first', value: 'fit' },
+              { label: t('page.sortNewest'), value: 'newest' },
+              { label: t('page.sortFit'), value: 'fit' },
             ]}
           />
         ) : (
           inView.length > 0 && (
             <Typography.Text type="secondary">
-              <Link to="/settings">Fill in your profile</Link> to rank these by how well they fit.
+              <Trans i18nKey="page.fillProfile" t={t} components={{ link: <Link to="/settings" /> }} />
             </Typography.Text>
           )
         )}
@@ -370,10 +370,10 @@ export function OpeningsPage() {
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   q || locations.length > 0
-                    ? 'No openings match that search'
+                    ? t('page.emptySearch')
                     : view === 'active'
-                    ? "Nothing saved yet. Use “Save opening for later” for a role you're not ready to apply to."
-                    : 'No archived openings.'
+                      ? t('page.emptyActive', { action: t('page.saveForLater') })
+                      : t('page.emptyArchived')
                 }
               />
             ),
@@ -403,25 +403,25 @@ export function OpeningsPage() {
       />
 
       <Modal
-        title={converting ? `Convert "${converting.jobTitle}" at ${converting.company.name}` : ''}
+        title={converting ? t('page.convertModalTitle', { jobTitle: converting.jobTitle, companyName: converting.company.name }) : ''}
         open={Boolean(converting)}
         onCancel={() => setConverting(null)}
         onOk={() => form.submit()}
-        okText="Create application"
+        okText={t('page.createApplication')}
         confirmLoading={convertOpening.isPending}
       >
         <Form form={form} layout="vertical" onFinish={handleConvert}>
-          <Form.Item name="appliedOn" label="Applied on" rules={[{ required: true }]}>
+          <Form.Item name="appliedOn" label={t('page.appliedOnLabel')} rules={[{ required: true }]}>
             <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
           </Form.Item>
-          <Form.Item name="status" label="Status">
+          <Form.Item name="status" label={t('page.statusLabel')}>
             <Select options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))} />
           </Form.Item>
-          <Form.Item name="tags" label="Tags">
+          <Form.Item name="tags" label={t('page.tagsLabel')}>
             <Select
               mode="tags"
               options={(tagData?.tags ?? []).map((tag) => ({ value: tag.name, label: tag.name }))}
-              placeholder="fintech, remote-ok…"
+              placeholder={t('page.tagsPlaceholder')}
               tokenSeparators={[',']}
             />
           </Form.Item>

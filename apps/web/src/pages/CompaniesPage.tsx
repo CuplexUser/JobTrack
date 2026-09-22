@@ -6,6 +6,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, Flex, Input, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { CompanyWithStats } from '@jobtrack/shared';
 import { useCompanies } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
@@ -14,6 +15,7 @@ import { parse, usePreference } from '../preferences.js';
 const DEFAULT_PAGE_SIZE = 25;
 
 export function CompaniesPage() {
+  const { t } = useTranslation('companies');
   const navigate = useNavigate();
   const [search, setSearch] = usePreference('filters', 'companies.search', '', parse.string);
   const [pageSize, setPageSize] = usePreference('view', 'companies.pageSize', DEFAULT_PAGE_SIZE, parse.pageSize);
@@ -22,7 +24,7 @@ export function CompaniesPage() {
 
   const columns: ColumnsType<CompanyWithStats> = [
     {
-      title: 'Company',
+      title: t('list.columns.company'),
       dataIndex: 'name',
       render: (value: string, row) => (
         <Space direction="vertical" size={0}>
@@ -37,7 +39,7 @@ export function CompaniesPage() {
       sorter: (a, b) => a.name.localeCompare(b.name),
     },
     {
-      title: 'Applications',
+      title: t('list.columns.applications'),
       dataIndex: 'applicationCount',
       width: 140,
       align: 'right',
@@ -51,20 +53,20 @@ export function CompaniesPage() {
       ),
     },
     {
-      title: 'Active',
+      title: t('list.columns.active'),
       dataIndex: 'activeCount',
       width: 90,
       align: 'right',
     },
     {
-      title: 'Last applied',
+      title: t('list.columns.lastApplied'),
       dataIndex: 'lastAppliedOn',
       width: 130,
       sorter: (a, b) => (a.lastAppliedOn ?? '').localeCompare(b.lastAppliedOn ?? ''),
       render: (value: string | null) => value ?? <Typography.Text type="secondary">—</Typography.Text>,
     },
     {
-      title: 'Tags',
+      title: t('list.columns.tags'),
       key: 'tags',
       width: 260,
       render: (_, row) => (
@@ -83,12 +85,12 @@ export function CompaniesPage() {
     <Space direction="vertical" size={16} style={{ width: '100%' }}>
       <Flex justify="space-between" align="center" wrap gap={12}>
         <Typography.Title level={4} style={{ margin: 0 }}>
-          Companies
+          {t('list.title')}
         </Typography.Title>
         <Input
           allowClear
           prefix={<SearchOutlined />}
-          placeholder="Find a company"
+          placeholder={t('list.searchPlaceholder')}
           style={{ maxWidth: 320 }}
           value={search}
           onChange={(event) => setSearch(event.target.value)}

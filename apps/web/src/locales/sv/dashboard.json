@@ -1,0 +1,53 @@
+{
+  "sectionAriaLabel": "Var din jobbsökning står",
+
+  "greeting.workingLate": "Jobbar sent",
+  "greeting.morning": "God morgon",
+  "greeting.afternoon": "God eftermiddag",
+  "greeting.evening": "God kväll",
+
+  "waiting.nothing": "Inget väntar på dig idag.",
+  "waiting.joiner": "och",
+  "waiting.followUps_one": "{{count}} uppföljning väntar",
+  "waiting.followUps_other": "{{count}} uppföljningar väntar",
+  "waiting.stale_one": "{{count}} ansökan har blivit tyst",
+  "waiting.stale_other": "{{count}} ansökningar har blivit tysta",
+  "waiting.reconnect_one": "{{count}} person väntar på återkontakt",
+  "waiting.reconnect_other": "{{count}} personer väntar på återkontakt",
+
+  "actions.newApplication": "Ny ansökan",
+  "actions.statistics": "Statistik",
+  "actions.import": "Importera",
+
+  "figures.total": "ansökningar totalt",
+  "figures.active": "fortfarande aktiva",
+  "figures.thisMonth": "i {{month}}",
+  "figures.firstMonth": "första månaden i statistiken",
+  "figures.vsAverage": "{{sign}}{{value}} jämfört med ditt månadssnitt",
+  "figures.responseRate": "fick svar",
+  "figures.responseNote": "allt efter ansökt räknas",
+
+  "empty.title": "Inga ansökningar än",
+  "empty.subtitle": "Lägg till den första, eller importera ett kalkylblad du redan har.",
+
+  "attention.title": "Kräver uppmärksamhet",
+  "attention.followUps": "Uppföljningar ({{count}})",
+  "attention.quiet": "Blivit tyst ({{count}})",
+  "attention.reconnect": "Återkontakt ({{count}})",
+  "attention.emptyFollowUps": "Inget att göra. Allt är uppdaterat.",
+  "attention.emptyQuiet": "Inget har blivit tyst",
+  "attention.emptyReconnect": "Ingen väntar på återkontakt",
+  "attention.staleHeader": "Fortfarande aktiv, inget uppföljningsdatum, och inget har hänt.",
+  "attention.dueOn": "väntas {{date}}",
+  "attention.silentDays": "tyst i {{days}} dagar",
+
+  "pipeline.title": "Pipeline",
+  "volume.title": "Ansökningar över tid",
+  "volume.more": "Mer statistik",
+
+  "recent.title": "Senaste aktivitet",
+  "recent.empty": "Inga statusändringar än",
+  "recent.applied": "Ansökt ({{status}})",
+  "recent.statusChange": "{{from}} → {{to}}",
+  "recent.at": " hos "
+}

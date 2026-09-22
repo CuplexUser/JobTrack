@@ -9,7 +9,8 @@
 
 import { Fragment, useLayoutEffect, useRef, useState } from 'react';
 import { Flex, Typography } from 'antd';
-import { monthName } from '@jobtrack/shared';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import { palette } from '../../theme.js';
 
 export interface CalendarDay {
@@ -25,7 +26,6 @@ export interface CalendarHeatmapProps {
 
 const CELL = 12;
 const GAP = 2;
-const WEEKDAY_LABELS = ['Mon', '', 'Wed', '', 'Fri', '', ''];
 
 /** Four steps of the series hue over the card surface, then an empty cell for zero. */
 const SHADES = [30, 55, 80, 100].map((percent) => `color-mix(in oklab, ${palette.series1} ${percent}%, ${palette.bgRaised})`);
@@ -36,15 +36,21 @@ export function shadeLevel(count: number, max: number): number {
   return Math.min(SHADES.length, Math.ceil((count / max) * SHADES.length)) - 1;
 }
 
-function readable(date: string): string {
-  return `${monthName(Number(date.slice(5, 7))).slice(0, 3)} ${Number(date.slice(8, 10))}, ${date.slice(0, 4)}`;
+function monthShort(month: number, language: string): string {
+  return new Intl.DateTimeFormat(language, { month: 'short' }).format(new Date(Date.UTC(2000, month - 1, 1)));
 }
 
-function describe(day: CalendarDay): string {
-  return `${readable(day.date)}: ${day.count} application${day.count === 1 ? '' : 's'}`;
+function readable(date: string, language: string): string {
+  return `${monthShort(Number(date.slice(5, 7)), language)} ${Number(date.slice(8, 10))}, ${date.slice(0, 4)}`;
+}
+
+function describe(day: CalendarDay, t: TFunction<'charts'>, language: string): string {
+  return t('calendarHeatmap.dayCount', { date: readable(day.date, language), count: day.count });
 }
 
 export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
+  const { t, i18n } = useTranslation('charts');
+  const weekdayLabels = [t('calendarHeatmap.weekdayMon'), '', t('calendarHeatmap.weekdayWed'), '', t('calendarHeatmap.weekdayFri'), '', ''];
   const [hovered, setHovered] = useState<CalendarDay | null>(null);
   const scroller = useRef<HTMLDivElement>(null);
 
@@ -67,7 +73,7 @@ export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
     const first = days[column * 7]!;
     const previous = column > 0 ? days[(column - 1) * 7]! : null;
     if (!previous || previous.date.slice(5, 7) !== first.date.slice(5, 7)) {
-      monthLabels.push({ column, label: monthName(Number(first.date.slice(5, 7))).slice(0, 3) });
+      monthLabels.push({ column, label: monthShort(Number(first.date.slice(5, 7)), i18n.language) });
     }
   }
 
@@ -79,7 +85,11 @@ export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
   return (
     <div>
       <Typography.Text type="secondary" style={{ fontSize: 12, display: 'block', marginBottom: 8 }} aria-live="polite">
-        {hovered ? describe(hovered) : max === 0 ? 'No applications on these days' : `Busiest day: ${describe(busiest)}`}
+        {hovered
+          ? describe(hovered, t, i18n.language)
+          : max === 0
+            ? t('calendarHeatmap.noApplications')
+            : t('calendarHeatmap.busiestDay', { summary: describe(busiest, t, i18n.language) })}
       </Typography.Text>
 
       <div ref={scroller} style={{ overflowX: 'auto', paddingBottom: 4 }}>
@@ -94,7 +104,7 @@ export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
             );
           })}
 
-          {WEEKDAY_LABELS.map((weekday, row) => (
+          {weekdayLabels.map((weekday, row) => (
             <Fragment key={row}>
               <Typography.Text type="secondary" style={{ fontSize: 10, lineHeight: `${CELL}px`, paddingInlineEnd: 4, whiteSpace: 'nowrap' }}>
                 {weekday}
@@ -106,7 +116,7 @@ export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
                   <button
                     key={day.date}
                     type="button"
-                    aria-label={describe(day)}
+                    aria-label={describe(day, t, i18n.language)}
                     onMouseEnter={() => setHovered(day)}
                     onMouseLeave={() => setHovered(null)}
                     onFocus={() => setHovered(day)}
@@ -133,13 +143,13 @@ export function CalendarHeatmap({ days, onSelect }: CalendarHeatmapProps) {
 
       <Flex align="center" gap={4} justify="flex-end" style={{ marginTop: 6 }}>
         <Typography.Text type="secondary" style={{ fontSize: 11, marginInlineEnd: 2 }}>
-          Less
+          {t('calendarHeatmap.less')}
         </Typography.Text>
         {[palette.bgSunken, ...SHADES].map((color) => (
           <span key={color} style={{ width: CELL - 2, height: CELL - 2, borderRadius: 3, background: color, display: 'inline-block' }} />
         ))}
         <Typography.Text type="secondary" style={{ fontSize: 11, marginInlineStart: 2 }}>
-          More
+          {t('calendarHeatmap.more')}
         </Typography.Text>
       </Flex>
     </div>

@@ -32,6 +32,7 @@ import {
 } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { DeleteOutlined, ReloadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { WORK_MODE_LABELS, type JobApplicationView } from '@jobtrack/shared';
 import { useDeleteApplications, useDuplicateGroups } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
@@ -43,6 +44,7 @@ function groupKey(group: DuplicateGroupResponse): string {
 }
 
 export function DuplicatesPage() {
+  const { t } = useTranslation('applications');
   const { message } = AntApp.useApp();
   const { data, isLoading, isFetching, refetch } = useDuplicateGroups();
   const remove = useDeleteApplications();
@@ -71,11 +73,9 @@ export function DuplicatesPage() {
     if (ids.length === 0) return;
     try {
       const result = await remove.mutateAsync(ids);
-      message.success(
-        `Removed ${result.deleted} application${result.deleted === 1 ? '' : 's'}`,
-      );
+      message.success(t('duplicates.removedMessage', { count: result.deleted }));
     } catch {
-      message.error('Could not remove those applications');
+      message.error(t('duplicates.removeError'));
     }
   }
 
@@ -84,27 +84,27 @@ export function DuplicatesPage() {
       <Flex justify="space-between" align="center" wrap gap={12}>
         <Space direction="vertical" size={0}>
           <Typography.Title level={4} style={{ margin: 0 }}>
-            Duplicates
+            {t('duplicates.title')}
           </Typography.Title>
           <Typography.Text type="secondary">
             {isLoading
-              ? 'Scanning…'
+              ? t('duplicates.scanning')
               : [
-                  `${data?.scanned ?? 0} application${data?.scanned === 1 ? '' : 's'} scanned`,
-                  `${exactGroups.length} exact repeat${exactGroups.length === 1 ? '' : 's'}`,
-                  ...(similarCount > 0 ? [`${similarCount} similar to review`] : []),
+                  t('duplicates.scannedCount', { count: data?.scanned ?? 0 }),
+                  t('duplicates.exactCount', { count: exactGroups.length }),
+                  ...(similarCount > 0 ? [t('duplicates.similarToReview', { count: similarCount })] : []),
                 ].join(' · ')}
           </Typography.Text>
         </Space>
 
         <Space>
           <Button icon={<ReloadOutlined />} loading={isFetching} onClick={() => void refetch()}>
-            Rescan
+            {t('duplicates.rescan')}
           </Button>
           <Popconfirm
-            title={`Delete ${bulkRemovals.length} application${bulkRemovals.length === 1 ? '' : 's'}?`}
-            description="The kept record in each group stays. This cannot be undone."
-            okText="Delete"
+            title={t('duplicates.deleteCountTitle', { count: bulkRemovals.length })}
+            description={t('duplicates.bulkDeleteDescription')}
+            okText={t('duplicates.delete')}
             okButtonProps={{ danger: true }}
             disabled={bulkRemovals.length === 0}
             onConfirm={() => void removeIds(bulkRemovals)}
@@ -116,7 +116,7 @@ export function DuplicatesPage() {
               disabled={bulkRemovals.length === 0}
               loading={remove.isPending}
             >
-              Remove {bulkRemovals.length} exact repeat{bulkRemovals.length === 1 ? '' : 's'}
+              {t('duplicates.removeExact', { count: bulkRemovals.length })}
             </Button>
           </Popconfirm>
         </Space>
@@ -130,8 +130,8 @@ export function DuplicatesPage() {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               (data?.scanned ?? 0) === 0
-                ? 'Nothing to scan yet'
-                : 'No duplicates. Every application is a distinct role or employer.'
+                ? t('duplicates.emptyNoScan')
+                : t('duplicates.emptyNone')
             }
           />
         </Card>
@@ -164,36 +164,37 @@ interface GroupCardProps {
 }
 
 function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }: GroupCardProps) {
+  const { t } = useTranslation('applications');
   const removals = group.members.length - 1;
 
   const columns: ColumnsType<JobApplicationView> = [
     {
-      title: 'Position',
+      title: t('duplicates.columns.position'),
       key: 'jobTitle',
       render: (_, row) => (
         <Space size={8} wrap>
           <Link to={`/applications/${row.id}`}>{row.jobTitle}</Link>
-          {row.archived && <Tag>Archived</Tag>}
-          {row.id === keptId ? <Tag color="green">Keep</Tag> : <Tag color="red">Remove</Tag>}
+          {row.archived && <Tag>{t('duplicates.archived')}</Tag>}
+          {row.id === keptId ? <Tag color="green">{t('duplicates.keep')}</Tag> : <Tag color="red">{t('duplicates.remove')}</Tag>}
         </Space>
       ),
     },
-    { title: 'Applied', dataIndex: 'appliedOn', width: 118 },
+    { title: t('duplicates.columns.applied'), dataIndex: 'appliedOn', width: 118 },
     {
-      title: 'Status',
+      title: t('duplicates.columns.status'),
       key: 'status',
       width: 120,
       render: (_, row) => <StatusTag status={row.status} />,
     },
     {
-      title: 'Where',
+      title: t('duplicates.columns.where'),
       key: 'location',
       width: 200,
       render: (_, row) =>
         [row.location, WORK_MODE_LABELS[row.workMode]].filter(Boolean).join(' · ') || '—',
     },
     {
-      title: 'Notes',
+      title: t('duplicates.columns.notes'),
       key: 'noteCount',
       width: 80,
       render: (_, row) => (row.noteCount > 0 ? row.noteCount : '—'),
@@ -208,24 +209,24 @@ function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }
           <Typography.Text strong>{group.companyName}</Typography.Text>
           <Typography.Text type="secondary">{group.members[0]?.jobTitle}</Typography.Text>
           <Tag color={group.kind === 'exact' ? 'red' : 'orange'}>
-            {group.kind === 'exact' ? 'same title' : 'similar title'}
+            {group.kind === 'exact' ? t('duplicates.sameTitle') : t('duplicates.similarTitle')}
           </Tag>
         </Space>
       }
       extra={
         <Space>
           <Button size="small" onClick={onDismiss}>
-            Not a duplicate
+            {t('duplicates.notDuplicate')}
           </Button>
           <Popconfirm
-            title={`Delete ${removals} application${removals === 1 ? '' : 's'}?`}
-            description="This cannot be undone."
-            okText="Delete"
+            title={t('duplicates.deleteCountTitle', { count: removals })}
+            description={t('duplicates.cannotUndo')}
+            okText={t('duplicates.delete')}
             okButtonProps={{ danger: true }}
             onConfirm={onRemove}
           >
             <Button size="small" danger icon={<DeleteOutlined />} loading={busy}>
-              Delete {removals}
+              {t('duplicates.deleteCount', { count: removals })}
             </Button>
           </Popconfirm>
         </Space>
@@ -236,7 +237,7 @@ function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }
           <Alert
             type="warning"
             showIcon
-            message="Close but not identical. Two applications a year apart can look like this. Delete only if it really is the same job."
+            message={t('duplicates.similarWarning')}
           />
         )}
         <Table<JobApplicationView>
@@ -247,7 +248,7 @@ function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }
           pagination={false}
           rowSelection={{
             type: 'radio',
-            columnTitle: 'Keep',
+            columnTitle: t('duplicates.keep'),
             columnWidth: 60,
             selectedRowKeys: [keptId],
             onChange: (selected) => onKeep(String(selected[0])),

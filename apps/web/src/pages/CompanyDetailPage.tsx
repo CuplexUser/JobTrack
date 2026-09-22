@@ -31,6 +31,7 @@ import {
   PlusOutlined,
   PushpinFilled,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { JobApplicationView, Note } from '@jobtrack/shared';
 import { useCompany, useDeleteNote, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
@@ -39,6 +40,7 @@ import { CompanyPeopleCard } from '../components/PeopleCard.js';
 import { palette } from '../theme.js';
 
 export function CompanyDetailPage() {
+  const { t } = useTranslation('companies');
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
@@ -58,19 +60,19 @@ export function CompanyDetailPage() {
   ).length;
 
   const columns: ColumnsType<JobApplicationView> = [
-    { title: 'Applied', dataIndex: 'appliedOn', width: 120 },
+    { title: t('detail.history.columns.applied'), dataIndex: 'appliedOn', width: 120 },
     {
-      title: 'Job title',
+      title: t('detail.history.columns.jobTitle'),
       dataIndex: 'jobTitle',
       render: (value: string) => <Typography.Text strong>{value}</Typography.Text>,
     },
     {
-      title: 'Status',
+      title: t('detail.history.columns.status'),
       dataIndex: 'status',
       width: 120,
       render: (_, row) => <StatusTag status={row.status} />,
     },
-    { title: 'Source', dataIndex: 'sourceName', width: 130 },
+    { title: t('detail.history.columns.source'), dataIndex: 'sourceName', width: 130 },
   ];
 
   return (
@@ -82,7 +84,7 @@ export function CompanyDetailPage() {
           style={{ padding: 0 }}
           onClick={() => navigate('/companies')}
         >
-          Back to companies
+          {t('detail.backToCompanies')}
         </Button>
         <Typography.Title level={3} style={{ margin: 0 }}>
           {company.name}
@@ -97,24 +99,24 @@ export function CompanyDetailPage() {
       <Row gutter={[16, 16]}>
         <Col xs={12} md={6}>
           <Card>
-            <Statistic title="Applications" value={applications.length} />
+            <Statistic title={t('detail.stats.applications')} value={applications.length} />
           </Card>
         </Col>
         <Col xs={12} md={6}>
           <Card>
-            <Statistic title="Still active" value={active} valueStyle={{ color: palette.accent }} />
+            <Statistic title={t('detail.stats.stillActive')} value={active} valueStyle={{ color: palette.accent }} />
           </Card>
         </Col>
         <Col xs={24} md={12}>
           <Card>
             <Space direction="vertical" size={4} style={{ width: '100%' }}>
-              <Typography.Text type="secondary">Company tags</Typography.Text>
+              <Typography.Text type="secondary">{t('detail.tags.title')}</Typography.Text>
               <Select
                 mode="tags"
                 style={{ width: '100%' }}
-                placeholder="fintech, remote-first…"
-                value={company.tags.map((t) => t.name)}
-                options={(tagData?.tags ?? []).map((t) => ({ value: t.name, label: t.name }))}
+                placeholder={t('detail.tags.placeholder')}
+                value={company.tags.map((tag) => tag.name)}
+                options={(tagData?.tags ?? []).map((tag) => ({ value: tag.name, label: tag.name }))}
                 onChange={(tags) => {
                   if (id) updateCompany.mutate({ id, body: { tags } });
                 }}
@@ -124,7 +126,7 @@ export function CompanyDetailPage() {
         </Col>
       </Row>
 
-      <Card title="Application history">
+      <Card title={t('detail.history.title')}>
         <Table<JobApplicationView>
           rowKey="id"
           size="middle"
@@ -141,15 +143,15 @@ export function CompanyDetailPage() {
       <CompanyPeopleCard companyName={company.name} />
 
       <Card
-        title={`Notes about ${company.name}`}
+        title={t('detail.notes.title', { company: company.name })}
         extra={
           <Button size="small" icon={<PlusOutlined />} onClick={() => setAddingNote(true)}>
-            Add note
+            {t('detail.notes.addButton')}
           </Button>
         }
       >
         {(noteData?.notes ?? []).length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No notes about this company" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('detail.notes.empty')} />
         ) : (
           <List
             dataSource={noteData?.notes ?? []}
@@ -164,12 +166,12 @@ export function CompanyDetailPage() {
                   />,
                   <Popconfirm
                     key="delete"
-                    title="Delete this note?"
-                    okText="Delete"
+                    title={t('detail.notes.deleteConfirmTitle')}
+                    okText={t('detail.notes.deleteConfirmOk')}
                     okButtonProps={{ danger: true }}
                     onConfirm={async () => {
                       await removeNote.mutateAsync(note.id);
-                      message.success('Note deleted');
+                      message.success(t('detail.notes.deleteSuccess'));
                     }}
                   >
                     <Button type="text" danger icon={<DeleteOutlined />} />

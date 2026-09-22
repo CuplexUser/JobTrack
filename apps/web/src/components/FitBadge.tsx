@@ -5,6 +5,7 @@
 
 import { Space, Tag, Tooltip, Typography } from 'antd';
 import { CheckCircleOutlined, CloseCircleOutlined, MinusCircleOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import type { FitResult } from '@jobtrack/shared';
 
 function colorFor(score: number): string {
@@ -14,6 +15,7 @@ function colorFor(score: number): string {
 }
 
 export function FitBadge({ fit }: { fit: FitResult | null }) {
+  const { t } = useTranslation('fit');
   if (!fit) return null;
 
   const details = (
@@ -27,12 +29,12 @@ export function FitBadge({ fit }: { fit: FitResult | null }) {
           ) : (
             <MinusCircleOutlined />
           )}
-          <span>{reason.label}</span>
+          <span>{t(reason.i18nKey, reason.i18nParams)}</span>
         </Space>
       ))}
       {!fit.semanticUsed && (
         <Typography.Text style={{ color: 'inherit', opacity: 0.75, fontSize: 12 }}>
-          Your summary is not compared yet while the search model loads.
+          {t('semanticPending')}
         </Typography.Text>
       )}
     </Space>

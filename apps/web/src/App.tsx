@@ -5,6 +5,9 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Link, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { App as AntApp, Button, ConfigProvider, Dropdown, Layout, Menu, Spin, Typography, type MenuProps } from 'antd';
+import type { Locale } from 'antd/es/locale/index.js';
+import { useTranslation } from 'react-i18next';
+import dayjs from 'dayjs';
 import {
   BarChartOutlined,
   BulbOutlined,
@@ -20,6 +23,7 @@ import {
 import { RememberParams } from './components/RememberParams.js';
 import { APPLICATIONS_PARAMS, CONTACTS_PARAMS, STATISTICS_PARAMS } from './preferences.js';
 import { buildAntdTheme, palette } from './theme.js';
+import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './locales/index.js';
 
 /**
  * Each page is its own chunk, fetched only when its route is visited, rather than one
@@ -43,30 +47,13 @@ const SettingsPage = lazy(() => import('./pages/SettingsPage.js').then((m) => ({
 
 const THEME_KEY = 'jobtrack.theme';
 
-const NAV_ITEMS = [
-  { key: '/dashboard', icon: <DashboardOutlined />, label: <Link to="/dashboard">Dashboard</Link> },
-  { key: '/statistics', icon: <BarChartOutlined />, label: <Link to="/statistics">Statistics</Link> },
-  { key: '/applications', icon: <ProfileOutlined />, label: <Link to="/applications">Applications</Link> },
-  { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">Openings</Link> },
-  { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">Companies</Link> },
-  { key: '/people', icon: <TeamOutlined />, label: <Link to="/people">People</Link> },
-  { key: '/notes', icon: <FileTextOutlined />, label: <Link to="/notes">Notes</Link> },
-  { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">Settings</Link> },
-];
-
-/**
- * Flat, not grouped — a group whose label duplicated its single child's label used to render
- * "Light" (a dim, non-interactive header) directly above "Light" (the actual, unstyled menu
- * item), which is what made the unselected option look broken next to the selected one's
- * highlighted pill. Each option now carries its own icon, and `selectedKeys` on the Dropdown
- * below is the only thing that marks which one is active.
- */
-const THEME_MENU_ITEMS: MenuProps['items'] = [
-  { key: 'light', icon: <SunOutlined />, label: 'Light' },
-  { key: 'dark', icon: <MoonOutlined />, label: 'Dark' },
-];
+function findLanguage(code: string): SupportedLanguage {
+  return SUPPORTED_LANGUAGES.find((lang) => lang.code === code) ?? SUPPORTED_LANGUAGES[0]!;
+}
 
 export function App() {
+  const { t, i18n } = useTranslation();
+
   const [dark, setDark] = useState<boolean>(() => {
     try {
       const stored = localStorage.getItem(THEME_KEY);
@@ -86,15 +73,62 @@ export function App() {
     }
   }, [dark]);
 
+  // Keeps antd's own chrome (pagination, date pickers, empty states, …) and dayjs-driven
+  // date formatting in step with the app-level language, not just JobTrack's own strings.
+  // `undefined` until the first language pack resolves, which renders antd's own English
+  // default for one tick — never wrong, since English is also this app's fallback language.
+  const [antdLocale, setAntdLocale] = useState<Locale | undefined>(undefined);
+  useEffect(() => {
+    const language = findLanguage(i18n.language);
+    let cancelled = false;
+    Promise.all([language.antdLocale(), language.dayjsLocale()]).then(([antdModule]) => {
+      if (cancelled) return;
+      setAntdLocale(antdModule.default as Locale);
+      dayjs.locale(language.code);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language]);
+
+  const NAV_ITEMS = useMemo(
+    () => [
+      { key: '/dashboard', icon: <DashboardOutlined />, label: <Link to="/dashboard">{t('nav.dashboard')}</Link> },
+      { key: '/statistics', icon: <BarChartOutlined />, label: <Link to="/statistics">{t('nav.statistics')}</Link> },
+      { key: '/applications', icon: <ProfileOutlined />, label: <Link to="/applications">{t('nav.applications')}</Link> },
+      { key: '/openings', icon: <BulbOutlined />, label: <Link to="/openings">{t('nav.openings')}</Link> },
+      { key: '/companies', icon: <ShopOutlined />, label: <Link to="/companies">{t('nav.companies')}</Link> },
+      { key: '/people', icon: <TeamOutlined />, label: <Link to="/people">{t('nav.people')}</Link> },
+      { key: '/notes', icon: <FileTextOutlined />, label: <Link to="/notes">{t('nav.notes')}</Link> },
+      { key: '/settings', icon: <SettingOutlined />, label: <Link to="/settings">{t('nav.settings')}</Link> },
+    ],
+    [t],
+  );
+
+  /**
+   * Flat, not grouped — a group whose label duplicated its single child's label used to render
+   * "Light" (a dim, non-interactive header) directly above "Light" (the actual, unstyled menu
+   * item), which is what made the unselected option look broken next to the selected one's
+   * highlighted pill. Each option now carries its own icon, and `selectedKeys` on the Dropdown
+   * below is the only thing that marks which one is active.
+   */
+  const themeMenuItems: MenuProps['items'] = useMemo(
+    () => [
+      { key: 'light', icon: <SunOutlined />, label: t('theme.light') },
+      { key: 'dark', icon: <MoonOutlined />, label: t('theme.dark') },
+    ],
+    [t],
+  );
+
   const location = useLocation();
   // Highlight the section, not the exact URL, so a detail page keeps its parent lit.
   const selectedKey = useMemo(() => {
     const match = NAV_ITEMS.find((item) => location.pathname.startsWith(item.key));
     return match ? [match.key] : ['/dashboard'];
-  }, [location.pathname]);
+  }, [location.pathname, NAV_ITEMS]);
 
   return (
-    <ConfigProvider theme={buildAntdTheme(dark ? 'dark' : 'light')}>
+    <ConfigProvider theme={buildAntdTheme(dark ? 'dark' : 'light')} locale={antdLocale}>
       <AntApp>
         <Layout style={{ minHeight: '100vh' }}>
           <Layout.Header
@@ -123,14 +157,14 @@ export function App() {
             <Dropdown
               trigger={['click']}
               menu={{
-                items: THEME_MENU_ITEMS,
+                items: themeMenuItems,
                 selectable: true,
                 selectedKeys: [dark ? 'dark' : 'light'],
                 onClick: ({ key }) => setDark(key === 'dark'),
               }}
             >
-              <Button icon={dark ? <MoonOutlined /> : <SunOutlined />} aria-label="Theme settings">
-                Theme
+              <Button icon={dark ? <MoonOutlined /> : <SunOutlined />} aria-label={t('theme.ariaLabel')}>
+                {t('theme.button')}
               </Button>
             </Dropdown>
           </Layout.Header>

@@ -37,12 +37,12 @@ import {
   ThunderboltOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
   WORK_MODES,
   WORK_MODE_LABELS,
-  monthName,
   type JobApplicationView,
 } from '@jobtrack/shared';
 import { useApplicationLocations, useApplicationsInfinite, usePeriods, useTags } from '../api/hooks.js';
@@ -65,21 +65,22 @@ const DEMO = import.meta.env.VITE_DEMO === 'true';
  * default and says so; text sorts read A–Z, which is also what people expect to get
  * first when they pick one.
  */
+/** `label` is a translation key, resolved with `t()` wherever these render. */
 const SORT_OPTIONS = [
-  { value: 'appliedOn', label: 'Sort: date applied', kind: 'date' },
-  { value: 'company', label: 'Sort: company', kind: 'text' },
-  { value: 'jobTitle', label: 'Sort: job title', kind: 'text' },
-  { value: 'status', label: 'Sort: status', kind: 'text' },
+  { value: 'appliedOn', label: 'list.sort.appliedOn', kind: 'date' },
+  { value: 'company', label: 'list.sort.company', kind: 'text' },
+  { value: 'jobTitle', label: 'list.sort.jobTitle', kind: 'text' },
+  { value: 'status', label: 'list.sort.status', kind: 'text' },
 ] as const;
 
 const DIRECTION_OPTIONS: Record<'date' | 'text', { value: string; label: string }[]> = {
   date: [
-    { value: 'desc', label: 'Newest first' },
-    { value: 'asc', label: 'Oldest first' },
+    { value: 'desc', label: 'list.direction.newestFirst' },
+    { value: 'asc', label: 'list.direction.oldestFirst' },
   ],
   text: [
-    { value: 'asc', label: 'A–Z' },
-    { value: 'desc', label: 'Z–A' },
+    { value: 'asc', label: 'list.direction.azAsc' },
+    { value: 'desc', label: 'list.direction.azDesc' },
   ],
 };
 
@@ -102,6 +103,7 @@ function downloadBlob(filename: string, blob: Blob): void {
 }
 
 export function ApplicationsPage() {
+  const { t, i18n } = useTranslation('applications');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -163,14 +165,14 @@ export function ApplicationsPage() {
 
   const columns: ColumnsType<JobApplicationView> = [
     {
-      title: 'Applied',
+      title: t('list.columns.applied'),
       dataIndex: 'appliedOn',
       width: 118,
       sorter: false,
       render: (value: string) => <Typography.Text>{value}</Typography.Text>,
     },
     {
-      title: 'Company',
+      title: t('list.columns.company'),
       key: 'company',
       width: 190,
       render: (_, row) => (
@@ -187,7 +189,7 @@ export function ApplicationsPage() {
       ),
     },
     {
-      title: 'Job title',
+      title: t('list.columns.jobTitle'),
       dataIndex: 'jobTitle',
       render: (value: string, row) => (
         <Space direction="vertical" size={0}>
@@ -201,13 +203,13 @@ export function ApplicationsPage() {
       ),
     },
     {
-      title: 'Status',
+      title: t('list.columns.status'),
       dataIndex: 'status',
       width: 116,
       render: (_, row) => <StatusTag status={row.status} />,
     },
     {
-      title: 'Tags',
+      title: t('list.columns.tags'),
       key: 'tags',
       width: 210,
       render: (_, row) => (
@@ -221,7 +223,7 @@ export function ApplicationsPage() {
       ),
     },
     {
-      title: 'Source',
+      title: t('list.columns.source'),
       dataIndex: 'sourceName',
       width: 120,
       render: (value: string | null) => value ?? <Typography.Text type="secondary">—</Typography.Text>,
@@ -235,12 +237,12 @@ export function ApplicationsPage() {
 
   const today = dayjs();
   const dateRangePresets: { label: string; value: [Dayjs, Dayjs] }[] = [
-    { label: 'Today', value: [today, today] },
-    { label: 'Yesterday', value: [today.subtract(1, 'day'), today.subtract(1, 'day')] },
-    { label: 'This week', value: [today.startOf('week'), today.endOf('week')] },
-    { label: 'This month', value: [today.startOf('month'), today.endOf('month')] },
-    { label: 'Last 7 days', value: [today.subtract(6, 'day'), today] },
-    { label: 'Last 30 days', value: [today.subtract(29, 'day'), today] },
+    { label: t('list.presets.today'), value: [today, today] },
+    { label: t('list.presets.yesterday'), value: [today.subtract(1, 'day'), today.subtract(1, 'day')] },
+    { label: t('list.presets.thisWeek'), value: [today.startOf('week'), today.endOf('week')] },
+    { label: t('list.presets.thisMonth'), value: [today.startOf('month'), today.endOf('month')] },
+    { label: t('list.presets.last7Days'), value: [today.subtract(6, 'day'), today] },
+    { label: t('list.presets.last30Days'), value: [today.subtract(29, 'day'), today] },
   ];
 
   function handleDateRangeChange(dates: [Dayjs | null, Dayjs | null] | null): void {
@@ -255,18 +257,22 @@ export function ApplicationsPage() {
   const month = params.get('month') ? Number(params.get('month')) : undefined;
 
   const scopeLabel =
-    year && month ? `${monthName(month)} ${year}` : year ? String(year) : 'All applications';
+    year && month
+      ? `${new Intl.DateTimeFormat(i18n.language, { month: 'long' }).format(new Date(Date.UTC(year, month - 1, 1)))} ${year}`
+      : year
+        ? String(year)
+        : t('list.allApplications');
 
   return (
     <Row gutter={16}>
       <Col xs={24} md={6} lg={5}>
         <Card
           size="small"
-          title="By period"
+          title={t('list.byPeriod')}
           extra={
             (year || month) && (
               <Button size="small" type="link" onClick={() => patchFilter({ year: '', month: '' })}>
-                Clear
+                {t('list.clear')}
               </Button>
             )
           }
@@ -293,9 +299,9 @@ export function ApplicationsPage() {
               <Typography.Text type="secondary">
                 {summary
                   ? items.length < summary.total
-                    ? `Showing ${items.length} of ${summary.total} applications`
-                    : `${summary.total} application${summary.total === 1 ? '' : 's'}`
-                  : 'Loading…'}
+                    ? t('list.showingOfTotal', { shown: items.length, total: summary.total })
+                    : t('list.totalCount', { count: summary.total })
+                  : t('list.loading')}
               </Typography.Text>
             </Space>
 
@@ -303,10 +309,10 @@ export function ApplicationsPage() {
               <Dropdown
                 menu={{
                   items: DEMO
-                    ? [{ key: 'csv', label: 'Export as CSV' }]
+                    ? [{ key: 'csv', label: t('list.exportCsv') }]
                     : [
-                        { key: 'csv', label: 'Export as CSV' },
-                        { key: 'xlsx', label: 'Export as Excel (.xlsx)' },
+                        { key: 'csv', label: t('list.exportCsv') },
+                        { key: 'xlsx', label: t('list.exportXlsx') },
                       ],
                   onClick: ({ key }) => {
                     if (DEMO) {
@@ -318,16 +324,16 @@ export function ApplicationsPage() {
                   },
                 }}
               >
-                <Button icon={<DownloadOutlined />}>Export</Button>
+                <Button icon={<DownloadOutlined />}>{t('list.export')}</Button>
               </Dropdown>
               <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
-                Import
+                {t('list.import')}
               </Button>
               <Button icon={<CopyOutlined />} onClick={() => navigate('/applications/duplicates')}>
-                Duplicates
+                {t('list.duplicatesButton')}
               </Button>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
-                New application
+                {t('list.newApplication')}
               </Button>
             </Space>
           </Flex>
@@ -338,7 +344,7 @@ export function ApplicationsPage() {
                 allowClear
                 size="large"
                 prefix={<SearchOutlined />}
-                placeholder="Search by meaning, like “server-side developer” or “remote fintech”"
+                placeholder={t('list.searchPlaceholder')}
                 defaultValue={params.get('q') ?? ''}
                 onChange={(event) => {
                   const value = event.target.value;
@@ -360,7 +366,7 @@ export function ApplicationsPage() {
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="Status"
+                  placeholder={t('list.filters.status')}
                   style={{ minWidth: 180 }}
                   suffixIcon={<FilterOutlined />}
                   value={params.get('status')?.split(',') ?? []}
@@ -370,7 +376,7 @@ export function ApplicationsPage() {
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="Work mode"
+                  placeholder={t('list.filters.workMode')}
                   style={{ minWidth: 160 }}
                   value={params.get('workMode')?.split(',') ?? []}
                   onChange={(value) => patchFilter({ workMode: value })}
@@ -380,7 +386,7 @@ export function ApplicationsPage() {
                   // `tags` mode: pick a location on file, or type any fragment ("Sweden").
                   mode="tags"
                   allowClear
-                  placeholder="Location"
+                  placeholder={t('list.filters.location')}
                   style={{ minWidth: 200 }}
                   value={selectedLocations}
                   onChange={(value: string[]) =>
@@ -395,11 +401,11 @@ export function ApplicationsPage() {
                 <Select
                   mode="multiple"
                   allowClear
-                  placeholder="Tags"
+                  placeholder={t('list.filters.tags')}
                   style={{ minWidth: 200 }}
                   value={params.get('tags')?.split(',') ?? []}
                   onChange={(value) => patchFilter({ tags: value })}
-                  options={(tagData?.tags ?? []).map((t) => ({ value: t.name, label: t.name }))}
+                  options={(tagData?.tags ?? []).map((tag) => ({ value: tag.name, label: tag.name }))}
                 />
                 <Select
                   style={{ minWidth: 170 }}
@@ -409,13 +415,13 @@ export function ApplicationsPage() {
                   onChange={(value) =>
                     patchFilter({ sort: value, direction: defaultDirection(value) })
                   }
-                  options={SORT_OPTIONS.map(({ value, label }) => ({ value, label }))}
+                  options={SORT_OPTIONS.map(({ value, label }) => ({ value, label: t(label) }))}
                 />
                 <Select
                   style={{ width: 130 }}
                   value={direction}
                   onChange={(value) => patchFilter({ direction: value })}
-                  options={DIRECTION_OPTIONS[directionKind(sort)]}
+                  options={DIRECTION_OPTIONS[directionKind(sort)].map(({ value, label }) => ({ value, label: t(label) }))}
                 />
               </Flex>
 
@@ -424,7 +430,7 @@ export function ApplicationsPage() {
                   type="info"
                   showIcon
                   icon={<ThunderboltOutlined />}
-                  message="Results will improve shortly. The semantic model is still loading."
+                  message={t('list.semanticLoading')}
                 />
               )}
             </Space>
@@ -448,8 +454,8 @@ export function ApplicationsPage() {
                   image={Empty.PRESENTED_IMAGE_SIMPLE}
                   description={
                     params.get('q')
-                      ? `Nothing matched “${params.get('q')}”`
-                      : 'No applications for this filter'
+                      ? t('list.noMatch', { query: params.get('q') })
+                      : t('list.noResults')
                   }
                 />
               ),
@@ -458,9 +464,9 @@ export function ApplicationsPage() {
               hasNextPage
                 ? () => (
                     <Flex justify="center">
-                      <Tooltip title="Adds the next page to the list">
+                      <Tooltip title={t('list.loadMoreTooltip')}>
                         <Button loading={isFetchingNextPage} onClick={() => void fetchNextPage()}>
-                          Load more
+                          {t('list.loadMore')}
                         </Button>
                       </Tooltip>
                     </Flex>

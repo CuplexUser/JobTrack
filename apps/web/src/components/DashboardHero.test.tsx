@@ -1,20 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
+import i18n from '../i18n.js';
 import { waitingSentence } from './DashboardHero.js';
 import { Terrain } from './charts/Terrain.js';
 
 const items = (n: number) => Array.from({ length: n }, () => ({}) as never);
+const t = i18n.getFixedT('en', 'dashboard');
 
 describe('waitingSentence', () => {
   it('says so when nothing is waiting', () => {
-    expect(waitingSentence({ followUps: [], stale: [], reconnect: [] })).toBe('Nothing is waiting on you today.');
+    expect(waitingSentence({ followUps: [], stale: [], reconnect: [] }, t)).toBe('Nothing is waiting on you today.');
   });
 
   it('joins what is waiting, most pressing first, with singulars right', () => {
-    expect(waitingSentence({ followUps: items(1), stale: items(4), reconnect: items(2) })).toBe(
+    expect(waitingSentence({ followUps: items(1), stale: items(4), reconnect: items(2) }, t)).toBe(
       '1 follow-up is due, 4 applications have gone quiet and 2 people are due a reconnect.',
     );
-    expect(waitingSentence({ followUps: [], stale: items(1), reconnect: [] })).toBe('1 application has gone quiet.');
+    expect(waitingSentence({ followUps: [], stale: items(1), reconnect: [] }, t)).toBe('1 application has gone quiet.');
   });
 });
 

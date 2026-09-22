@@ -26,6 +26,7 @@ import {
   Typography,
 } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
   STATUS_LABELS,
@@ -70,6 +71,7 @@ interface FormValues {
 }
 
 export function ApplicationDrawer({ open, onClose, application }: ApplicationDrawerProps) {
+  const { t } = useTranslation('applications');
   const [form] = Form.useForm<FormValues>();
   const { message, modal } = AntApp.useApp();
   const isEdit = Boolean(application);
@@ -145,14 +147,13 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
             <span>{company.name}</span>
             {company.applicationCount > 0 && (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                {company.applicationCount} application
-                {company.applicationCount === 1 ? '' : 's'}
+                {t('drawer.applicationCount', { count: company.applicationCount })}
               </Typography.Text>
             )}
           </Space>
         ),
       })),
-    [suggestions],
+    [suggestions, t],
   );
 
   const tagOptions = useMemo(
@@ -168,18 +169,21 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
     if (duplicateCheck && shouldBlockSave(duplicateCheck.verdict) && !isEdit) {
       const confirmed = await new Promise<boolean>((resolve) => {
         modal.confirm({
-          title: 'You have applied for this exact role before',
+          title: t('drawer.exactDuplicateTitle'),
           content: (
             <Space direction="vertical">
               <Typography.Text>
-                {duplicateCheck.matches[0]?.jobTitle} at {duplicateCheck.company?.name} on{' '}
-                {duplicateCheck.matches[0]?.appliedOn}.
+                {t('drawer.exactDuplicateDetail', {
+                  jobTitle: duplicateCheck.matches[0]?.jobTitle,
+                  company: duplicateCheck.company?.name,
+                  date: duplicateCheck.matches[0]?.appliedOn,
+                })}
               </Typography.Text>
-              <Typography.Text type="secondary">Save this as a new application anyway?</Typography.Text>
+              <Typography.Text type="secondary">{t('drawer.saveAnyway')}</Typography.Text>
             </Space>
           ),
-          okText: 'Save anyway',
-          cancelText: 'Go back',
+          okText: t('drawer.saveAnywayOk'),
+          cancelText: t('drawer.goBack'),
           onOk: () => resolve(true),
           onCancel: () => resolve(false),
         });
@@ -208,10 +212,10 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
     try {
       if (application) {
         await update.mutateAsync({ id: application.id, body: payload });
-        message.success('Application updated');
+        message.success(t('drawer.updatedMessage'));
       } else {
         await create.mutateAsync(payload);
-        message.success('Application saved');
+        message.success(t('drawer.savedMessage'));
       }
       onClose();
     } catch (error) {
@@ -225,9 +229,9 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
             errors: [issue.message],
           })),
         );
-        message.error('Please check the highlighted fields');
+        message.error(t('drawer.checkFieldsError'));
       } else {
-        message.error(error instanceof Error ? error.message : 'Could not save');
+        message.error(error instanceof Error ? error.message : t('drawer.saveError'));
       }
     } finally {
       setSubmitting(false);
@@ -236,16 +240,16 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
 
   return (
     <Drawer
-      title={isEdit ? 'Edit application' : 'New application'}
+      title={isEdit ? t('drawer.editTitle') : t('drawer.newTitle')}
       open={open}
       onClose={onClose}
       width={640}
       destroyOnHidden
       extra={
         <Space>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>{t('drawer.cancel')}</Button>
           <Button type="primary" loading={submitting} onClick={() => form.submit()}>
-            {isEdit ? 'Save changes' : 'Save application'}
+            {isEdit ? t('drawer.saveChanges') : t('drawer.saveNew')}
           </Button>
         </Space>
       }
@@ -258,12 +262,12 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
           <Col span={12}>
             <Form.Item
               name="companyName"
-              label="Company"
-              rules={[{ required: true, message: 'Company is required' }]}
+              label={t('drawer.fields.company')}
+              rules={[{ required: true, message: t('drawer.rules.companyRequired') }]}
             >
               <AutoComplete
                 options={companyOptions}
-                placeholder="Start typing to see existing companies"
+                placeholder={t('drawer.companyPlaceholder')}
                 filterOption={false}
                 allowClear
               />
@@ -272,10 +276,10 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
           <Col span={12}>
             <Form.Item
               name="jobTitle"
-              label="Job title"
-              rules={[{ required: true, message: 'Job title is required' }]}
+              label={t('drawer.fields.jobTitle')}
+              rules={[{ required: true, message: t('drawer.rules.jobTitleRequired') }]}
             >
-              <Input placeholder="Backend Engineer" />
+              <Input placeholder={t('drawer.jobTitlePlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
@@ -284,21 +288,21 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
           <Col span={8}>
             <Form.Item
               name="appliedOn"
-              label="Applied on"
-              rules={[{ required: true, message: 'Date is required' }]}
+              label={t('drawer.fields.appliedOn')}
+              rules={[{ required: true, message: t('drawer.rules.dateRequired') }]}
             >
               <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="status" label="Status">
+            <Form.Item name="status" label={t('drawer.fields.status')}>
               <Select
                 options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
               />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="followUpOn" label="Follow up on">
+            <Form.Item name="followUpOn" label={t('drawer.fields.followUpOn')}>
               <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" allowClear />
             </Form.Item>
           </Col>
@@ -306,49 +310,49 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
 
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item name="workMode" label="Work mode">
+            <Form.Item name="workMode" label={t('drawer.fields.workMode')}>
               <Select options={WORK_MODES.map((m) => ({ value: m, label: WORK_MODE_LABELS[m] }))} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="location" label="Location">
-              <Input placeholder="Stockholm" />
+            <Form.Item name="location" label={t('drawer.fields.location')}>
+              <Input placeholder={t('drawer.locationPlaceholder')} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="sourceName" label="Source">
-              <Input placeholder="LinkedIn, referral…" />
+            <Form.Item name="sourceName" label={t('drawer.fields.source')}>
+              <Input placeholder={t('drawer.sourcePlaceholder')} />
             </Form.Item>
           </Col>
         </Row>
 
         <Row gutter={16}>
           <Col span={8}>
-            <Form.Item name="salaryMin" label="Salary from">
+            <Form.Item name="salaryMin" label={t('drawer.fields.salaryFrom')}>
               <InputNumber style={{ width: '100%' }} min={0} step={10000} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="salaryMax" label="Salary to">
+            <Form.Item name="salaryMax" label={t('drawer.fields.salaryTo')}>
               <InputNumber style={{ width: '100%' }} min={0} step={10000} />
             </Form.Item>
           </Col>
           <Col span={8}>
-            <Form.Item name="salaryCurrency" label="Currency">
-              <Input placeholder="SEK" maxLength={8} />
+            <Form.Item name="salaryCurrency" label={t('drawer.fields.currency')}>
+              <Input placeholder={t('drawer.currencyPlaceholder')} maxLength={8} />
             </Form.Item>
           </Col>
         </Row>
 
-        <Form.Item name="jobUrl" label="Job posting URL">
-          <Input placeholder="https://…" />
+        <Form.Item name="jobUrl" label={t('drawer.fields.jobUrl')}>
+          <Input placeholder={t('drawer.jobUrlPlaceholder')} />
         </Form.Item>
 
-        <Form.Item name="tags" label="Tags">
+        <Form.Item name="tags" label={t('drawer.fields.tags')}>
           <Select
             mode="tags"
             options={tagOptions}
-            placeholder="fintech, remote-ok, dream-job…"
+            placeholder={t('drawer.tagsPlaceholder')}
             tokenSeparators={[',']}
           />
         </Form.Item>
@@ -356,10 +360,10 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
         {!isEdit && (
           <Form.Item
             name="notes"
-            label="Notes"
-            help="Saved as a note linked to this application. Searchable."
+            label={t('drawer.fields.notes')}
+            help={t('drawer.notesHelp')}
           >
-            <Input.TextArea rows={4} placeholder="Anything worth remembering…" />
+            <Input.TextArea rows={4} placeholder={t('drawer.notesPlaceholder')} />
           </Form.Item>
         )}
       </Form>

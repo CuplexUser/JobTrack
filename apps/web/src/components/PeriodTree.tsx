@@ -8,7 +8,7 @@
 import { useMemo } from 'react';
 import { Empty, Tree, Typography } from 'antd';
 import type { DataNode } from 'antd/es/tree';
-import { monthName } from '@jobtrack/shared';
+import { useTranslation } from 'react-i18next';
 import type { PeriodNode } from '../api/client.js';
 
 export interface PeriodTreeProps {
@@ -19,6 +19,7 @@ export interface PeriodTreeProps {
 }
 
 export function PeriodTree({ periods, year, month, onSelect }: PeriodTreeProps) {
+  const { t, i18n } = useTranslation('statistics');
   const treeData = useMemo<DataNode[]>(
     () =>
       periods.map((node) => ({
@@ -26,10 +27,15 @@ export function PeriodTree({ periods, year, month, onSelect }: PeriodTreeProps) 
         title: <NodeLabel label={String(node.year)} count={node.count} strong />,
         children: (node.months ?? []).map((child) => ({
           key: `m:${child.year}:${child.month}`,
-          title: <NodeLabel label={monthName(child.month)} count={child.count} />,
+          title: (
+            <NodeLabel
+              label={new Intl.DateTimeFormat(i18n.language, { month: 'long' }).format(new Date(Date.UTC(child.year, child.month - 1, 1)))}
+              count={child.count}
+            />
+          ),
         })),
       })),
-    [periods],
+    [periods, i18n.language],
   );
 
   const selectedKeys = useMemo(() => {
@@ -47,7 +53,7 @@ export function PeriodTree({ periods, year, month, onSelect }: PeriodTreeProps) 
   }, [periods, year]);
 
   if (periods.length === 0) {
-    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No applications yet" />;
+    return <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noApplicationsYet')} />;
   }
 
   return (

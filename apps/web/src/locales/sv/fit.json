@@ -1,0 +1,27 @@
+{
+  "title.matches": "Titeln matchar \"{{target}}\"",
+  "title.close": "Titeln ligger nära \"{{target}}\"",
+  "title.mismatch": "Titeln är ingen du söker efter",
+
+  "summary.close": "Ligger nära din profil",
+  "summary.far": "Ligger långt från din profil",
+
+  "location.matched": "I {{place}}",
+  "location.remote": "Distans, så platsen spelar ingen roll",
+  "location.notStated": "Plats ej angiven",
+  "location.mismatch": "I {{location}}, inte en plats du angett",
+
+  "workMode.notStated": "Arbetsform ej angiven",
+  "workMode.matched": "{{mode}}, som du vill ha",
+  "workMode.mismatch": "{{mode}}, vilket du inte valt",
+
+  "salary.notStated": "Lön ej angiven",
+  "salary.currencyMismatch": "Lönen anges i {{postingCurrency}}, inte {{profileCurrency}}",
+  "salary.belowFloor": "Lönetaket ligger under ditt golv",
+  "salary.reachesFloor": "Lönen når ditt golv",
+
+  "keywords.mentions": "Nämner {{keywords}}",
+  "excluded.mentions": "Nämner {{keywords}}, vilket du vill undvika",
+
+  "semanticPending": "Din profiltext jämförs inte än medan sökmodellen laddas."
+}

@@ -1,0 +1,26 @@
+{
+  "list.title": "Companies",
+  "list.searchPlaceholder": "Find a company",
+  "list.columns.company": "Company",
+  "list.columns.applications": "Applications",
+  "list.columns.active": "Active",
+  "list.columns.lastApplied": "Last applied",
+  "list.columns.tags": "Tags",
+
+  "detail.backToCompanies": "Back to companies",
+  "detail.stats.applications": "Applications",
+  "detail.stats.stillActive": "Still active",
+  "detail.tags.title": "Company tags",
+  "detail.tags.placeholder": "fintech, remote-first…",
+  "detail.history.title": "Application history",
+  "detail.history.columns.applied": "Applied",
+  "detail.history.columns.jobTitle": "Job title",
+  "detail.history.columns.status": "Status",
+  "detail.history.columns.source": "Source",
+  "detail.notes.title": "Notes about {{company}}",
+  "detail.notes.addButton": "Add note",
+  "detail.notes.empty": "No notes about this company",
+  "detail.notes.deleteConfirmTitle": "Delete this note?",
+  "detail.notes.deleteConfirmOk": "Delete",
+  "detail.notes.deleteSuccess": "Note deleted"
+}

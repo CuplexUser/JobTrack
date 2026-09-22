@@ -8,6 +8,7 @@
 
 import { useState, type CSSProperties } from 'react';
 import { Button, Card, Col, Input, Row, Space, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { palette } from '../theme.js';
 import { SafetyCertificateOutlined } from '@ant-design/icons';
 import { useDuplicateCheck } from '../api/hooks.js';
@@ -21,6 +22,7 @@ export function PreApplyCheck({
   onStartApplication?: () => void;
   style?: CSSProperties;
 }) {
+  const { t } = useTranslation('applications');
   const [company, setCompany] = useState('');
   const [title, setTitle] = useState('');
 
@@ -41,13 +43,13 @@ export function PreApplyCheck({
       title={
         <Space>
           <SafetyCertificateOutlined />
-          <span>Check before you apply</span>
+          <span>{t('preApplyCheck.title')}</span>
         </Space>
       }
       extra={
         onStartApplication && (
           <Button type="link" onClick={onStartApplication}>
-            New application
+            {t('preApplyCheck.newApplication')}
           </Button>
         )
       }
@@ -56,7 +58,7 @@ export function PreApplyCheck({
         <Row gutter={12}>
           <Col xs={24} sm={12}>
             <Input
-              placeholder="Company"
+              placeholder={t('preApplyCheck.companyPlaceholder')}
               value={company}
               onChange={(event) => setCompany(event.target.value)}
               allowClear
@@ -64,7 +66,7 @@ export function PreApplyCheck({
           </Col>
           <Col xs={24} sm={12}>
             <Input
-              placeholder="Job title (optional)"
+              placeholder={t('preApplyCheck.jobTitlePlaceholder')}
               value={title}
               onChange={(event) => setTitle(event.target.value)}
               allowClear
@@ -78,7 +80,7 @@ export function PreApplyCheck({
           <div className="jt-check-idle">
             <TrailSign />
             <Typography.Text type="secondary">
-              Type a company name to see whether you have been here before.
+              {t('preApplyCheck.idleHint')}
             </Typography.Text>
           </div>
         )}

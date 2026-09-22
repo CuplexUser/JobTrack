@@ -8,6 +8,7 @@
  */
 
 import { Space, Typography } from 'antd';
+import { useTranslation } from 'react-i18next';
 import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
 import { palette } from '../../theme.js';
 
@@ -29,6 +30,7 @@ export interface FunnelProps {
 const STRENGTH = [0.45, 0.6, 0.78, 1];
 
 export function Funnel({ stages }: FunnelProps) {
+  const { t } = useTranslation('charts');
   const top = stages[0]?.count ?? 0;
 
   return (
@@ -53,7 +55,7 @@ export function Funnel({ stages }: FunnelProps) {
                 <Typography.Text strong>{stage.count}</Typography.Text>
                 {stage.conversion !== null && (
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    {Math.round(stage.conversion * 100)}% of previous
+                    {t('funnel.ofPrevious', { percent: Math.round(stage.conversion * 100) })}
                   </Typography.Text>
                 )}
               </Space>
@@ -63,7 +65,7 @@ export function Funnel({ stages }: FunnelProps) {
               viewBox="0 0 100 6"
               preserveAspectRatio="none"
               role="img"
-              aria-label={`${STATUS_LABELS[stage.status]}: ${stage.count} applications ever reached this stage`}
+              aria-label={t('funnel.stageAriaLabel', { status: STATUS_LABELS[stage.status], count: stage.count })}
               style={{ display: 'block', width: '100%', height: 10 }}
             >
               <title>{`${STATUS_LABELS[stage.status]}: ${stage.count}`}</title>
@@ -85,8 +87,7 @@ export function Funnel({ stages }: FunnelProps) {
       })}
 
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        Counted from your status history: an application that interviewed and was then
-        turned down still counts at every stage it reached.
+        {t('funnel.footnote')}
       </Typography.Text>
     </Space>
   );

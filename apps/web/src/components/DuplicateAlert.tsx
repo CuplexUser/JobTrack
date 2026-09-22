@@ -8,6 +8,8 @@
 
 import { Alert, Space, Tag, Typography } from 'antd';
 import { Link } from 'react-router-dom';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   RELATIONSHIP_LABELS,
   STATUS_COLORS,
@@ -32,8 +34,10 @@ const ALERT_TYPE: Record<DuplicateVerdict, 'error' | 'warning' | 'info' | 'succe
 };
 
 export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
+  const { t } = useTranslation('applications');
+
   if (loading && !check) {
-    return <Alert type="info" showIcon message="Checking your history…" style={{ marginBottom: 16 }} />;
+    return <Alert type="info" showIcon message={t('duplicateAlert.checking')} style={{ marginBottom: 16 }} />;
   }
   if (!check) return null;
 
@@ -44,10 +48,10 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
       <Alert
         type="success"
         showIcon
-        message="No history with this company"
+        message={t('duplicateAlert.noHistoryTitle')}
         description={
           <Space direction="vertical" size={6} style={{ width: '100%' }}>
-            <span>This looks like a company you haven't applied to before.</span>
+            <span>{t('duplicateAlert.noHistoryBody')}</span>
             <KnownPeople people={people} />
           </Space>
         }
@@ -56,27 +60,25 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
     );
   }
 
-  const companyName = check.company?.name ?? 'this company';
+  const companyName = check.company?.name ?? t('duplicateAlert.thisCompany');
 
   return (
     <Alert
       type={ALERT_TYPE[check.verdict]}
       showIcon
       style={{ marginBottom: 16 }}
-      message={headline(check.verdict, companyName, check.priorCount)}
+      message={headline(check.verdict, companyName, check.priorCount, t)}
       description={
         <Space direction="vertical" size={6} style={{ width: '100%' }}>
           {check.matches.length > 0 ? (
             check.matches.slice(0, 5).map((match) => <MatchRow key={match.id} match={match} />)
           ) : (
-            <Typography.Text type="secondary">
-              None of them were for this role, but it is worth a look before you apply again.
-            </Typography.Text>
+            <Typography.Text type="secondary">{t('duplicateAlert.noneForRole')}</Typography.Text>
           )}
           <KnownPeople people={people} />
           {!check.semanticUsed && check.matches.length > 0 && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              Matched on wording only. Semantic matching is still warming up.
+              {t('duplicateAlert.wordingOnly')}
             </Typography.Text>
           )}
         </Space>
@@ -90,13 +92,12 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
  * does more than a cold application. Shows the closest few; the rest are on the company page.
  */
 function KnownPeople({ people }: { people: ContactView[] }) {
+  const { t } = useTranslation('applications');
   if (people.length === 0) return null;
   const shown = people.slice(0, 3);
   return (
     <Space direction="vertical" size={2}>
-      <Typography.Text strong>
-        You know {people.length === 1 ? '1 person' : `${people.length} people`} here. Worth asking for a referral?
-      </Typography.Text>
+      <Typography.Text strong>{t('duplicateAlert.knownPeople', { count: people.length })}</Typography.Text>
       {shown.map((person) => (
         <Space key={person.id} size={8} wrap>
           <Link to={`/people/${person.id}`}>{person.name}</Link>
@@ -108,19 +109,20 @@ function KnownPeople({ people }: { people: ContactView[] }) {
   );
 }
 
-function headline(verdict: DuplicateVerdict, company: string, priorCount: number): string {
-  const times = priorCount === 1 ? 'once' : `${priorCount} times`;
+function headline(verdict: DuplicateVerdict, company: string, priorCount: number, t: TFunction<'applications'>): string {
+  const times = t('duplicateAlert.times', { count: priorCount });
   switch (verdict) {
     case 'exact':
-      return `You have already applied for this exact role at ${company}`;
+      return t('duplicateAlert.headlineExact', { company });
     case 'similar':
-      return `You have applied for a very similar role at ${company}`;
+      return t('duplicateAlert.headlineSimilar', { company });
     default:
-      return `You have applied to ${company} ${times} before`;
+      return t('duplicateAlert.headlineDefault', { company, times });
   }
 }
 
 function MatchRow({ match }: { match: DuplicateMatch }) {
+  const { t } = useTranslation('applications');
   const strength = Math.round(Math.max(match.titleSimilarity, match.semanticSimilarity ?? 0) * 100);
 
   return (
@@ -129,9 +131,9 @@ function MatchRow({ match }: { match: DuplicateMatch }) {
       <Typography.Text type="secondary">{match.appliedOn}</Typography.Text>
       <Tag color={STATUS_COLORS[match.status]}>{STATUS_LABELS[match.status]}</Tag>
       {match.matchKind === 'exact' ? (
-        <Tag color="red">exact title</Tag>
+        <Tag color="red">{t('duplicateAlert.exactTitleTag')}</Tag>
       ) : (
-        <Tag>{strength}% similar</Tag>
+        <Tag>{t('duplicateAlert.similarPercent', { strength })}</Tag>
       )}
     </Space>
   );

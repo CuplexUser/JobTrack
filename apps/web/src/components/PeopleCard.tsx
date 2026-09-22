@@ -11,6 +11,8 @@ import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { App as AntApp, Button, Card, Dropdown, Empty, List, Space, Tag, Tooltip, Typography } from 'antd';
 import { DisconnectOutlined, LinkOutlined, MessageOutlined, PlusOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   CONTACT_ROLES,
   CONTACT_ROLE_LABELS,
@@ -23,11 +25,13 @@ import { useContacts, useLinkContact, useLinkedContacts, useUnlinkContact } from
 import { ContactDrawer } from './ContactDrawer.js';
 import { InteractionModal } from './InteractionModal.js';
 
-function lastSpoke(contact: ContactView): string {
-  return contact.lastInteractionOn ? `last spoke ${contact.lastInteractionOn}` : 'no conversations logged';
+function lastSpoke(contact: ContactView, t: TFunction<'contacts'>): string {
+  return contact.lastInteractionOn
+    ? t('peopleCard.lastSpoke', { date: contact.lastInteractionOn })
+    : t('peopleCard.noConversations');
 }
 
-function PersonMeta({ contact }: { contact: ContactView }) {
+function PersonMeta({ contact, t }: { contact: ContactView; t: TFunction<'contacts'> }) {
   return (
     <List.Item.Meta
       title={
@@ -40,7 +44,7 @@ function PersonMeta({ contact }: { contact: ContactView }) {
         <Space size={8} wrap>
           {contact.headline && <span>{contact.headline}</span>}
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            {lastSpoke(contact)}
+            {lastSpoke(contact, t)}
           </Typography.Text>
         </Space>
       }
@@ -50,6 +54,7 @@ function PersonMeta({ contact }: { contact: ContactView }) {
 
 /** Everyone the user knows at a company. */
 export function CompanyPeopleCard({ companyName }: { companyName: string }) {
+  const { t } = useTranslation('contacts');
   const { data, isLoading } = useContacts({ company: companyName });
   const [adding, setAdding] = useState(false);
   const [talkingTo, setTalkingTo] = useState<ContactView | null>(null);
@@ -57,28 +62,28 @@ export function CompanyPeopleCard({ companyName }: { companyName: string }) {
 
   return (
     <Card
-      title={`People you know at ${companyName} (${people.length})`}
+      title={t('peopleCard.companyTitle', { company: companyName, count: people.length })}
       loading={isLoading}
       extra={
         <Button size="small" icon={<PlusOutlined />} onClick={() => setAdding(true)}>
-          Add person
+          {t('peopleCard.addPerson')}
         </Button>
       }
     >
       {people.length === 0 ? (
-        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Nobody you know works here yet" />
+        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('peopleCard.companyEmpty')} />
       ) : (
         <List
           dataSource={people}
           renderItem={(contact) => (
             <List.Item
               actions={[
-                <Tooltip key="log" title="Log a conversation">
+                <Tooltip key="log" title={t('peopleCard.logConversation')}>
                   <Button type="text" icon={<MessageOutlined />} onClick={() => setTalkingTo(contact)} />
                 </Tooltip>,
               ]}
             >
-              <PersonMeta contact={contact} />
+              <PersonMeta contact={contact} t={t} />
             </List.Item>
           )}
         />
@@ -92,6 +97,7 @@ export function CompanyPeopleCard({ companyName }: { companyName: string }) {
 
 /** The people behind one application, and the rest of the user's network at that company. */
 export function ApplicationPeopleCard({ application }: { application: JobApplicationView }) {
+  const { t } = useTranslation('contacts');
   const { message } = AntApp.useApp();
   const { data: linkedData } = useLinkedContacts('application', application.id);
   const { data: companyData } = useContacts({ company: application.company.name });
@@ -107,9 +113,9 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
   async function linkAs(contact: ContactView, role: string): Promise<void> {
     try {
       await link.mutateAsync({ contactId: contact.id, body: { targetType: 'application', targetId: application.id, role } });
-      message.success(`Linked ${contact.name}`);
+      message.success(t('peopleCard.linkSuccess', { name: contact.name }));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not link');
+      message.error(error instanceof Error ? error.message : t('peopleCard.linkError'));
     }
   }
 
@@ -120,17 +126,17 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
 
   return (
     <Card
-      title={`People (${linked.length})`}
+      title={t('peopleCard.applicationTitle', { count: linked.length })}
       extra={
         <Button size="small" icon={<PlusOutlined />} onClick={() => setAdding(true)}>
-          Add person
+          {t('peopleCard.addPerson')}
         </Button>
       }
     >
       {linked.length === 0 && others.length === 0 ? (
         <Empty
           image={Empty.PRESENTED_IMAGE_SIMPLE}
-          description={`You don't know anyone at ${application.company.name} yet`}
+          description={t('peopleCard.applicationEmpty', { company: application.company.name })}
         />
       ) : (
         <Space direction="vertical" size={8} style={{ width: '100%' }}>
@@ -141,10 +147,10 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
               renderItem={(contact) => (
                 <List.Item
                   actions={[
-                    <Tooltip key="log" title="Log a conversation about this application">
+                    <Tooltip key="log" title={t('peopleCard.logConversationAboutApplication')}>
                       <Button type="text" icon={<MessageOutlined />} onClick={() => setTalkingTo(contact)} />
                     </Tooltip>,
-                    <Tooltip key="unlink" title="Unlink">
+                    <Tooltip key="unlink" title={t('peopleCard.unlink')}>
                       <Button
                         type="text"
                         icon={<DisconnectOutlined />}
@@ -160,7 +166,7 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
                         <Tag color="blue">{CONTACT_ROLE_LABELS[contact.role]}</Tag>
                       </Space>
                     }
-                    description={contact.headline ?? lastSpoke(contact)}
+                    description={contact.headline ?? lastSpoke(contact, t)}
                   />
                 </List.Item>
               )}
@@ -172,7 +178,7 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
               size="small"
               header={
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                  Also at {application.company.name}
+                  {t('peopleCard.alsoAt', { company: application.company.name })}
                 </Typography.Text>
               }
               dataSource={others}
@@ -181,12 +187,12 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
                   actions={[
                     <Dropdown key="link" menu={roleMenu(contact)} trigger={['click']}>
                       <Button size="small" icon={<LinkOutlined />}>
-                        Link
+                        {t('peopleCard.link')}
                       </Button>
                     </Dropdown>,
                   ]}
                 >
-                  <PersonMeta contact={contact} />
+                  <PersonMeta contact={contact} t={t} />
                 </List.Item>
               )}
             />

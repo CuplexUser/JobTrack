@@ -1,0 +1,14 @@
+{
+  "nav.dashboard": "Dashboard",
+  "nav.statistics": "Statistics",
+  "nav.applications": "Applications",
+  "nav.openings": "Openings",
+  "nav.companies": "Companies",
+  "nav.people": "People",
+  "nav.notes": "Notes",
+  "nav.settings": "Settings",
+  "theme.button": "Theme",
+  "theme.ariaLabel": "Theme settings",
+  "theme.light": "Light",
+  "theme.dark": "Dark"
+}

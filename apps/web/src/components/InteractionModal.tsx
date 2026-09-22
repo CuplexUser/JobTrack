@@ -9,6 +9,7 @@
 import { useEffect } from 'react';
 import { App as AntApp, DatePicker, Form, Input, Modal, Segmented, Select } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
+import { useTranslation } from 'react-i18next';
 import { CHANNELS, CHANNEL_LABELS, type Channel, type Direction } from '@jobtrack/shared';
 import { useLogInteraction } from '../api/hooks.js';
 
@@ -29,6 +30,7 @@ interface FormValues {
 }
 
 export function InteractionModal({ open, onClose, contact, applicationId }: InteractionModalProps) {
+  const { t } = useTranslation('contacts');
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const log = useLogInteraction();
@@ -54,49 +56,49 @@ export function InteractionModal({ open, onClose, contact, applicationId }: Inte
           ...(values.reconnectOn ? { reconnectOn: values.reconnectOn.format('YYYY-MM-DD') } : {}),
         },
       });
-      message.success('Logged');
+      message.success(t('interaction.logSuccess'));
       onClose();
     } catch (error) {
-      message.error(error instanceof Error ? error.message : 'Could not log that');
+      message.error(error instanceof Error ? error.message : t('interaction.logError'));
     }
   }
 
   return (
     <Modal
-      title={contact ? `Log a conversation with ${contact.name}` : ''}
+      title={contact ? t('interaction.title', { name: contact.name }) : ''}
       open={open}
       onCancel={onClose}
       onOk={() => form.submit()}
-      okText="Log it"
+      okText={t('interaction.okText')}
       confirmLoading={log.isPending}
       destroyOnHidden
     >
       <Form form={form} layout="vertical" onFinish={handleFinish}>
-        <Form.Item name="direction" label="Who reached out">
+        <Form.Item name="direction" label={t('interaction.direction.label')}>
           <Segmented
             options={[
-              { label: 'I did', value: 'outbound' },
-              { label: 'They did', value: 'inbound' },
+              { label: t('interaction.direction.outbound'), value: 'outbound' },
+              { label: t('interaction.direction.inbound'), value: 'inbound' },
             ]}
           />
         </Form.Item>
-        <Form.Item name="channel" label="How">
+        <Form.Item name="channel" label={t('interaction.channel.label')}>
           <Select options={CHANNELS.map((value) => ({ value, label: CHANNEL_LABELS[value] }))} />
         </Form.Item>
-        <Form.Item name="occurredOn" label="When" rules={[{ required: true }]}>
+        <Form.Item name="occurredOn" label={t('interaction.occurredOn.label')} rules={[{ required: true }]}>
           <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
         </Form.Item>
-        <Form.Item name="summary" label="What happened" rules={[{ required: true, message: 'Say what happened' }]}>
-          <Input.TextArea rows={3} placeholder="Asked about the platform team; she offered to refer me" />
+        <Form.Item name="summary" label={t('interaction.summary.label')} rules={[{ required: true, message: t('interaction.summary.required') }]}>
+          <Input.TextArea rows={3} placeholder={t('interaction.summary.placeholder')} />
         </Form.Item>
-        <Form.Item name="reconnectOn" label="Get back in touch on" tooltip="Optional. Sets their next reminder.">
+        <Form.Item name="reconnectOn" label={t('interaction.reconnectOn.label')} tooltip={t('interaction.reconnectOn.tooltip')}>
           <DatePicker
             style={{ width: '100%' }}
             format="YYYY-MM-DD"
             presets={[
-              { label: 'In a week', value: dayjs().add(1, 'week') },
-              { label: 'In two weeks', value: dayjs().add(2, 'week') },
-              { label: 'In a month', value: dayjs().add(1, 'month') },
+              { label: t('interaction.reconnectOn.presets.week'), value: dayjs().add(1, 'week') },
+              { label: t('interaction.reconnectOn.presets.twoWeeks'), value: dayjs().add(2, 'week') },
+              { label: t('interaction.reconnectOn.presets.month'), value: dayjs().add(1, 'month') },
             ]}
           />
         </Form.Item>

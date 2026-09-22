@@ -25,6 +25,7 @@ import {
   Typography,
 } from 'antd';
 import { ClockCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { RELATIONSHIP_LABELS, STATUS_LABELS } from '@jobtrack/shared';
 import { useDashboard } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
@@ -45,6 +46,7 @@ const STRETCH = { display: 'flex' } as const;
 const FILL = { flex: 1, minWidth: 0 } as const;
 
 export function DashboardPage() {
+  const { t } = useTranslation('dashboard');
   const { data, isLoading } = useDashboard();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [attention, setAttention] = usePreference<Attention>('view', 'dashboard.attention', 'follow-ups', parse.oneOf(['follow-ups', 'quiet', 'reconnect']));
@@ -63,19 +65,17 @@ export function DashboardPage() {
             image={Empty.PRESENTED_IMAGE_SIMPLE}
             description={
               <Space direction="vertical" size={4}>
-                <Typography.Text strong>No applications yet</Typography.Text>
-                <Typography.Text type="secondary">
-                  Add the first one, or bring in a spreadsheet you already keep.
-                </Typography.Text>
+                <Typography.Text strong>{t('empty.title')}</Typography.Text>
+                <Typography.Text type="secondary">{t('empty.subtitle')}</Typography.Text>
               </Space>
             }
           >
             <Space>
               <Button type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
-                New application
+                {t('actions.newApplication')}
               </Button>
               <Link to="/applications">
-                <Button icon={<UploadOutlined />}>Import</Button>
+                <Button icon={<UploadOutlined />}>{t('actions.import')}</Button>
               </Link>
             </Space>
           </Empty>
@@ -102,7 +102,7 @@ export function DashboardPage() {
             title={
               <Space>
                 <ClockCircleOutlined />
-                <span>Needs attention</span>
+                <span>{t('attention.title')}</span>
               </Space>
             }
             extra={
@@ -111,9 +111,9 @@ export function DashboardPage() {
                 value={attention}
                 onChange={(value) => setAttention(value as Attention)}
                 options={[
-                  { label: `Follow-ups (${followUps.length})`, value: 'follow-ups' },
-                  { label: `Gone quiet (${stale.length})`, value: 'quiet' },
-                  { label: `Reconnect (${reconnect.length})`, value: 'reconnect' },
+                  { label: t('attention.followUps', { count: followUps.length }), value: 'follow-ups' },
+                  { label: t('attention.quiet', { count: stale.length }), value: 'quiet' },
+                  { label: t('attention.reconnect', { count: reconnect.length }), value: 'reconnect' },
                 ]}
               />
             }
@@ -124,10 +124,10 @@ export function DashboardPage() {
                 image={Empty.PRESENTED_IMAGE_SIMPLE}
                 description={
                   attention === 'follow-ups'
-                    ? 'Nothing due. All caught up.'
+                    ? t('attention.emptyFollowUps')
                     : attention === 'quiet'
-                      ? 'Nothing has gone quiet'
-                      : 'Nobody is due a reconnect'
+                      ? t('attention.emptyQuiet')
+                      : t('attention.emptyReconnect')
                 }
               />
             ) : attention === 'follow-ups' ? (
@@ -141,7 +141,7 @@ export function DashboardPage() {
                       description={
                         <Flex justify="space-between" wrap gap={8}>
                           <span>{item.company.name}</span>
-                          <Typography.Text type="danger">due {item.followUpOn}</Typography.Text>
+                          <Typography.Text type="danger">{t('attention.dueOn', { date: item.followUpOn })}</Typography.Text>
                         </Flex>
                       }
                     />
@@ -159,8 +159,8 @@ export function DashboardPage() {
                       title={<Link to={`/people/${person.id}`}>{person.name}</Link>}
                       description={
                         <Flex justify="space-between" wrap gap={8}>
-                          <span>{[person.headline, person.companyName].filter(Boolean).join(' at ')}</span>
-                          <Typography.Text type="danger">due {person.reconnectOn}</Typography.Text>
+                          <span>{[person.headline, person.companyName].filter(Boolean).join(t('recent.at'))}</span>
+                          <Typography.Text type="danger">{t('attention.dueOn', { date: person.reconnectOn })}</Typography.Text>
                         </Flex>
                       }
                     />
@@ -176,7 +176,7 @@ export function DashboardPage() {
                 // exactly why nothing has reminded you about them.
                 header={
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                    Still live, no follow-up date, and nothing has moved.
+                    {t('attention.staleHeader')}
                   </Typography.Text>
                 }
                 renderItem={(item) => (
@@ -187,7 +187,7 @@ export function DashboardPage() {
                         <Flex justify="space-between" wrap gap={8}>
                           <span>{item.company.name}</span>
                           <Typography.Text type="warning">
-                            silent {item.silentDays} days
+                            {t('attention.silentDays', { days: item.silentDays })}
                           </Typography.Text>
                         </Flex>
                       }
@@ -203,21 +203,26 @@ export function DashboardPage() {
 
       <Row gutter={[16, 16]}>
         <Col xs={24} lg={12} style={STRETCH}>
-          <Card title="Pipeline" size="small" style={FILL}>
+          <Card title={t('pipeline.title')} size="small" style={FILL}>
             <Funnel stages={funnel} />
           </Card>
         </Col>
 
         <Col xs={24} lg={12} style={STRETCH}>
-          <Card title="Applications over time" size="small" style={FILL} extra={<Link to="/statistics">More statistics</Link>}>
+          <Card
+            title={t('volume.title')}
+            size="small"
+            style={FILL}
+            extra={<Link to="/statistics">{t('volume.more')}</Link>}
+          >
             <BarSeries points={volume} />
           </Card>
         </Col>
       </Row>
 
-      <Card title="Recent activity" size="small" styles={{ body: { maxHeight: 360, overflowY: 'auto' } }}>
+      <Card title={t('recent.title')} size="small" styles={{ body: { maxHeight: 360, overflowY: 'auto' } }}>
         {recentActivity.length === 0 ? (
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No status changes yet" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('recent.empty')} />
         ) : (
           <Timeline
             items={recentActivity.map((event) => ({
@@ -231,13 +236,13 @@ export function DashboardPage() {
                 <Space direction="vertical" size={0}>
                   <Typography.Text>
                     <Link to={`/applications/${event.applicationId}`}>{event.jobTitle}</Link>
-                    {' at '}
+                    {t('recent.at')}
                     {event.companyName}
                   </Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {event.fromStatus
-                      ? `${STATUS_LABELS[event.fromStatus]} → ${STATUS_LABELS[event.toStatus]}`
-                      : `Applied (${STATUS_LABELS[event.toStatus]})`}{' '}
+                      ? t('recent.statusChange', { from: STATUS_LABELS[event.fromStatus], to: STATUS_LABELS[event.toStatus] })
+                      : t('recent.applied', { status: STATUS_LABELS[event.toStatus] })}{' '}
                     · {event.occurredOn}
                   </Typography.Text>
                 </Space>

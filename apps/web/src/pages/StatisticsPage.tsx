@@ -31,6 +31,8 @@ import {
 import type { ColumnsType } from 'antd/es/table';
 import dayjs, { type Dayjs } from 'dayjs';
 import { ArrowDownOutlined, ArrowUpOutlined, ExportOutlined, UnorderedListOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import {
   STATUS_LABELS,
   WORK_MODE_LABELS,
@@ -54,21 +56,45 @@ type Row = StatisticsResponse['applications'][number];
 /** The tiles along the top. "Last week" is left to the range presets, to keep the row short. */
 const TILE_WINDOWS = ['today', 'yesterday', 'thisWeek', 'thisMonth', 'last30'] as const;
 
+/**
+ * `QuickWindow.label`/`.previousLabel` (packages/shared) are pre-formatted English, used as-is
+ * by non-web consumers of the statistics API. `key` is the one stable, language-neutral field,
+ * so the tile title and the "against" phrase are looked up from it here instead, the same
+ * decoupling used for `FitReason.i18nKey` in `packages/shared/src/fit.ts`.
+ */
+const QUICK_TITLE_KEYS: Record<QuickWindow['key'], string> = {
+  today: 'presets.today',
+  yesterday: 'presets.yesterday',
+  thisWeek: 'presets.thisWeek',
+  lastWeek: 'presets.lastWeek',
+  thisMonth: 'presets.thisMonth',
+  last30: 'presets.last30Days',
+};
+
+const QUICK_PREVIOUS_LABEL_KEYS: Record<QuickWindow['key'], string> = {
+  today: 'quick.previousLabel.today',
+  yesterday: 'quick.previousLabel.yesterday',
+  thisWeek: 'quick.previousLabel.thisWeek',
+  lastWeek: 'quick.previousLabel.lastWeek',
+  thisMonth: 'quick.previousLabel.thisMonth',
+  last30: 'quick.previousLabel.last30',
+};
+
 /** Range presets, as calendar days. Weeks start on Monday, the same as the counts. */
-function rangePresets(today: string): { label: string; from: string; to: string }[] {
+function rangePresets(today: string, t: TFunction<'statistics'>): { label: string; from: string; to: string }[] {
   const monday = startOfIsoWeek(today);
   const monthStart = startOfMonth(today);
   const lastMonth = addDays(monthStart, -1);
   return [
-    { label: 'Today', from: today, to: today },
-    { label: 'Yesterday', from: addDays(today, -1), to: addDays(today, -1) },
-    { label: 'This week', from: monday, to: addDays(monday, 6) },
-    { label: 'Last week', from: addDays(monday, -7), to: addDays(monday, -1) },
-    { label: 'This month', from: monthStart, to: endOfMonth(today) },
-    { label: 'Last month', from: startOfMonth(lastMonth), to: lastMonth },
-    { label: 'Last 30 days', from: addDays(today, -29), to: today },
-    { label: 'Last 90 days', from: addDays(today, -89), to: today },
-    { label: 'This year', from: `${today.slice(0, 4)}-01-01`, to: `${today.slice(0, 4)}-12-31` },
+    { label: t('presets.today'), from: today, to: today },
+    { label: t('presets.yesterday'), from: addDays(today, -1), to: addDays(today, -1) },
+    { label: t('presets.thisWeek'), from: monday, to: addDays(monday, 6) },
+    { label: t('presets.lastWeek'), from: addDays(monday, -7), to: addDays(monday, -1) },
+    { label: t('presets.thisMonth'), from: monthStart, to: endOfMonth(today) },
+    { label: t('presets.lastMonth'), from: startOfMonth(lastMonth), to: lastMonth },
+    { label: t('presets.last30Days'), from: addDays(today, -29), to: today },
+    { label: t('presets.last90Days'), from: addDays(today, -89), to: today },
+    { label: t('presets.thisYear'), from: `${today.slice(0, 4)}-01-01`, to: `${today.slice(0, 4)}-12-31` },
   ];
 }
 
@@ -78,47 +104,57 @@ function applicationsHref(from: string, to: string, extra: Record<string, string
 }
 
 function Delta({ count, previous, against }: { count: number; previous: number; against: string }) {
+  const { t } = useTranslation('statistics');
   const change = count - previous;
   if (change === 0) {
     return (
       <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-        same as {against}
+        {t('delta.same', { against })}
       </Typography.Text>
     );
   }
   return (
     <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-      {change > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />} {Math.abs(change)} {change > 0 ? 'more' : 'fewer'} than {against}
+      {change > 0 ? <ArrowUpOutlined /> : <ArrowDownOutlined />}{' '}
+      {t(change > 0 ? 'delta.more' : 'delta.fewer', { count: Math.abs(change), against })}
     </Typography.Text>
   );
 }
 
 function QuickTile({ quick, onPick, active }: { quick: QuickWindow; onPick: () => void; active: boolean }) {
+  const { t } = useTranslation('statistics');
+  const title = t(QUICK_TITLE_KEYS[quick.key]);
+  const against = t(QUICK_PREVIOUS_LABEL_KEYS[quick.key]);
   return (
     <Card
       size="small"
       hoverable
       onClick={onPick}
       style={active ? { borderColor: 'var(--jt-accent)' } : undefined}
-      aria-label={`Show ${quick.label.toLowerCase()}: ${quick.count} applications`}
+      aria-label={t('quickTile.showAriaLabel', { label: title.toLowerCase(), count: quick.count })}
     >
       <Flex justify="space-between" align="start">
-        <Statistic title={quick.label} value={quick.count} />
-        <Tooltip title="Open these in Applications">
-          <Link to={applicationsHref(quick.from, quick.to)} onClick={(event) => event.stopPropagation()} aria-label={`Open ${quick.label.toLowerCase()} in Applications`}>
+        <Statistic title={title} value={quick.count} />
+        <Tooltip title={t('quickTile.openTooltip')}>
+          <Link
+            to={applicationsHref(quick.from, quick.to)}
+            onClick={(event) => event.stopPropagation()}
+            aria-label={t('quickTile.openAriaLabel', { label: title.toLowerCase() })}
+          >
             <UnorderedListOutlined />
           </Link>
         </Tooltip>
       </Flex>
-      <Delta count={quick.count} previous={quick.previous} against={quick.previousLabel} />
+      <Delta count={quick.count} previous={quick.previous} against={against} />
     </Card>
   );
 }
 
 export function StatisticsPage() {
+  const { t, i18n } = useTranslation('statistics');
   const [params, setParams] = useSearchParams();
   const today = todayDateOnly();
-  const presets = useMemo(() => rangePresets(today), [today]);
+  const presets = useMemo(() => rangePresets(today, t), [today, t]);
 
   // No range in the URL means the last 30 days; `all` means everything on file.
   const all = params.get('all') === 'true';
@@ -162,29 +198,29 @@ export function StatisticsPage() {
 
   const columns: ColumnsType<Row> = [
     {
-      title: 'Applied',
+      title: t('columns.applied'),
       dataIndex: 'appliedOn',
       width: 112,
       sorter: (a, b) => a.appliedOn.localeCompare(b.appliedOn),
       defaultSortOrder: 'descend',
     },
     {
-      title: 'Company',
+      title: t('columns.company'),
       key: 'company',
       width: 180,
       sorter: (a, b) => a.company.name.localeCompare(b.company.name),
       render: (_, row) => <Link to={`/companies/${row.company.id}`}>{row.company.name}</Link>,
     },
     {
-      title: 'Job title',
+      title: t('columns.jobTitle'),
       dataIndex: 'jobTitle',
       sorter: (a, b) => a.jobTitle.localeCompare(b.jobTitle),
       render: (value: string, row) => (
         <Space size={6}>
           <Link to={`/applications/${row.id}`}>{value}</Link>
           {row.jobUrl && (
-            <Tooltip title="Open the posting">
-              <a href={row.jobUrl} target="_blank" rel="noreferrer" aria-label={`Open the posting for ${value}`}>
+            <Tooltip title={t('openPosting')}>
+              <a href={row.jobUrl} target="_blank" rel="noreferrer" aria-label={t('openPostingAriaLabel', { title: value })}>
                 <ExportOutlined />
               </a>
             </Tooltip>
@@ -193,13 +229,13 @@ export function StatisticsPage() {
       ),
     },
     {
-      title: 'Location',
+      title: t('columns.location'),
       key: 'location',
       width: 190,
       sorter: (a, b) => (a.location ?? '').localeCompare(b.location ?? ''),
       render: (_, row) => (
         <Space direction="vertical" size={0}>
-          <span>{row.location ?? <Typography.Text type="secondary">Not set</Typography.Text>}</span>
+          <span>{row.location ?? <Typography.Text type="secondary">{t('notSet')}</Typography.Text>}</span>
           {row.workMode !== 'unspecified' && (
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {WORK_MODE_LABELS[row.workMode]}
@@ -209,14 +245,14 @@ export function StatisticsPage() {
       ),
     },
     {
-      title: 'Source',
+      title: t('columns.source'),
       dataIndex: 'sourceName',
       width: 130,
       sorter: (a, b) => (a.sourceName ?? '').localeCompare(b.sourceName ?? ''),
-      render: (value: string | null) => value ?? <Typography.Text type="secondary">Not set</Typography.Text>,
+      render: (value: string | null) => value ?? <Typography.Text type="secondary">{t('notSet')}</Typography.Text>,
     },
     {
-      title: 'Status',
+      title: t('columns.status'),
       dataIndex: 'status',
       width: 116,
       sorter: (a, b) => STATUS_LABELS[a.status].localeCompare(STATUS_LABELS[b.status]),
@@ -242,10 +278,10 @@ export function StatisticsPage() {
         <Flex justify="space-between" align="center" wrap gap={12}>
           <Space direction="vertical" size={0}>
             <Typography.Title level={4} style={{ margin: 0 }}>
-              {all ? 'All time' : (rangeLabel ?? 'Custom range')}
+              {all ? t('allTime') : (rangeLabel ?? t('customRange'))}
             </Typography.Title>
             <Typography.Text type="secondary">
-              {range.from} to {range.to} · {range.days} day{range.days === 1 ? '' : 's'}
+              {t('rangeSubtitle', { from: range.from, to: range.to, count: range.days })}
             </Typography.Text>
           </Space>
           <Flex gap={12} wrap align="center">
@@ -262,21 +298,21 @@ export function StatisticsPage() {
               }}
             />
             <Button type={all ? 'primary' : 'default'} onClick={() => patch({ all: 'true', from: null, to: null, granularity: null })}>
-              All time
+              {t('allTime')}
             </Button>
             <Segmented
               value={granularity}
               onChange={(value) => patch({ granularity: value === 'auto' ? null : String(value) })}
               options={[
-                { label: 'Auto', value: 'auto' },
-                { label: 'Day', value: 'day' },
-                { label: 'Week', value: 'week' },
-                { label: 'Month', value: 'month' },
+                { label: t('granularity.auto'), value: 'auto' },
+                { label: t('granularity.day'), value: 'day' },
+                { label: t('granularity.week'), value: 'week' },
+                { label: t('granularity.month'), value: 'month' },
               ]}
             />
             <Space size={6}>
               <Switch size="small" checked={includeArchived} onChange={(checked) => patch({ archived: checked ? null : 'false' })} />
-              <Typography.Text>Include archived</Typography.Text>
+              <Typography.Text>{t('includeArchived')}</Typography.Text>
             </Space>
           </Flex>
         </Flex>
@@ -285,63 +321,63 @@ export function StatisticsPage() {
       <Row gutter={[16, 16]}>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Applications" value={totals.applications} />
+            <Statistic title={t('tiles.applications')} value={totals.applications} />
             {all ? (
               <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-                since {range.from}
+                {t('tiles.since', { from: range.from })}
               </Typography.Text>
             ) : (
               <Delta
                 count={totals.applications}
                 previous={totals.previousApplications}
-                against={`the ${range.days} day${range.days === 1 ? '' : 's'} before`}
+                against={t('tiles.daysBefore', { count: range.days })}
               />
             )}
           </Card>
         </Col>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Openings saved" value={totals.openingsSaved} />
+            <Statistic title={t('tiles.openingsSaved')} value={totals.openingsSaved} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {totals.openingsConverted} turned into applications
+              {t('tiles.turnedIntoApplications', { count: totals.openingsConverted })}
             </Typography.Text>
           </Card>
         </Col>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Response rate" value={Math.round(totals.responseRate * 100)} suffix="%" />
+            <Statistic title={t('tiles.responseRate')} value={Math.round(totals.responseRate * 100)} suffix="%" />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {totals.responded} of {totals.applications} heard back
+              {t('tiles.heardBack', { responded: totals.responded, applications: totals.applications })}
             </Typography.Text>
           </Card>
         </Col>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Active days" value={totals.activeDays} suffix={`/ ${range.days}`} />
+            <Statistic title={t('tiles.activeDays')} value={totals.activeDays} suffix={`/ ${range.days}`} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              {totals.perActiveDay.toFixed(1)} per active day
+              {t('tiles.perActiveDay', { value: totals.perActiveDay.toFixed(1) })}
             </Typography.Text>
           </Card>
         </Col>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Busiest day" value={totals.busiestDay?.count ?? 0} />
+            <Statistic title={t('tiles.busiestDay')} value={totals.busiestDay?.count ?? 0} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
               {totals.busiestDay ? (
                 <Button type="link" size="small" style={{ padding: 0, height: 'auto', fontSize: 12 }} onClick={() => setRange({ from: totals.busiestDay!.date, to: totals.busiestDay!.date })}>
                   {totals.busiestDay.date}
                 </Button>
               ) : (
-                'No applications yet'
+                t('noApplicationsYet')
               )}
             </Typography.Text>
           </Card>
         </Col>
         <Col xs={12} md={8} xl={4}>
           <Card size="small">
-            <Statistic title="Current streak" value={totals.streak} suffix={totals.streak === 1 ? 'day' : 'days'} />
+            <Statistic title={t('tiles.currentStreak')} value={totals.streak} suffix={t('tiles.streakUnit', { count: totals.streak })} />
             <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-              days in a row with an application
+              {t('tiles.streakDescription')}
             </Typography.Text>
           </Card>
         </Col>
@@ -349,25 +385,29 @@ export function StatisticsPage() {
 
       {empty ? (
         <Card>
-          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No applications or openings in this range" />
+          <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('emptyInRange')} />
         </Card>
       ) : (
         <>
           <Row gutter={[16, 16]}>
             <Col xs={24} xl={15}>
               <Card
-                title="Over time"
+                title={t('overTime.title')}
                 size="small"
-                extra={<Typography.Text type="secondary" style={{ fontSize: 12 }}>per {range.granularity}, click a column to zoom in</Typography.Text>}
+                extra={
+                  <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                    {t('overTime.hint', { granularity: t(`granularity.${range.granularity}` as 'granularity.day') })}
+                  </Typography.Text>
+                }
               >
                 <TimeBars points={data.series} onSelect={(bucket) => setRange({ from: bucket.start, to: bucket.end })} />
               </Card>
             </Col>
             <Col xs={24} xl={9}>
               <Card
-                title="Activity calendar"
+                title={t('calendar.title')}
                 size="small"
-                extra={<Typography.Text type="secondary" style={{ fontSize: 12 }}>click a day to see it</Typography.Text>}
+                extra={<Typography.Text type="secondary" style={{ fontSize: 12 }}>{t('calendar.hint')}</Typography.Text>}
               >
                 <CalendarHeatmap days={data.calendar} onSelect={(date) => setRange({ from: date, to: date })} />
               </Card>
@@ -377,38 +417,38 @@ export function StatisticsPage() {
           {totals.applications > 0 && (
             <Row gutter={[16, 16]}>
               <Col xs={24} md={12} xl={8}>
-                <Card title="By location" size="small">
+                <Card title={t('byLocation.title')} size="small">
                   <RankedBars
-                    title="Applications by location"
+                    title={t('byLocation.summary')}
                     rows={breakdownRows(data.byLocation, (row) => applicationsHref(range.from, range.to, { location: row.value! }))}
                   />
                 </Card>
               </Col>
               <Col xs={24} md={12} xl={8}>
-                <Card title="By source" size="small">
+                <Card title={t('bySource.title')} size="small">
                   <RankedBars
-                    title="Applications by source"
+                    title={t('bySource.summary')}
                     rows={breakdownRows(data.bySource, (row) => applicationsHref(range.from, range.to, { source: row.value! }))}
                   />
                 </Card>
               </Col>
               <Col xs={24} md={12} xl={8}>
-                <Card title="Top companies" size="small">
-                  <RankedBars title="Applications by company" rows={breakdownRows(data.byCompany, (row) => `/companies/${row.value}`)} />
+                <Card title={t('topCompanies.title')} size="small">
+                  <RankedBars title={t('topCompanies.summary')} rows={breakdownRows(data.byCompany, (row) => `/companies/${row.value}`)} />
                 </Card>
               </Col>
               <Col xs={24} md={12} xl={12}>
-                <Card title="Work mode" size="small">
+                <Card title={t('workMode.title')} size="small">
                   <RankedBars
-                    title="Applications by work mode"
+                    title={t('workMode.summary')}
                     rows={breakdownRows(data.byWorkMode, (row) => applicationsHref(range.from, range.to, { workMode: row.value! }))}
                   />
                 </Card>
               </Col>
               <Col xs={24} md={24} xl={12}>
-                <Card title="Where they stand now" size="small">
+                <Card title={t('currentStatus.title')} size="small">
                   <RankedBars
-                    title="Applications by current status"
+                    title={t('currentStatus.summary')}
                     rows={data.byStatus.map((row) => ({
                       ...row,
                       labelNode: (
@@ -424,12 +464,12 @@ export function StatisticsPage() {
           )}
 
           <Card
-            title={`Applications in this range (${data.applications.length})`}
+            title={t('tableTitle', { count: data.applications.length })}
             size="small"
             extra={
               <Link to={applicationsHref(range.from, range.to)}>
                 <Button size="small" icon={<UnorderedListOutlined />}>
-                  Open in Applications
+                  {t('openInApplications')}
                 </Button>
               </Link>
             }
@@ -441,7 +481,7 @@ export function StatisticsPage() {
               dataSource={data.applications}
               pagination={{ pageSize: 25, hideOnSinglePage: true, showSizeChanger: false }}
               scroll={{ x: 820 }}
-              locale={{ emptyText: 'No applications in this range' }}
+              locale={{ emptyText: t('tableEmpty') }}
             />
           </Card>
         </>

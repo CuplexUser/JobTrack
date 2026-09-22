@@ -1,0 +1,53 @@
+{
+  "sectionAriaLabel": "Where your search stands",
+
+  "greeting.workingLate": "Working late",
+  "greeting.morning": "Good morning",
+  "greeting.afternoon": "Good afternoon",
+  "greeting.evening": "Good evening",
+
+  "waiting.nothing": "Nothing is waiting on you today.",
+  "waiting.joiner": "and",
+  "waiting.followUps_one": "{{count}} follow-up is due",
+  "waiting.followUps_other": "{{count}} follow-ups are due",
+  "waiting.stale_one": "{{count}} application has gone quiet",
+  "waiting.stale_other": "{{count}} applications have gone quiet",
+  "waiting.reconnect_one": "{{count}} person is due a reconnect",
+  "waiting.reconnect_other": "{{count}} people are due a reconnect",
+
+  "actions.newApplication": "New application",
+  "actions.statistics": "Statistics",
+  "actions.import": "Import",
+
+  "figures.total": "applications in total",
+  "figures.active": "still active",
+  "figures.thisMonth": "in {{month}}",
+  "figures.firstMonth": "first month on record",
+  "figures.vsAverage": "{{sign}}{{value}} vs your monthly average",
+  "figures.responseRate": "got a reply",
+  "figures.responseNote": "anything past applied counts",
+
+  "empty.title": "No applications yet",
+  "empty.subtitle": "Add the first one, or bring in a spreadsheet you already keep.",
+
+  "attention.title": "Needs attention",
+  "attention.followUps": "Follow-ups ({{count}})",
+  "attention.quiet": "Gone quiet ({{count}})",
+  "attention.reconnect": "Reconnect ({{count}})",
+  "attention.emptyFollowUps": "Nothing due. All caught up.",
+  "attention.emptyQuiet": "Nothing has gone quiet",
+  "attention.emptyReconnect": "Nobody is due a reconnect",
+  "attention.staleHeader": "Still live, no follow-up date, and nothing has moved.",
+  "attention.dueOn": "due {{date}}",
+  "attention.silentDays": "silent {{days}} days",
+
+  "pipeline.title": "Pipeline",
+  "volume.title": "Applications over time",
+  "volume.more": "More statistics",
+
+  "recent.title": "Recent activity",
+  "recent.empty": "No status changes yet",
+  "recent.applied": "Applied ({{status}})",
+  "recent.statusChange": "{{from}} → {{to}}",
+  "recent.at": " at "
+}

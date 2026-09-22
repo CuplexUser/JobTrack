@@ -10,6 +10,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Button, Card, Flex, Input, Segmented, Select, Space, Table, Tag, Typography } from 'antd';
 import type { ColumnsType } from 'antd/es/table';
 import { LinkedinOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
+import { useTranslation } from 'react-i18next';
 import { RELATIONSHIPS, RELATIONSHIP_LABELS, todayDateOnly, type ContactView } from '@jobtrack/shared';
 import { useContacts } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
@@ -26,6 +27,7 @@ const DEFAULT_PAGE_SIZE = 25;
 const CONTACT_LIMIT = 5000;
 
 export function ContactsPage() {
+  const { t } = useTranslation('contacts');
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get('q') ?? '');
@@ -58,7 +60,7 @@ export function ContactsPage() {
 
   const columns: ColumnsType<ContactView> = [
     {
-      title: 'Name',
+      title: t('list.columns.name'),
       dataIndex: 'name',
       sorter: (a, b) => a.name.localeCompare(b.name),
       render: (value: string, row) => (
@@ -73,26 +75,26 @@ export function ContactsPage() {
       ),
     },
     {
-      title: 'Works at',
+      title: t('list.columns.worksAt'),
       dataIndex: 'companyName',
       width: 220,
       sorter: (a, b) => (a.companyName ?? '').localeCompare(b.companyName ?? ''),
     },
     {
-      title: 'How you know them',
+      title: t('list.columns.relationship'),
       dataIndex: 'relationship',
       width: 170,
       render: (_, row) => <Tag>{RELATIONSHIP_LABELS[row.relationship]}</Tag>,
     },
     {
-      title: 'Last spoke',
+      title: t('list.columns.lastSpoke'),
       dataIndex: 'lastInteractionOn',
       width: 130,
       sorter: (a, b) => (a.lastInteractionOn ?? '').localeCompare(b.lastInteractionOn ?? ''),
-      render: (value: string | null) => value ?? <Typography.Text type="secondary">Never</Typography.Text>,
+      render: (value: string | null) => value ?? <Typography.Text type="secondary">{t('list.columns.lastSpokeNever')}</Typography.Text>,
     },
     {
-      title: 'Reconnect on',
+      title: t('list.columns.reconnectOn'),
       dataIndex: 'reconnectOn',
       width: 140,
       sorter: (a, b) => (a.reconnectOn ?? '9999').localeCompare(b.reconnectOn ?? '9999'),
@@ -108,20 +110,18 @@ export function ContactsPage() {
       <Flex justify="space-between" align="center" wrap gap={12}>
         <Space direction="vertical" size={0}>
           <Typography.Title level={4} style={{ margin: 0 }}>
-            People
+            {t('list.title')}
           </Typography.Title>
           <Typography.Text type="secondary">
-            {view === 'reconnect'
-              ? `${total} ${total === 1 ? 'person' : 'people'} due a reconnect`
-              : `${total} ${total === 1 ? 'person' : 'people'} in your network`}
+            {view === 'reconnect' ? t('list.summary.reconnect', { count: total }) : t('list.summary.all', { count: total })}
           </Typography.Text>
         </Space>
         <Space wrap>
           <Button icon={<LinkedinOutlined />} onClick={() => setImporting(true)}>
-            Import LinkedIn connections
+            {t('list.importButton')}
           </Button>
           <Button type="primary" icon={<PlusOutlined />} onClick={() => setAdding(true)}>
-            Add person
+            {t('list.addButton')}
           </Button>
         </Space>
       </Flex>
@@ -132,14 +132,14 @@ export function ContactsPage() {
             value={view}
             onChange={(value) => patchParams({ view: value === 'reconnect' ? 'reconnect' : null })}
             options={[
-              { label: 'Everyone', value: 'all' },
-              { label: 'Due a reconnect', value: 'reconnect' },
+              { label: t('list.filter.everyone'), value: 'all' },
+              { label: t('list.filter.reconnect'), value: 'reconnect' },
             ]}
           />
           <Input
             allowClear
             prefix={<SearchOutlined />}
-            placeholder="Name, company, role or notes"
+            placeholder={t('list.searchPlaceholder')}
             style={{ maxWidth: 320 }}
             value={search}
             onChange={(event) => {
@@ -150,7 +150,7 @@ export function ContactsPage() {
           <Select
             mode="multiple"
             allowClear
-            placeholder="How you know them"
+            placeholder={t('list.relationshipPlaceholder')}
             style={{ minWidth: 220 }}
             value={relationship}
             onChange={(value) => patchParams({ relationship: value })}
@@ -179,10 +179,10 @@ export function ContactsPage() {
           locale={{
             emptyText:
               view === 'reconnect'
-                ? 'Nobody is due a reconnect'
+                ? t('list.emptyReconnect')
                 : debounced || relationship.length > 0
-                  ? 'Nobody matches that'
-                  : 'No people yet. Add someone, or import your LinkedIn connections.',
+                  ? t('list.emptyFiltered')
+                  : t('list.emptyAll'),
           }}
         />
       </Card>
