@@ -9,9 +9,11 @@
 
 import {
   fitWeightsSchema,
+  languageSchema,
   profileSchema,
   rulesSchema,
   type FitWeights,
+  type Language,
   type Profile,
   type Rules,
 } from '@jobtrack/shared';
@@ -21,6 +23,7 @@ import type { Repos } from '../db/repos.js';
 const PROFILE_KEY = 'profile';
 const RULES_KEY = 'rules';
 const FIT_WEIGHTS_KEY = 'fitWeights';
+const LANGUAGE_KEY = 'language';
 
 async function readSetting<S extends z.ZodType>(repos: Repos, key: string, schema: S): Promise<z.output<S>> {
   const row = await repos.appSettings.findOne({ where: { settingKey: key } });
@@ -75,5 +78,19 @@ export async function getFitWeights(repos: Repos): Promise<FitWeights> {
 export async function updateFitWeights(repos: Repos, patch: Partial<FitWeights>): Promise<FitWeights> {
   const next = fitWeightsSchema.parse({ ...(await getFitWeights(repos)), ...sentFields(patch) });
   await writeSetting(repos, FIT_WEIGHTS_KEY, next);
+  return next;
+}
+
+/**
+ * `code`, shared between the web app and the Windows tray app so a language chosen in either one
+ * shows up in the other (see `languageSchema`). `null` until either app has ever saved one.
+ */
+export async function getLanguage(repos: Repos): Promise<Language> {
+  return readSetting(repos, LANGUAGE_KEY, languageSchema);
+}
+
+export async function updateLanguage(repos: Repos, patch: Partial<Language>): Promise<Language> {
+  const next = languageSchema.parse({ ...(await getLanguage(repos)), ...sentFields(patch) });
+  await writeSetting(repos, LANGUAGE_KEY, next);
   return next;
 }

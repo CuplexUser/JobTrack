@@ -5,16 +5,32 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="General">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc general.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="General" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc general.title}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Server" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc general.language}" />
+        <ui:CardControl Icon="{ui:SymbolIcon LocalLanguage24}">
+            <ui:CardControl.Header>
+                <local:SettingHeader Title="{loc:Loc general.languageTitle}" Description="{loc:Loc general.languageDescription}" />
+            </ui:CardControl.Header>
+            <ComboBox
+                x:Name="LanguageChoice"
+                Width="150"
+                SelectionChanged="OnLanguageSelected">
+                <ComboBoxItem Tag="{x:Null}" Content="{loc:Loc general.languageSystem}" />
+                <ComboBoxItem Tag="en" Content="{loc:Loc general.languageEnglish}" />
+                <ComboBoxItem Tag="sv" Content="{loc:Loc general.languageSwedish}" />
+            </ComboBox>
+        </ui:CardControl>
+
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc general.server}" />
         <ui:CardControl Icon="{ui:SymbolIcon Globe24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Address"
-                    Description="127.0.0.1 keeps JobTrack reachable only from this machine. Leave it unless you know you want otherwise." />
+                    Title="{loc:Loc general.addressTitle}"
+                    Description="{loc:Loc general.addressDescription}" />
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">
                 <ComboBox
@@ -26,7 +42,7 @@
                     Margin="16,0,8,0"
                     VerticalAlignment="Center"
                     Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                    Text="Port" />
+                    Text="{loc:Loc general.port}" />
                 <ui:NumberBox
                     Width="130"
                     MaxDecimalPlaces="0"
@@ -40,42 +56,42 @@
             Margin="0,4,0,0"
             IsClosable="False"
             IsOpen="{Binding ExposesNetwork, Mode=OneWay}"
-            Message="Anything that can reach this machine can reach your applications."
+            Message="{loc:Loc general.networkWarning}"
             Severity="Warning"
-            Title="0.0.0.0 exposes JobTrack to your whole network." />
+            Title="{loc:Loc general.networkWarningTitle}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Startup" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc general.startup}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Rocket24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Start JobTrack when I sign in"
-                    Description="Applies immediately. It is a Windows setting, not part of the JobTrack configuration." />
+                    Title="{loc:Loc general.autostartTitle}"
+                    Description="{loc:Loc general.autostartDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch IsChecked="{Binding Autostart}" />
         </ui:CardControl>
         <ui:CardControl Icon="{ui:SymbolIcon WindowNew24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Open JobTrack in my browser when it starts"
-                    Description="Only when you start it yourself, not at sign-in." />
+                    Title="{loc:Loc general.openBrowserTitle}"
+                    Description="{loc:Loc general.openBrowserDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch IsChecked="{Binding OpenBrowserOnStart}" />
         </ui:CardControl>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Notifications and integrations" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc general.notifications}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Alert24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Remind me when follow-ups and reconnects come due"
-                    Description="Shows a notification for follow-up dates and people to get back in touch with, checked every half hour." />
+                    Title="{loc:Loc general.remindersTitle}"
+                    Description="{loc:Loc general.remindersDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch IsChecked="{Binding RemindersEnabled}" />
         </ui:CardControl>
         <ui:CardControl Icon="{ui:SymbolIcon PlugConnected24}" IsEnabled="{Binding ClaudeDesktopAvailable, Mode=OneTime}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Connect Claude Desktop to JobTrack's MCP server"
-                    Description="Points the jobtrack server in Claude Desktop's config at the one installed with JobTrack, so it updates with every install. Your other servers and settings are left as they are. Claude Desktop picks up a change when it restarts." />
+                    Title="{loc:Loc general.claudeDesktopTitle}"
+                    Description="{loc:Loc general.claudeDesktopDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch IsChecked="{Binding ConnectClaudeDesktop}" />
         </ui:CardControl>

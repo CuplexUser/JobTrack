@@ -5,24 +5,25 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="Search">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc search.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="Search" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc search.title}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Semantic search" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc search.semantic}" />
         <ui:CardControl Icon="{ui:SymbolIcon BrainCircuit24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Enable semantic search"
-                    Description="Off means lexical search only. Left on, JobTrack downloads a small embedding model the first time it is needed and falls back to lexical if that fails." />
+                    Title="{loc:Loc search.enableTitle}"
+                    Description="{loc:Loc search.enableDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch IsChecked="{Binding SemanticSearch}" />
         </ui:CardControl>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Model" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc search.model}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Cube24}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="Embedding model" Description="Leave empty to use the default model." />
+                <local:SettingHeader Title="{loc:Loc search.embeddingModelTitle}" Description="{loc:Loc search.embeddingModelDescription}" />
             </ui:CardControl.Header>
             <ui:TextBox
                 Width="300"
@@ -31,7 +32,7 @@
         </ui:CardControl>
         <ui:CardControl Icon="{ui:SymbolIcon Folder24}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="Model cache folder" Description="Where the downloaded model is kept. A relative path is resolved from the data folder." />
+                <local:SettingHeader Title="{loc:Loc search.cacheFolderTitle}" Description="{loc:Loc search.cacheFolderDescription}" />
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">
                 <ui:TextBox
@@ -41,7 +42,7 @@
                 <ui:Button
                     Margin="8,0,0,0"
                     Click="OnOpenCache"
-                    Content="Open"
+                    Content="{loc:Loc search.open}"
                     Icon="{ui:SymbolIcon FolderOpen24}" />
             </StackPanel>
         </ui:CardControl>

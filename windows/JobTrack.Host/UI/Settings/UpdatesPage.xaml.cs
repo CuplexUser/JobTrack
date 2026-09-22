@@ -1,6 +1,7 @@
 using System.Windows;
 using System.Windows.Controls;
 using JobTrack.Host.Config;
+using JobTrack.Host.Resources;
 using JobTrack.Host.Updates;
 using Wpf.Ui.Controls;
 
@@ -54,51 +55,53 @@ internal partial class UpdatesPage : Page
         switch (status)
         {
             case UpdateStatus.Available available:
-                StatusTitle.Text = $"JobTrack {available.Release.Version.ToString(3)} is available";
-                StatusDetail.Text = $"You have {current}. Installing restarts JobTrack, which takes a minute.";
-                SetAction("Install update", SymbolRegular.ArrowDownload24, primary: true);
+                StatusTitle.Text = string.Format(Strings.Get("updates.availableTitle"), available.Release.Version.ToString(3));
+                StatusDetail.Text = string.Format(Strings.Get("updates.availableDetail"), current);
+                SetAction(Strings.Get("updates.installAction"), SymbolRegular.ArrowDownload24, primary: true);
                 break;
 
             case UpdateStatus.Downloading downloading:
-                StatusTitle.Text = $"Downloading JobTrack {downloading.Release.Version.ToString(3)}";
-                StatusDetail.Text = $"{downloading.Progress:P0} of {downloading.Release.Size / 1_048_576d:N0} MB";
+                StatusTitle.Text = string.Format(Strings.Get("updates.downloadingTitle"), downloading.Release.Version.ToString(3));
+                StatusDetail.Text = string.Format(Strings.Get("updates.downloadingDetail"), downloading.Progress.ToString("P0"), (downloading.Release.Size / 1_048_576d).ToString("N0"));
                 DownloadProgress.Value = downloading.Progress;
-                SetAction("Install update", SymbolRegular.ArrowDownload24, primary: true);
+                SetAction(Strings.Get("updates.installAction"), SymbolRegular.ArrowDownload24, primary: true);
                 break;
 
             case UpdateStatus.Installing installing:
-                StatusTitle.Text = $"Installing JobTrack {installing.Release.Version.ToString(3)}";
-                StatusDetail.Text = "JobTrack closes now and starts again when the installer is done.";
-                SetAction("Install update", SymbolRegular.ArrowDownload24, primary: true);
+                StatusTitle.Text = string.Format(Strings.Get("updates.installingTitle"), installing.Release.Version.ToString(3));
+                StatusDetail.Text = Strings.Get("updates.installingDetail");
+                SetAction(Strings.Get("updates.installAction"), SymbolRegular.ArrowDownload24, primary: true);
                 break;
 
             case UpdateStatus.Checking:
-                StatusTitle.Text = $"JobTrack {current}";
-                StatusDetail.Text = "Checking for updates...";
-                SetAction("Check for updates", SymbolRegular.ArrowSync24, primary: false);
+                StatusTitle.Text = string.Format(Strings.Get("updates.checkingTitle"), current);
+                StatusDetail.Text = Strings.Get("updates.checkingDetail");
+                SetAction(Strings.Get("updates.checkAction"), SymbolRegular.ArrowSync24, primary: false);
                 break;
 
             case UpdateStatus.UpToDate upToDate:
-                StatusTitle.Text = "You're up to date";
-                StatusDetail.Text = $"JobTrack {current}. Last checked {upToDate.CheckedAt:t}.";
-                SetAction("Check for updates", SymbolRegular.ArrowSync24, primary: false);
+                StatusTitle.Text = Strings.Get("updates.upToDateTitle");
+                StatusDetail.Text = string.Format(Strings.Get("updates.upToDateDetail"), current, upToDate.CheckedAt.ToString("t"));
+                SetAction(Strings.Get("updates.checkAction"), SymbolRegular.ArrowSync24, primary: false);
                 break;
 
             case UpdateStatus.Failed failed:
-                StatusTitle.Text = failed.Release is { } release ? $"JobTrack {release.Version.ToString(3)} is available" : $"JobTrack {current}";
-                StatusDetail.Text = $"You have {current}.";
+                StatusTitle.Text = failed.Release is { } release
+                    ? string.Format(Strings.Get("updates.failedAvailableTitle"), release.Version.ToString(3))
+                    : string.Format(Strings.Get("updates.failedTitle"), current);
+                StatusDetail.Text = string.Format(Strings.Get("updates.failedDetail"), current);
                 Problem.Message = failed.Message;
                 Problem.IsOpen = true;
-                if (failed.Release is not null) SetAction("Try again", SymbolRegular.ArrowDownload24, primary: true);
-                else SetAction("Check for updates", SymbolRegular.ArrowSync24, primary: false);
+                if (failed.Release is not null) SetAction(Strings.Get("updates.tryAgainAction"), SymbolRegular.ArrowDownload24, primary: true);
+                else SetAction(Strings.Get("updates.checkAction"), SymbolRegular.ArrowSync24, primary: false);
                 break;
 
             default:
-                StatusTitle.Text = $"JobTrack {current}";
+                StatusTitle.Text = string.Format(Strings.Get("updates.defaultTitle"), current);
                 StatusDetail.Text = _settings.LastUpdateCheck is { } last
-                    ? $"Last checked {last.ToLocalTime():g}."
-                    : "Not checked for updates yet.";
-                SetAction("Check for updates", SymbolRegular.ArrowSync24, primary: false);
+                    ? string.Format(Strings.Get("updates.lastChecked"), last.ToLocalTime().ToString("g"))
+                    : Strings.Get("updates.notCheckedYet");
+                SetAction(Strings.Get("updates.checkAction"), SymbolRegular.ArrowSync24, primary: false);
                 break;
         }
     }

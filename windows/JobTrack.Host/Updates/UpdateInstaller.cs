@@ -1,5 +1,6 @@
 using System.Security.Cryptography;
 using System.Security.Cryptography.X509Certificates;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.Updates;
 
@@ -93,13 +94,13 @@ internal static class UpdateInstaller
         if (!actual.Equals(expected, StringComparison.OrdinalIgnoreCase))
         {
             File.Delete(partial);
-            throw new UpdateVerificationException("The downloaded update did not match its published checksum, so it was not installed.");
+            throw new UpdateVerificationException(Strings.Get("updates.checksumMismatch"));
         }
 
         if (!HasMatchingSignature(partial))
         {
             File.Delete(partial);
-            throw new UpdateVerificationException("The downloaded update is not signed by the JobTrack publisher, so it was not installed.");
+            throw new UpdateVerificationException(Strings.Get("updates.notSigned"));
         }
 
         File.Move(partial, target, overwrite: true);
@@ -123,7 +124,7 @@ internal static class UpdateInstaller
         var hash = text.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault() ?? string.Empty;
         if (hash.Length != 64 || !hash.All(Uri.IsHexDigit))
         {
-            throw new UpdateVerificationException("The update's published checksum could not be read, so it was not installed.");
+            throw new UpdateVerificationException(Strings.Get("updates.checksumUnreadable"));
         }
         return hash;
     }

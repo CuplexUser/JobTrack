@@ -5,7 +5,8 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:settings="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="JobTrack Settings"
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc settingsWindow.title}"
     Width="1040"
     Height="740"
     MinWidth="760"
@@ -21,7 +22,7 @@
             <RowDefinition Height="Auto" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar x:Name="WindowTitleBar" Title="JobTrack Settings" Grid.Row="0" />
+        <ui:TitleBar x:Name="WindowTitleBar" Title="{loc:Loc settingsWindow.title}" Grid.Row="0" />
 
         <ui:NavigationView
             x:Name="Navigation"
@@ -34,15 +35,15 @@
             PaneDisplayMode="Left"
             Transition="FadeIn">
             <ui:NavigationView.MenuItems>
-                <ui:NavigationViewItem Content="General" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type settings:GeneralPage}" />
-                <ui:NavigationViewItem Content="Database" Icon="{ui:SymbolIcon Database24}" TargetPageType="{x:Type settings:DatabasePage}" />
-                <ui:NavigationViewItem Content="Search" Icon="{ui:SymbolIcon Search24}" TargetPageType="{x:Type settings:SearchPage}" />
-                <ui:NavigationViewItem Content="Access" Icon="{ui:SymbolIcon ShieldKeyhole24}" TargetPageType="{x:Type settings:AccessPage}" />
-                <ui:NavigationViewItem Content="Updates" Icon="{ui:SymbolIcon ArrowSync24}" TargetPageType="{x:Type settings:UpdatesPage}" />
-                <ui:NavigationViewItem Content="Advanced" Icon="{ui:SymbolIcon Code24}" TargetPageType="{x:Type settings:AdvancedPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc general.title}" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type settings:GeneralPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc database.title}" Icon="{ui:SymbolIcon Database24}" TargetPageType="{x:Type settings:DatabasePage}" />
+                <ui:NavigationViewItem Content="{loc:Loc search.title}" Icon="{ui:SymbolIcon Search24}" TargetPageType="{x:Type settings:SearchPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc access.title}" Icon="{ui:SymbolIcon ShieldKeyhole24}" TargetPageType="{x:Type settings:AccessPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc updates.title}" Icon="{ui:SymbolIcon ArrowSync24}" TargetPageType="{x:Type settings:UpdatesPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc advanced.title}" Icon="{ui:SymbolIcon Code24}" TargetPageType="{x:Type settings:AdvancedPage}" />
             </ui:NavigationView.MenuItems>
             <ui:NavigationView.FooterMenuItems>
-                <ui:NavigationViewItem Content="About" Icon="{ui:SymbolIcon Info24}" TargetPageType="{x:Type settings:AboutPage}" />
+                <ui:NavigationViewItem Content="{loc:Loc about.title}" Icon="{ui:SymbolIcon Info24}" TargetPageType="{x:Type settings:AboutPage}" />
             </ui:NavigationView.FooterMenuItems>
             <ui:NavigationView.ContentOverlay>
                 <Grid>
@@ -73,26 +74,26 @@
                     <TextBlock
                         VerticalAlignment="Center"
                         Foreground="{DynamicResource TextFillColorSecondaryBrush}"
-                        Text="Server settings apply when JobTrack restarts."
+                        Text="{loc:Loc settingsWindow.footerNote}"
                         TextTrimming="CharacterEllipsis" />
                 </StackPanel>
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <ui:Button
                         MinWidth="96"
                         Click="OnCancel"
-                        Content="Cancel"
+                        Content="{loc:Loc settingsWindow.cancel}"
                         IsCancel="True" />
                     <ui:Button
                         MinWidth="96"
                         Margin="8,0,0,0"
                         Click="OnSave"
-                        Content="Save"
+                        Content="{loc:Loc settingsWindow.save}"
                         Icon="{ui:SymbolIcon Save24}" />
                     <ui:Button
                         Margin="8,0,0,0"
                         Appearance="Primary"
                         Click="OnSaveAndRestart"
-                        Content="Save and restart"
+                        Content="{loc:Loc settingsWindow.saveAndRestart}"
                         Icon="{ui:SymbolIcon ArrowClockwise24}"
                         IsDefault="True" />
                 </StackPanel>

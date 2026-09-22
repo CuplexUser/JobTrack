@@ -29,7 +29,7 @@
     <Company>CuplexUser</Company>
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <ApplicationIcon>..\..\apps\web\public\favicon.ico</ApplicationIcon>
-    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <SatelliteResourceLanguages>en;sv</SatelliteResourceLanguages>
 
     <!--
       Self-contained is forced, not chosen: there is no per-user install of the .NET Desktop

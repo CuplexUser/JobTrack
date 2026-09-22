@@ -4,7 +4,8 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="JobTrack log"
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc log.title}"
     Width="980"
     Height="640"
     MinWidth="560"
@@ -50,7 +51,7 @@
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
-        <ui:TitleBar x:Name="WindowTitleBar" Title="JobTrack log" Grid.Row="0" />
+        <ui:TitleBar x:Name="WindowTitleBar" Title="{loc:Loc log.title}" Grid.Row="0" />
 
         <Grid Grid.Row="1" Margin="20,4,20,12">
             <Grid.ColumnDefinitions>
@@ -70,30 +71,30 @@
                     <RadioButton
                         x:Name="ServerChoice"
                         Checked="OnLogChosen"
-                        Content="Server"
+                        Content="{loc:Loc log.server}"
                         GroupName="Log"
                         IsChecked="True"
                         Style="{StaticResource SegmentStyle}" />
                     <RadioButton
                         x:Name="HostChoice"
                         Checked="OnLogChosen"
-                        Content="Tray app"
+                        Content="{loc:Loc log.trayApp}"
                         GroupName="Log"
                         Style="{StaticResource SegmentStyle}" />
                 </StackPanel>
             </Border>
 
             <StackPanel Grid.Column="2" Orientation="Horizontal">
-                <ui:Button Click="OnRefresh" Content="Refresh" Icon="{ui:SymbolIcon ArrowClockwise24}" />
+                <ui:Button Click="OnRefresh" Content="{loc:Loc log.refresh}" Icon="{ui:SymbolIcon ArrowClockwise24}" />
                 <ui:Button
                     Margin="8,0,0,0"
                     Click="OnCopy"
-                    Content="Copy"
+                    Content="{loc:Loc log.copy}"
                     Icon="{ui:SymbolIcon Copy24}" />
                 <ui:Button
                     Margin="8,0,0,0"
                     Click="OnOpenFolder"
-                    Content="Open folder"
+                    Content="{loc:Loc log.openFolder}"
                     Icon="{ui:SymbolIcon FolderOpen24}" />
             </StackPanel>
         </Grid>

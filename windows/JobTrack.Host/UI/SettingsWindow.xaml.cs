@@ -1,6 +1,7 @@
 using System.Windows;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Resources;
 using JobTrack.Host.UI.Settings;
 using JobTrack.Host.Updates;
 using Wpf.Ui.Abstractions;
@@ -30,6 +31,9 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
     /// <summary>Raised when automatic update checks are switched on or off, which applies at once.</summary>
     public event Action? UpdateScheduleChanged;
 
+    /// <summary>Raised with the resolved language code when it changes, so the tray can sync it to the server.</summary>
+    public event Action<string>? LanguageChanged;
+
     public SettingsWindow(
         NodeSupervisor supervisor,
         LaunchManifest manifest,
@@ -40,6 +44,7 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
     {
         _supervisor = supervisor;
         _model = new SettingsModel(manifest, hostSettings);
+        _model.LanguageChanged += code => LanguageChanged?.Invoke(code);
         InitializeComponent();
 
         Icon = Icons.AppImage;
@@ -71,7 +76,7 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
         var result = _model.Save();
         if (result.Problem is { } problem)
         {
-            await ShowMessageAsync("Settings were not saved", problem);
+            await ShowMessageAsync(Strings.Get("settingsWindow.notSavedTitle"), problem);
             return;
         }
 
@@ -90,7 +95,7 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
         {
             Title = title,
             Content = new System.Windows.Controls.TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 420 },
-            CloseButtonText = "OK",
+            CloseButtonText = Strings.Get("settingsWindow.ok"),
         };
         await dialog.ShowAsync();
     }
@@ -103,7 +108,7 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
             Content = new System.Windows.Controls.TextBlock { Text = message, TextWrapping = TextWrapping.Wrap, MaxWidth = 420 },
             PrimaryButtonText = confirmText,
             PrimaryButtonAppearance = ControlAppearance.Danger,
-            CloseButtonText = "Cancel",
+            CloseButtonText = Strings.Get("settingsWindow.cancel"),
             // A destructive action should never be one Enter key away.
             DefaultButton = ContentDialogButton.Close,
         };

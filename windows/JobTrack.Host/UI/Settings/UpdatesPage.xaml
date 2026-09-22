@@ -5,9 +5,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="Updates">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc updates.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="Updates" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc updates.title}" />
 
         <ui:Card Margin="0,16,0,0" Padding="20,18">
             <Grid>
@@ -59,19 +60,19 @@
             Margin="0,4,0,0"
             IsClosable="True"
             Severity="Error"
-            Title="The update did not go through" />
+            Title="{loc:Loc updates.problemTitle}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Preferences" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc updates.preferences}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon ArrowSync24}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="Check for updates automatically"
-                    Description="Looks for a new release on GitHub twice a day. An update is only ever installed when you choose to. Applies immediately." />
+                    Title="{loc:Loc updates.autoCheckTitle}"
+                    Description="{loc:Loc updates.autoCheckDescription}" />
             </ui:CardControl.Header>
             <ui:ToggleSwitch x:Name="AutoCheck" Click="OnAutoCheckChanged" />
         </ui:CardControl>
         <ui:CardAction Click="OnReleaseNotes" Icon="{ui:SymbolIcon Notebook24}">
-            <local:SettingHeader Title="Release notes" Description="What changed in each version, on GitHub." />
+            <local:SettingHeader Title="{loc:Loc updates.releaseNotesTitle}" Description="{loc:Loc updates.releaseNotesDescription}" />
         </ui:CardAction>
     </StackPanel>
 </Page>

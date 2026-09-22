@@ -4,27 +4,28 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
-    Title="Advanced">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc advanced.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="Advanced" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc advanced.title}" />
 
         <ui:InfoBar
             Margin="0,16,0,0"
             IsClosable="False"
             IsOpen="True"
-            Message="This is the whole .env file. While this page is open, what you type here is what gets saved, and the other pages pick up your edits when you leave it."
+            Message="{loc:Loc advanced.infoBarMessage}"
             Severity="Informational"
-            Title="Editing .env directly" />
+            Title="{loc:Loc advanced.infoBarTitle}" />
 
         <StackPanel Margin="0,16,0,8" Orientation="Horizontal">
             <ui:Button
                 Click="OnOpenInNotepad"
-                Content="Open .env in Notepad"
+                Content="{loc:Loc advanced.openInNotepad}"
                 Icon="{ui:SymbolIcon DocumentEdit24}" />
             <ui:Button
                 Margin="8,0,0,0"
                 Click="OnOpenDataFolder"
-                Content="Open data folder"
+                Content="{loc:Loc advanced.openDataFolder}"
                 Icon="{ui:SymbolIcon FolderOpen24}" />
         </StackPanel>
 

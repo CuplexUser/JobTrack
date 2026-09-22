@@ -2,6 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.UI.Settings;
 
@@ -19,11 +20,11 @@ internal partial class AboutPage : Page
         AppIcon.Source = Icons.AppImage;
         ProductName.Text = $"JobTrack {VersionInfo.Host}";
 
-        AddVersion("JobTrack", manifest.JobtrackVersion);
-        AddVersion("API server", manifest.ApiVersion);
-        AddVersion("MCP server", manifest.McpVersion);
-        AddVersion("Node.js runtime", manifest.NodeVersion);
-        AddVersion("Database driver", supervisor.Ready?.Driver);
+        AddVersion(Strings.Get("about.versionJobTrack"), manifest.JobtrackVersion);
+        AddVersion(Strings.Get("about.versionApiServer"), manifest.ApiVersion);
+        AddVersion(Strings.Get("about.versionMcpServer"), manifest.McpVersion);
+        AddVersion(Strings.Get("about.versionNodeRuntime"), manifest.NodeVersion);
+        AddVersion(Strings.Get("about.versionDatabaseDriver"), supervisor.Ready?.Driver);
     }
 
     private void AddVersion(string name, string? value)

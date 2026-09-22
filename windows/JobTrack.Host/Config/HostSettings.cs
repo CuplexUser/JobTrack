@@ -16,6 +16,15 @@ internal sealed class HostSettings
     [JsonPropertyName("openBrowserOnStart")] public bool OpenBrowserOnStart { get; set; }
 
     /// <summary>
+    /// The UI language, or null to follow Windows' own display language. See
+    /// <see cref="JobTrack.Host.Localization.TranslationSource"/> for how this resolves to an
+    /// actual culture, and <see cref="Hosting.LanguageSync"/> for how it is shared with the web
+    /// app through the same <c>app_settings</c> row the web Settings page's language card reads
+    /// and writes.
+    /// </summary>
+    [JsonPropertyName("language")] public string? Language { get; set; }
+
+    /// <summary>
     /// Whether the "JobTrack is running down here" balloon has been shown. Windows 11 hides new
     /// tray icons by default, so without this the app looks like it did nothing at all.
     /// </summary>

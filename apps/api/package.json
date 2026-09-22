@@ -1,6 +1,6 @@
 {
   "name": "@jobtrack/api",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "type": "module",
   "license": "MIT",
   "repository": {
@@ -61,7 +61,7 @@
   "dependencies": {
     "@fastify/cors": "^11.3.0",
     "@huggingface/transformers": "^4.2.0",
-    "@jobtrack/shared": "^1.6.0",
+    "@jobtrack/shared": "^1.7.0",
     "exceljs": "^3.4.0",
     "fastify": "^5.12.1",
     "minisearch": "^7.2.0",

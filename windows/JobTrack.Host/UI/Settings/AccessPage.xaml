@@ -5,14 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="Access">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc access.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="Access" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc access.title}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Browser extension" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc access.browserExtension}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Key24}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="API token" Description="Paste this into the JobTrack Clipper extension's options page." />
+                <local:SettingHeader Title="{loc:Loc access.apiTokenTitle}" Description="{loc:Loc access.apiTokenDescription}" />
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">
                 <ui:TextBox
@@ -25,29 +26,29 @@
                     Margin="8,0,0,0"
                     Click="OnCopy"
                     Icon="{ui:SymbolIcon Copy24}"
-                    ToolTip="Copy the token" />
+                    ToolTip="{loc:Loc access.copyTokenTooltip}" />
                 <ToggleButton
                     Margin="4,0,0,0"
                     Padding="11,8"
                     IsChecked="{Binding TokenRevealed}"
-                    ToolTip="Show or hide the token">
+                    ToolTip="{loc:Loc access.showHideTooltip}">
                     <ui:SymbolIcon Symbol="Eye24" />
                 </ToggleButton>
             </StackPanel>
         </ui:CardControl>
         <ui:CardControl Icon="{ui:SymbolIcon KeyReset24}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="Regenerate token" Description="Invalidates the current token; every browser extension using it has to be updated." />
+                <local:SettingHeader Title="{loc:Loc access.regenerateTitle}" Description="{loc:Loc access.regenerateDescription}" />
             </ui:CardControl.Header>
-            <ui:Button Click="OnRegenerate" Content="Regenerate" />
+            <ui:Button Click="OnRegenerate" Content="{loc:Loc access.regenerate}" />
         </ui:CardControl>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Web pages" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc access.webPages}" />
         <ui:CardExpander Icon="{ui:SymbolIcon ShieldGlobe24}">
             <ui:CardExpander.Header>
                 <local:SettingHeader
-                    Title="Extra allowed browser origins"
-                    Description="One per line. JobTrack's own address is always allowed, and the extension uses the token instead." />
+                    Title="{loc:Loc access.corsTitle}"
+                    Description="{loc:Loc access.corsDescription}" />
             </ui:CardExpander.Header>
             <ui:TextBox
                 MinHeight="110"

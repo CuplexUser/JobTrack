@@ -3,6 +3,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.Updates;
 
@@ -118,7 +119,7 @@ internal sealed class UpdateService : IDisposable
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException or JsonException or FormatException)
         {
             _log.Write($"updates: check failed: {error.GetType().Name}: {error.Message}");
-            return SetStatus(new UpdateStatus.Failed("Could not reach GitHub to check for updates.", null));
+            return SetStatus(new UpdateStatus.Failed(Strings.Get("updates.checkFailed"), null));
         }
         finally
         {
@@ -159,7 +160,7 @@ internal sealed class UpdateService : IDisposable
         catch (Exception error) when (error is HttpRequestException or TaskCanceledException or IOException or UnauthorizedAccessException)
         {
             _log.Write($"updates: download failed: {error.GetType().Name}: {error.Message}");
-            SetStatus(new UpdateStatus.Failed("The update could not be downloaded. Try again later.", release));
+            SetStatus(new UpdateStatus.Failed(Strings.Get("updates.downloadFailed"), release));
             return null;
         }
         finally
@@ -181,7 +182,7 @@ internal sealed class UpdateService : IDisposable
         catch (Exception error) when (error is Win32Exception or IOException)
         {
             _log.Write($"updates: could not start the installer: {error.Message}");
-            SetStatus(new UpdateStatus.Failed("The installer could not be started.", release));
+            SetStatus(new UpdateStatus.Failed(Strings.Get("updates.installerCouldNotStart"), release));
             return false;
         }
     }

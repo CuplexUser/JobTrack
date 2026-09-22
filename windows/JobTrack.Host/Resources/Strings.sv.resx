@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="shell.errorTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="shell.couldNotOpen" xml:space="preserve"><value>Kunde inte öppna {0}.
+
+{1}</value></data>
+
+  <data name="program.missingInstallTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="program.missingInstallMessage" xml:space="preserve"><value>JobTrack kunde inte starta eftersom en del av installationen saknas.
+
+{0}</value></data>
+  <data name="program.uiErrorTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="program.uiErrorMessage" xml:space="preserve"><value>Något gick fel i JobTracks fönster.
+
+{0}
+
+Detaljerna finns i loggen.</value></data>
+
+  <data name="settingsWindow.title" xml:space="preserve"><value>JobTrack-inställningar</value></data>
+  <data name="settingsWindow.footerNote" xml:space="preserve"><value>Serverinställningar börjar gälla när JobTrack startas om.</value></data>
+  <data name="settingsWindow.cancel" xml:space="preserve"><value>Avbryt</value></data>
+  <data name="settingsWindow.save" xml:space="preserve"><value>Spara</value></data>
+  <data name="settingsWindow.saveAndRestart" xml:space="preserve"><value>Spara och starta om</value></data>
+  <data name="settingsWindow.notSavedTitle" xml:space="preserve"><value>Inställningarna sparades inte</value></data>
+  <data name="settingsWindow.ok" xml:space="preserve"><value>OK</value></data>
+
+  <data name="general.title" xml:space="preserve"><value>Allmänt</value></data>
+  <data name="general.server" xml:space="preserve"><value>Server</value></data>
+  <data name="general.addressTitle" xml:space="preserve"><value>Adress</value></data>
+  <data name="general.addressDescription" xml:space="preserve"><value>127.0.0.1 gör att JobTrack bara nås från den här datorn. Lämna det om du inte medvetet vill något annat.</value></data>
+  <data name="general.port" xml:space="preserve"><value>Port</value></data>
+  <data name="general.networkWarning" xml:space="preserve"><value>Allt som kan nå den här datorn kan nå dina ansökningar.</value></data>
+  <data name="general.networkWarningTitle" xml:space="preserve"><value>0.0.0.0 exponerar JobTrack mot hela ditt nätverk.</value></data>
+  <data name="general.startup" xml:space="preserve"><value>Uppstart</value></data>
+  <data name="general.autostartTitle" xml:space="preserve"><value>Starta JobTrack när jag loggar in</value></data>
+  <data name="general.autostartDescription" xml:space="preserve"><value>Gäller direkt. Det är en Windows-inställning, inte en del av JobTracks konfiguration.</value></data>
+  <data name="general.openBrowserTitle" xml:space="preserve"><value>Öppna JobTrack i webbläsaren när det startar</value></data>
+  <data name="general.openBrowserDescription" xml:space="preserve"><value>Bara när du startar det själv, inte vid inloggning.</value></data>
+  <data name="general.notifications" xml:space="preserve"><value>Aviseringar och integrationer</value></data>
+  <data name="general.remindersTitle" xml:space="preserve"><value>Påminn mig när uppföljningar och återkontakter blir aktuella</value></data>
+  <data name="general.remindersDescription" xml:space="preserve"><value>Visar en avisering för uppföljningsdatum och personer att höra av sig till, kontrollerat var halvtimme.</value></data>
+  <data name="general.claudeDesktopTitle" xml:space="preserve"><value>Koppla Claude Desktop till JobTracks MCP-server</value></data>
+  <data name="general.claudeDesktopDescription" xml:space="preserve"><value>Pekar servern "jobtrack" i Claude Desktops konfiguration mot den som installerades med JobTrack, så den uppdateras vid varje installation. Dina andra servrar och inställningar lämnas orörda. Claude Desktop läser av ändringen när det startas om.</value></data>
+  <data name="general.language" xml:space="preserve"><value>Språk</value></data>
+  <data name="general.languageTitle" xml:space="preserve"><value>Appspråk</value></data>
+  <data name="general.languageDescription" xml:space="preserve"><value>Gäller direkt, och delas med webbappen nästa gång den laddas.</value></data>
+  <data name="general.languageSystem" xml:space="preserve"><value>System</value></data>
+  <data name="general.languageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="general.languageSwedish" xml:space="preserve"><value>Svenska</value></data>
+
+  <data name="database.title" xml:space="preserve"><value>Databas</value></data>
+  <data name="database.defaultDb" xml:space="preserve"><value>Standarddatabas</value></data>
+  <data name="database.driverTitle" xml:space="preserve"><value>Drivrutin</value></data>
+  <data name="database.driverDescription" xml:space="preserve"><value>Var JobTrack förvarar dina ansökningar.</value></data>
+  <data name="database.sqliteFileTitle" xml:space="preserve"><value>SQLite-fil</value></data>
+  <data name="database.sqliteFileDescription" xml:space="preserve"><value>Ett rent filnamn hamnar i datamappen; en relativ sökväg utgår från den; en absolut sökväg används som den skrivs.</value></data>
+  <data name="database.browse" xml:space="preserve"><value>Bläddra</value></data>
+  <data name="database.connectionUrlTitle" xml:space="preserve"><value>Anslutnings-URL</value></data>
+  <data name="database.connectionUrlDescription" xml:space="preserve"><value>Krävs för postgres och mysql.</value></data>
+  <data name="database.moreDatabases" xml:space="preserve"><value>Fler databaser</value></data>
+  <data name="database.targetsTitle" xml:space="preserve"><value>Fler namngivna mål (DB_TARGETS)</value></data>
+  <data name="database.targetsDescription" xml:space="preserve"><value>En JSON-array av {name, driver, file|url}. När de är konfigurerade kan du växla mellan dem från webbgränssnittets Inställningar-sida.</value></data>
+  <data name="database.browseDialogTitle" xml:space="preserve"><value>JobTrack-databas</value></data>
+  <data name="database.browseFilter" xml:space="preserve"><value>SQLite-databas (*.db)|*.db|Alla filer (*.*)|*.*</value></data>
+
+  <data name="search.title" xml:space="preserve"><value>Sök</value></data>
+  <data name="search.semantic" xml:space="preserve"><value>Semantisk sökning</value></data>
+  <data name="search.enableTitle" xml:space="preserve"><value>Aktivera semantisk sökning</value></data>
+  <data name="search.enableDescription" xml:space="preserve"><value>Av innebär bara lexikal sökning. På hämtar JobTrack en liten inbäddningsmodell första gången den behövs, och faller tillbaka till lexikal sökning om det misslyckas.</value></data>
+  <data name="search.model" xml:space="preserve"><value>Modell</value></data>
+  <data name="search.embeddingModelTitle" xml:space="preserve"><value>Inbäddningsmodell</value></data>
+  <data name="search.embeddingModelDescription" xml:space="preserve"><value>Lämna tomt för att använda standardmodellen.</value></data>
+  <data name="search.cacheFolderTitle" xml:space="preserve"><value>Modellens cachemapp</value></data>
+  <data name="search.cacheFolderDescription" xml:space="preserve"><value>Var den nedladdade modellen förvaras. En relativ sökväg utgår från datamappen.</value></data>
+  <data name="search.open" xml:space="preserve"><value>Öppna</value></data>
+
+  <data name="access.title" xml:space="preserve"><value>Åtkomst</value></data>
+  <data name="access.browserExtension" xml:space="preserve"><value>Webbläsartillägg</value></data>
+  <data name="access.apiTokenTitle" xml:space="preserve"><value>API-token</value></data>
+  <data name="access.apiTokenDescription" xml:space="preserve"><value>Klistra in den här på JobTrack Clippers alternativsida.</value></data>
+  <data name="access.copyTokenTooltip" xml:space="preserve"><value>Kopiera token</value></data>
+  <data name="access.showHideTooltip" xml:space="preserve"><value>Visa eller dölj token</value></data>
+  <data name="access.regenerateTitle" xml:space="preserve"><value>Skapa ny token</value></data>
+  <data name="access.regenerateDescription" xml:space="preserve"><value>Ogiltigförklarar den nuvarande token; varje webbläsartillägg som använder den måste uppdateras.</value></data>
+  <data name="access.regenerate" xml:space="preserve"><value>Skapa ny</value></data>
+  <data name="access.webPages" xml:space="preserve"><value>Webbsidor</value></data>
+  <data name="access.corsTitle" xml:space="preserve"><value>Extra tillåtna webbläsarursprung</value></data>
+  <data name="access.corsDescription" xml:space="preserve"><value>En per rad. JobTracks egen adress är alltid tillåten, och tillägget använder token istället.</value></data>
+  <data name="access.tokenCopiedTitle" xml:space="preserve"><value>API-token kopierad</value></data>
+  <data name="access.tokenCopiedMessage" xml:space="preserve"><value>Klistra in den på JobTrack Clippers alternativsida.</value></data>
+  <data name="access.tokenSetInEnvTitle" xml:space="preserve"><value>Token är satt i .env</value></data>
+  <data name="access.tokenSetInEnvMessage" xml:space="preserve"><value>API_TOKEN är satt i .env, så JobTrack använder den token du konfigurerat. Ändra den på sidan Avancerat.</value></data>
+  <data name="access.confirmRegenerateTitle" xml:space="preserve"><value>Skapa en ny API-token?</value></data>
+  <data name="access.confirmRegenerateMessage" xml:space="preserve"><value>Varje webbläsartillägg som använder den nuvarande token slutar fungera tills du klistrar in den nya.</value></data>
+  <data name="access.tokenPlaceholderFirst" xml:space="preserve"><value>Skapas när servern startar första gången</value></data>
+  <data name="access.tokenPlaceholderNext" xml:space="preserve"><value>Skapas nästa gång servern startar</value></data>
+
+  <data name="settingsModel.needsConnectionUrl" xml:space="preserve"><value>Drivrutinen {0} behöver en anslutnings-URL.</value></data>
+  <data name="settingsModel.targetsNotArray" xml:space="preserve"><value>DB_TARGETS måste vara en JSON-array.</value></data>
+  <data name="settingsModel.targetNeedsName" xml:space="preserve"><value>Varje mål behöver ett namn.</value></data>
+  <data name="settingsModel.targetNameDefault" xml:space="preserve"><value>"default" är namnet på målet som konfigureras ovan; välj ett annat.</value></data>
+  <data name="settingsModel.targetDuplicateName" xml:space="preserve"><value>Det finns mer än ett mål med namnet "{0}".</value></data>
+  <data name="settingsModel.targetUnknownDriver" xml:space="preserve"><value>Målet "{0}" har en okänd drivrutin. Använd sqlite, postgres eller mysql.</value></data>
+  <data name="settingsModel.targetNeedsField" xml:space="preserve"><value>Målet "{0}" använder {1}, så det behöver ett "{2}".</value></data>
+  <data name="settingsModel.targetsInvalidJson" xml:space="preserve"><value>DB_TARGETS är inte giltig JSON: {0}</value></data>
+  <data name="settingsModel.couldNotSave" xml:space="preserve"><value>Kunde inte spara {0}.
+
+{1}</value></data>
+
+  <data name="advanced.title" xml:space="preserve"><value>Avancerat</value></data>
+  <data name="advanced.infoBarTitle" xml:space="preserve"><value>Redigerar .env direkt</value></data>
+  <data name="advanced.infoBarMessage" xml:space="preserve"><value>Det här är hela .env-filen. Medan den här sidan är öppen är det du skriver här som sparas, och de andra sidorna läser av dina ändringar när du lämnar den.</value></data>
+  <data name="advanced.openInNotepad" xml:space="preserve"><value>Öppna .env i Anteckningar</value></data>
+  <data name="advanced.openDataFolder" xml:space="preserve"><value>Öppna datamapp</value></data>
+
+  <data name="updates.title" xml:space="preserve"><value>Uppdateringar</value></data>
+  <data name="updates.problemTitle" xml:space="preserve"><value>Uppdateringen gick inte igenom</value></data>
+  <data name="updates.preferences" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="updates.autoCheckTitle" xml:space="preserve"><value>Sök efter uppdateringar automatiskt</value></data>
+  <data name="updates.autoCheckDescription" xml:space="preserve"><value>Letar efter en ny version på GitHub två gånger om dagen. En uppdatering installeras bara när du väljer det. Gäller direkt.</value></data>
+  <data name="updates.releaseNotesTitle" xml:space="preserve"><value>Versionsinformation</value></data>
+  <data name="updates.releaseNotesDescription" xml:space="preserve"><value>Vad som ändrats i varje version, på GitHub.</value></data>
+  <data name="updates.availableTitle" xml:space="preserve"><value>JobTrack {0} finns tillgänglig</value></data>
+  <data name="updates.availableDetail" xml:space="preserve"><value>Du har {0}. Installationen startar om JobTrack, vilket tar en minut.</value></data>
+  <data name="updates.installAction" xml:space="preserve"><value>Installera uppdatering</value></data>
+  <data name="updates.downloadingTitle" xml:space="preserve"><value>Laddar ner JobTrack {0}</value></data>
+  <data name="updates.downloadingDetail" xml:space="preserve"><value>{0} av {1} MB</value></data>
+  <data name="updates.installingTitle" xml:space="preserve"><value>Installerar JobTrack {0}</value></data>
+  <data name="updates.installingDetail" xml:space="preserve"><value>JobTrack stängs nu och startar igen när installationen är klar.</value></data>
+  <data name="updates.checkingTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.checkingDetail" xml:space="preserve"><value>Söker efter uppdateringar...</value></data>
+  <data name="updates.checkAction" xml:space="preserve"><value>Sök efter uppdateringar</value></data>
+  <data name="updates.upToDateTitle" xml:space="preserve"><value>Du har den senaste versionen</value></data>
+  <data name="updates.upToDateDetail" xml:space="preserve"><value>JobTrack {0}. Senast kontrollerad {1}.</value></data>
+  <data name="updates.failedAvailableTitle" xml:space="preserve"><value>JobTrack {0} finns tillgänglig</value></data>
+  <data name="updates.failedTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.failedDetail" xml:space="preserve"><value>Du har {0}.</value></data>
+  <data name="updates.tryAgainAction" xml:space="preserve"><value>Försök igen</value></data>
+  <data name="updates.defaultTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.lastChecked" xml:space="preserve"><value>Senast kontrollerad {0}.</value></data>
+  <data name="updates.notCheckedYet" xml:space="preserve"><value>Inte kontrollerat efter uppdateringar än.</value></data>
+  <data name="updates.checkFailed" xml:space="preserve"><value>Kunde inte nå GitHub för att söka efter uppdateringar.</value></data>
+  <data name="updates.downloadFailed" xml:space="preserve"><value>Uppdateringen kunde inte laddas ner. Försök igen senare.</value></data>
+  <data name="updates.installerCouldNotStart" xml:space="preserve"><value>Installationsprogrammet kunde inte startas.</value></data>
+  <data name="updates.checksumMismatch" xml:space="preserve"><value>Den nedladdade uppdateringen matchade inte den publicerade kontrollsumman, så den installerades inte.</value></data>
+  <data name="updates.notSigned" xml:space="preserve"><value>Den nedladdade uppdateringen är inte signerad av JobTracks utgivare, så den installerades inte.</value></data>
+  <data name="updates.checksumUnreadable" xml:space="preserve"><value>Uppdateringens publicerade kontrollsumma kunde inte läsas, så den installerades inte.</value></data>
+
+  <data name="about.title" xml:space="preserve"><value>Om</value></data>
+  <data name="about.tagline" xml:space="preserve"><value>En personlig jobbansökningsspårare. En användare, körs på din dator.</value></data>
+  <data name="about.builtBy" xml:space="preserve"><value>Byggd av Martin Dahl,</value></data>
+  <data name="about.components" xml:space="preserve"><value>Komponenter</value></data>
+  <data name="about.installedVersionsTitle" xml:space="preserve"><value>Installerade versioner</value></data>
+  <data name="about.installedVersionsDescription" xml:space="preserve"><value>Vad den här installationen består av.</value></data>
+  <data name="about.help" xml:space="preserve"><value>Hjälp</value></data>
+  <data name="about.projectPageTitle" xml:space="preserve"><value>Projektsida</value></data>
+  <data name="about.projectPageDescription" xml:space="preserve"><value>Dokumentation och källkod på GitHub.</value></data>
+  <data name="about.reportProblemTitle" xml:space="preserve"><value>Rapportera ett problem</value></data>
+  <data name="about.reportProblemDescription" xml:space="preserve"><value>Öppnar ett nytt ärende på GitHub. Att bifoga loggen hjälper.</value></data>
+  <data name="about.viewLogTitle" xml:space="preserve"><value>Visa logg</value></data>
+  <data name="about.viewLogDescription" xml:space="preserve"><value>Vad servern och trayappen har gjort.</value></data>
+  <data name="about.dataFolderTitle" xml:space="preserve"><value>Öppna datamapp</value></data>
+  <data name="about.dataFolderDescription" xml:space="preserve"><value>Din databas, dina inställningar och den nedladdade sökmodellen.</value></data>
+  <data name="about.versionJobTrack" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="about.versionApiServer" xml:space="preserve"><value>API-server</value></data>
+  <data name="about.versionMcpServer" xml:space="preserve"><value>MCP-server</value></data>
+  <data name="about.versionNodeRuntime" xml:space="preserve"><value>Node.js-körmiljö</value></data>
+  <data name="about.versionDatabaseDriver" xml:space="preserve"><value>Databasdrivrutin</value></data>
+
+  <data name="log.title" xml:space="preserve"><value>JobTrack-logg</value></data>
+  <data name="log.server" xml:space="preserve"><value>Server</value></data>
+  <data name="log.trayApp" xml:space="preserve"><value>Trayapp</value></data>
+  <data name="log.refresh" xml:space="preserve"><value>Uppdatera</value></data>
+  <data name="log.copy" xml:space="preserve"><value>Kopiera</value></data>
+  <data name="log.openFolder" xml:space="preserve"><value>Öppna mapp</value></data>
+
+  <data name="tray.open" xml:space="preserve"><value>Öppna JobTrack</value></data>
+  <data name="tray.settings" xml:space="preserve"><value>Inställningar</value></data>
+  <data name="tray.copyApiToken" xml:space="preserve"><value>Kopiera API-token</value></data>
+  <data name="tray.copyMcpConfig" xml:space="preserve"><value>Kopiera MCP-klientkonfiguration</value></data>
+  <data name="tray.openDataFolder" xml:space="preserve"><value>Öppna datamapp</value></data>
+  <data name="tray.viewLog" xml:space="preserve"><value>Visa logg</value></data>
+  <data name="tray.checkForUpdates" xml:space="preserve"><value>Sök efter uppdateringar</value></data>
+  <data name="tray.checkingForUpdates" xml:space="preserve"><value>Söker efter uppdateringar...</value></data>
+  <data name="tray.installUpdate" xml:space="preserve"><value>Installera uppdatering {0}</value></data>
+  <data name="tray.downloadingUpdate" xml:space="preserve"><value>Laddar ner uppdatering... {0}</value></data>
+  <data name="tray.installingUpdate" xml:space="preserve"><value>Installerar uppdatering...</value></data>
+  <data name="tray.retryUpdate" xml:space="preserve"><value>Försök igen med uppdatering {0}</value></data>
+  <data name="tray.restartServer" xml:space="preserve"><value>Starta om server</value></data>
+  <data name="tray.quit" xml:space="preserve"><value>Avsluta</value></data>
+  <data name="tray.tooltipStarting" xml:space="preserve"><value>JobTrack: startar...</value></data>
+  <data name="tray.tooltipRestarting" xml:space="preserve"><value>JobTrack: startar om...</value></data>
+  <data name="tray.tooltipRunning" xml:space="preserve"><value>JobTrack {0} på {1}</value></data>
+  <data name="tray.tooltipFailed" xml:space="preserve"><value>JobTrack: körs inte</value></data>
+  <data name="tray.tooltipStopped" xml:space="preserve"><value>JobTrack: stoppad</value></data>
+  <data name="tray.tooltipStopping" xml:space="preserve"><value>JobTrack: stoppar...</value></data>
+  <data name="tray.headerRunning" xml:space="preserve"><value>Körs på {0}</value></data>
+  <data name="tray.headerStarting" xml:space="preserve"><value>Startar...</value></data>
+  <data name="tray.headerRestarting" xml:space="preserve"><value>Startar om...</value></data>
+  <data name="tray.headerFailed" xml:space="preserve"><value>Körs inte</value></data>
+  <data name="tray.headerStopped" xml:space="preserve"><value>Stoppad</value></data>
+  <data name="tray.alreadyRunningTitle" xml:space="preserve"><value>JobTrack körs redan</value></data>
+  <data name="tray.alreadyRunningMessage" xml:space="preserve"><value>Något använder redan port {0}. Klicka här för att öppna det, eller byt port i Inställningar.</value></data>
+  <data name="tray.couldNotStartTitle" xml:space="preserve"><value>JobTrack kunde inte starta</value></data>
+  <data name="tray.couldNotStartMessage" xml:space="preserve"><value>Klicka här för att se loggen.</value></data>
+  <data name="tray.firstRunTitle" xml:space="preserve"><value>JobTrack körs</value></data>
+  <data name="tray.firstRunMessage" xml:space="preserve"><value>Det finns i meddelandefältet. Du kanske vill fästa det där.{0}</value></data>
+  <data name="tray.updatedTitle" xml:space="preserve"><value>JobTrack uppdaterades</value></data>
+  <data name="tray.updatedMessage" xml:space="preserve"><value>Du kör nu JobTrack {0}.{1}</value></data>
+  <data name="tray.restartClaudeTitle" xml:space="preserve"><value>Starta om Claude Desktop</value></data>
+  <data name="tray.claudeConnectedMessage" xml:space="preserve"><value>Claude Desktop använder nu JobTracks MCP-server {0}. Avsluta och öppna Claude Desktop igen för att läsa in den.</value></data>
+  <data name="tray.claudeRemovedMessage" xml:space="preserve"><value>JobTracks MCP-server togs bort från Claude Desktop. Avsluta och öppna Claude Desktop igen för att verkställa det.</value></data>
+  <data name="tray.updateAvailableTitle" xml:space="preserve"><value>JobTrack {0} finns tillgänglig</value></data>
+  <data name="tray.updateAvailableMessage" xml:space="preserve"><value>Klicka här för att installera den. JobTrack startar om när uppdateringen är klar.</value></data>
+  <data name="tray.upToDateTitle" xml:space="preserve"><value>JobTrack är uppdaterat</value></data>
+  <data name="tray.upToDateMessage" xml:space="preserve"><value>Version {0} är den senaste versionen.</value></data>
+  <data name="tray.updateFailedTitle" xml:space="preserve"><value>JobTrack kunde inte uppdateras</value></data>
+  <data name="tray.stillStartingTitle" xml:space="preserve"><value>JobTrack startar fortfarande</value></data>
+  <data name="tray.stillStartingMessage" xml:space="preserve"><value>Fönstret öppnas så snart servern är redo.</value></data>
+  <data name="tray.noTokenTitle" xml:space="preserve"><value>Ingen API-token än</value></data>
+  <data name="tray.noTokenMessage" xml:space="preserve"><value>JobTrack skriver den första gången servern startar.</value></data>
+  <data name="tray.tokenCopiedTitle" xml:space="preserve"><value>API-token kopierad</value></data>
+  <data name="tray.tokenCopiedMessage" xml:space="preserve"><value>Klistra in den på JobTrack Clippers alternativsida.</value></data>
+  <data name="tray.mcpConfigCopiedTitle" xml:space="preserve"><value>MCP-konfiguration kopierad</value></data>
+  <data name="tray.mcpConfigCopiedMessage" xml:space="preserve"><value>Klistra in den i din MCP-klients konfigurationsfil.</value></data>
+</root>

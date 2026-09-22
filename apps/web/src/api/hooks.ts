@@ -38,6 +38,7 @@ export const keys = {
   profile: () => ['profile'] as const,
   rules: () => ['rules'] as const,
   fitWeights: () => ['fit-weights'] as const,
+  language: () => ['language'] as const,
   autoGhostPreview: () => ['rules', 'auto-ghost'] as const,
   contact: (id: string) => ['contact', id] as const,
   linkedContacts: (targetType: string, targetId: string) => ['contacts', 'linked', targetType, targetId] as const,
@@ -470,6 +471,19 @@ export function useSaveFitWeights() {
       client.setQueryData(keys.fitWeights(), weights);
       void client.invalidateQueries({ queryKey: ['openings'] });
     },
+  });
+}
+
+/** The language shared with the Windows tray app; `code` is null until either app has set one. */
+export function useLanguage() {
+  return useQuery({ queryKey: keys.language(), queryFn: () => api.getLanguage() });
+}
+
+export function useSaveLanguage() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateLanguage(body),
+    onSuccess: (language) => client.setQueryData(keys.language(), language),
   });
 }
 

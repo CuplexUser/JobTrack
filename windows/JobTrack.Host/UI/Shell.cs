@@ -2,6 +2,7 @@ using System.Reflection;
 using System.Windows;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.UI;
 
@@ -24,7 +25,7 @@ internal static class Shell
         }
         catch (Exception error) when (error is Win32Exception or FileNotFoundException)
         {
-            MessageBox.Show($"Could not open {url}.\n\n{error.Message}", "JobTrack",
+            MessageBox.Show(string.Format(Strings.Get("shell.couldNotOpen"), url, error.Message), Strings.Get("shell.errorTitle"),
                 MessageBoxButton.OK, MessageBoxImage.Warning);
         }
     }

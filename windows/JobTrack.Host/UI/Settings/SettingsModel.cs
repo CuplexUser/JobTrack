@@ -2,6 +2,8 @@ using System.Runtime.CompilerServices;
 using System.Text.Json;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Localization;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.UI.Settings;
 
@@ -38,7 +40,25 @@ internal sealed class SettingsModel : INotifyPropertyChanged
 
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    /// <summary>Raised with the resolved (never null) language code after <see cref="Language"/> applies.</summary>
+    public event Action<string>? LanguageChanged;
+
     // ---------------------------------------------------------------------------------- general
+
+    /// <summary>Null follows Windows' own display language. A Windows-adjacent setting, like Autostart: applies at once.</summary>
+    public string? Language
+    {
+        get;
+        set
+        {
+            if (!Set(ref field, value) || _loading) return;
+            var resolved = SupportedLanguages.Resolve(value);
+            TranslationSource.Instance.Culture = resolved;
+            _hostSettings.Language = value;
+            _hostSettings.Save();
+            LanguageChanged?.Invoke(resolved.TwoLetterISOLanguageName);
+        }
+    }
 
     public string Host { get; set { if (Set(ref field, value)) OnPropertyChanged(nameof(ExposesNetwork)); } } = "127.0.0.1";
 
@@ -95,10 +115,10 @@ internal sealed class SettingsModel : INotifyPropertyChanged
     public bool TokenRevealed { get; set { if (Set(ref field, value)) OnPropertyChanged(nameof(TokenDisplay)); } }
 
     public string TokenDisplay => Token is null
-        ? _tokenPlaceholder
+        ? Strings.Get(_regenerated ? "access.tokenPlaceholderNext" : "access.tokenPlaceholderFirst")
         : TokenRevealed ? Token : new string('•', Math.Min(Token.Length, 32));
 
-    private string _tokenPlaceholder = "Generated when the server first starts";
+    private bool _regenerated;
 
     public string CorsOrigins { get; set => Set(ref field, value); } = "";
 
@@ -132,6 +152,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
         Host = _env.GetOrDefault("HOST", "127.0.0.1");
         Port = int.TryParse(_env.Get("PORT"), out var port) && port is >= 1 and <= 65535 ? port : 3001;
         Autostart = Config.Autostart.IsEnabled;
+        Language = _hostSettings.Language;
         OpenBrowserOnStart = _hostSettings.OpenBrowserOnStart;
         RemindersEnabled = _hostSettings.RemindersEnabled;
         ConnectClaudeDesktop = _hostSettings.ConnectClaudeDesktop;
@@ -208,7 +229,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
 
         if (Driver != "sqlite" && DatabaseUrl.Trim().Length == 0)
         {
-            problem = $"The {Driver} driver needs a connection URL.";
+            problem = string.Format(Strings.Get("settingsModel.needsConnectionUrl"), Driver);
             return false;
         }
 
@@ -230,7 +251,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
             using var document = JsonDocument.Parse(json);
             if (document.RootElement.ValueKind != JsonValueKind.Array)
             {
-                problem = "DB_TARGETS must be a JSON array.";
+                problem = Strings.Get("settingsModel.targetsNotArray");
                 return false;
             }
 
@@ -240,22 +261,22 @@ internal sealed class SettingsModel : INotifyPropertyChanged
                 var name = target.TryGetProperty("name", out var n) ? n.GetString() : null;
                 var driver = target.TryGetProperty("driver", out var d) ? d.GetString() : null;
 
-                if (string.IsNullOrWhiteSpace(name)) { problem = "Every target needs a name."; return false; }
+                if (string.IsNullOrWhiteSpace(name)) { problem = Strings.Get("settingsModel.targetNeedsName"); return false; }
                 if (name.Equals("default", StringComparison.OrdinalIgnoreCase))
                 {
-                    problem = "\"default\" is the name of the target configured above; pick another.";
+                    problem = Strings.Get("settingsModel.targetNameDefault");
                     return false;
                 }
-                if (!names.Add(name)) { problem = $"There is more than one target called \"{name}\"."; return false; }
+                if (!names.Add(name)) { problem = string.Format(Strings.Get("settingsModel.targetDuplicateName"), name); return false; }
                 if (driver is null || !Drivers.Contains(driver))
                 {
-                    problem = $"Target \"{name}\" has an unknown driver. Use sqlite, postgres or mysql.";
+                    problem = string.Format(Strings.Get("settingsModel.targetUnknownDriver"), name);
                     return false;
                 }
                 var needs = driver == "sqlite" ? "file" : "url";
                 if (!target.TryGetProperty(needs, out var value) || string.IsNullOrWhiteSpace(value.GetString()))
                 {
-                    problem = $"Target \"{name}\" uses {driver}, so it needs a \"{needs}\".";
+                    problem = string.Format(Strings.Get("settingsModel.targetNeedsField"), name, driver, needs);
                     return false;
                 }
             }
@@ -263,7 +284,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
         }
         catch (JsonException error)
         {
-            problem = $"DB_TARGETS is not valid JSON: {error.Message}";
+            problem = string.Format(Strings.Get("settingsModel.targetsInvalidJson"), error.Message);
             return false;
         }
     }
@@ -289,7 +310,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
         }
         catch (Exception error) when (error is IOException or UnauthorizedAccessException)
         {
-            return new SaveResult($"Could not save {Paths.EnvFile}.\n\n{error.Message}", RemindersEnabled, false);
+            return new SaveResult(string.Format(Strings.Get("settingsModel.couldNotSave"), Paths.EnvFile, error.Message), RemindersEnabled, false);
         }
 
         _hostSettings.OpenBrowserOnStart = OpenBrowserOnStart;
@@ -303,7 +324,7 @@ internal sealed class SettingsModel : INotifyPropertyChanged
     public void RegenerateToken()
     {
         ApiToken.Regenerate();
-        _tokenPlaceholder = "Generated when the server next starts";
+        _regenerated = true;
         Token = null;
         OnPropertyChanged(nameof(TokenDisplay));
     }

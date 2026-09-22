@@ -5,9 +5,10 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="About">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc about.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="About" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc about.title}" />
 
         <ui:Card Margin="0,16,0,0" Padding="20,18">
             <StackPanel Orientation="Horizontal">
@@ -22,9 +23,9 @@
                     <TextBlock
                         Style="{StaticResource CardDescription}"
                         FontSize="13"
-                        Text="A personal job-application tracker. Single user, runs on your machine." />
+                        Text="{loc:Loc about.tagline}" />
                     <TextBlock Margin="0,8,0,0" FontSize="13">
-                        <Run Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="Built by Martin Dahl," />
+                        <Run Foreground="{DynamicResource TextFillColorSecondaryBrush}" Text="{loc:Loc about.builtBy}" />
                         <Hyperlink
                             Foreground="{DynamicResource AccentTextFillColorPrimaryBrush}"
                             NavigateUri="mailto:martin@cuplex.org"
@@ -34,10 +35,10 @@
             </StackPanel>
         </ui:Card>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Components" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc about.components}" />
         <ui:CardExpander Icon="{ui:SymbolIcon Box24}" IsExpanded="True">
             <ui:CardExpander.Header>
-                <local:SettingHeader Title="Installed versions" Description="What this installation is made of." />
+                <local:SettingHeader Title="{loc:Loc about.installedVersionsTitle}" Description="{loc:Loc about.installedVersionsDescription}" />
             </ui:CardExpander.Header>
             <Grid x:Name="Versions">
                 <Grid.ColumnDefinitions>
@@ -47,18 +48,18 @@
             </Grid>
         </ui:CardExpander>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Help" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc about.help}" />
         <ui:CardAction Margin="0,0,0,4" Click="OnProjectPage" Icon="{ui:SymbolIcon Globe24}">
-            <local:SettingHeader Title="Project page" Description="Documentation and source code on GitHub." />
+            <local:SettingHeader Title="{loc:Loc about.projectPageTitle}" Description="{loc:Loc about.projectPageDescription}" />
         </ui:CardAction>
         <ui:CardAction Margin="0,0,0,4" Click="OnReportIssue" Icon="{ui:SymbolIcon PersonFeedback24}">
-            <local:SettingHeader Title="Report a problem" Description="Opens a new issue on GitHub. Attaching the log helps." />
+            <local:SettingHeader Title="{loc:Loc about.reportProblemTitle}" Description="{loc:Loc about.reportProblemDescription}" />
         </ui:CardAction>
         <ui:CardAction Margin="0,0,0,4" Click="OnViewLog" Icon="{ui:SymbolIcon DocumentText24}">
-            <local:SettingHeader Title="View log" Description="What the server and the tray app have been doing." />
+            <local:SettingHeader Title="{loc:Loc about.viewLogTitle}" Description="{loc:Loc about.viewLogDescription}" />
         </ui:CardAction>
         <ui:CardAction Click="OnDataFolder" Icon="{ui:SymbolIcon Folder24}">
-            <local:SettingHeader Title="Open data folder" Description="Your database, settings and downloaded search model." />
+            <local:SettingHeader Title="{loc:Loc about.dataFolderTitle}" Description="{loc:Loc about.dataFolderDescription}" />
         </ui:CardAction>
     </StackPanel>
 </Page>

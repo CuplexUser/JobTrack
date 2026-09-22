@@ -24,6 +24,8 @@ import { RememberParams } from './components/RememberParams.js';
 import { APPLICATIONS_PARAMS, CONTACTS_PARAMS, STATISTICS_PARAMS } from './preferences.js';
 import { buildAntdTheme, palette } from './theme.js';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './locales/index.js';
+import { LANGUAGE_STORAGE_KEY } from './i18n.js';
+import { useLanguage } from './api/hooks.js';
 
 /**
  * Each page is its own chunk, fetched only when its route is visited, rather than one
@@ -72,6 +74,20 @@ export function App() {
       // Persisting the preference is a convenience, never a requirement.
     }
   }, [dark]);
+
+  // A language chosen in the Windows tray app (including "follow the system") wins over this
+  // browser's own detection, so the two agree. `code` is null until either app has ever set
+  // one, in which case the existing localStorage/navigator-based default (i18n.ts) stands.
+  const { data: sharedLanguage } = useLanguage();
+  useEffect(() => {
+    if (!sharedLanguage?.code || sharedLanguage.code === i18n.language) return;
+    void i18n.changeLanguage(sharedLanguage.code);
+    try {
+      localStorage.setItem(LANGUAGE_STORAGE_KEY, sharedLanguage.code);
+    } catch {
+      // Persisting the preference is a convenience, never a requirement.
+    }
+  }, [sharedLanguage, i18n]);
 
   // Keeps antd's own chrome (pagination, date pickers, empty states, …) and dayjs-driven
   // date formatting in step with the app-level language, not just JobTrack's own strings.

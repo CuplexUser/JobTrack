@@ -1,0 +1,231 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
+  <resheader name="version"><value>2.0</value></resheader>
+  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+
+  <data name="shell.errorTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="shell.couldNotOpen" xml:space="preserve"><value>Could not open {0}.
+
+{1}</value></data>
+
+  <data name="program.missingInstallTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="program.missingInstallMessage" xml:space="preserve"><value>JobTrack could not start because part of its installation is missing.
+
+{0}</value></data>
+  <data name="program.uiErrorTitle" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="program.uiErrorMessage" xml:space="preserve"><value>Something went wrong in JobTrack's window.
+
+{0}
+
+The details are in the log.</value></data>
+
+  <data name="settingsWindow.title" xml:space="preserve"><value>JobTrack Settings</value></data>
+  <data name="settingsWindow.footerNote" xml:space="preserve"><value>Server settings apply when JobTrack restarts.</value></data>
+  <data name="settingsWindow.cancel" xml:space="preserve"><value>Cancel</value></data>
+  <data name="settingsWindow.save" xml:space="preserve"><value>Save</value></data>
+  <data name="settingsWindow.saveAndRestart" xml:space="preserve"><value>Save and restart</value></data>
+  <data name="settingsWindow.notSavedTitle" xml:space="preserve"><value>Settings were not saved</value></data>
+  <data name="settingsWindow.ok" xml:space="preserve"><value>OK</value></data>
+
+  <data name="general.title" xml:space="preserve"><value>General</value></data>
+  <data name="general.server" xml:space="preserve"><value>Server</value></data>
+  <data name="general.addressTitle" xml:space="preserve"><value>Address</value></data>
+  <data name="general.addressDescription" xml:space="preserve"><value>127.0.0.1 keeps JobTrack reachable only from this machine. Leave it unless you know you want otherwise.</value></data>
+  <data name="general.port" xml:space="preserve"><value>Port</value></data>
+  <data name="general.networkWarning" xml:space="preserve"><value>Anything that can reach this machine can reach your applications.</value></data>
+  <data name="general.networkWarningTitle" xml:space="preserve"><value>0.0.0.0 exposes JobTrack to your whole network.</value></data>
+  <data name="general.startup" xml:space="preserve"><value>Startup</value></data>
+  <data name="general.autostartTitle" xml:space="preserve"><value>Start JobTrack when I sign in</value></data>
+  <data name="general.autostartDescription" xml:space="preserve"><value>Applies immediately. It is a Windows setting, not part of the JobTrack configuration.</value></data>
+  <data name="general.openBrowserTitle" xml:space="preserve"><value>Open JobTrack in my browser when it starts</value></data>
+  <data name="general.openBrowserDescription" xml:space="preserve"><value>Only when you start it yourself, not at sign-in.</value></data>
+  <data name="general.notifications" xml:space="preserve"><value>Notifications and integrations</value></data>
+  <data name="general.remindersTitle" xml:space="preserve"><value>Remind me when follow-ups and reconnects come due</value></data>
+  <data name="general.remindersDescription" xml:space="preserve"><value>Shows a notification for follow-up dates and people to get back in touch with, checked every half hour.</value></data>
+  <data name="general.claudeDesktopTitle" xml:space="preserve"><value>Connect Claude Desktop to JobTrack's MCP server</value></data>
+  <data name="general.claudeDesktopDescription" xml:space="preserve"><value>Points the jobtrack server in Claude Desktop's config at the one installed with JobTrack, so it updates with every install. Your other servers and settings are left as they are. Claude Desktop picks up a change when it restarts.</value></data>
+  <data name="general.language" xml:space="preserve"><value>Language</value></data>
+  <data name="general.languageTitle" xml:space="preserve"><value>App language</value></data>
+  <data name="general.languageDescription" xml:space="preserve"><value>Applies immediately, and is shared with the web app the next time it loads.</value></data>
+  <data name="general.languageSystem" xml:space="preserve"><value>System</value></data>
+  <data name="general.languageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="general.languageSwedish" xml:space="preserve"><value>Svenska</value></data>
+
+  <data name="database.title" xml:space="preserve"><value>Database</value></data>
+  <data name="database.defaultDb" xml:space="preserve"><value>Default database</value></data>
+  <data name="database.driverTitle" xml:space="preserve"><value>Driver</value></data>
+  <data name="database.driverDescription" xml:space="preserve"><value>Where JobTrack keeps your applications.</value></data>
+  <data name="database.sqliteFileTitle" xml:space="preserve"><value>SQLite file</value></data>
+  <data name="database.sqliteFileDescription" xml:space="preserve"><value>A bare file name goes in the data folder; a relative path is resolved from it; an absolute path is used as written.</value></data>
+  <data name="database.browse" xml:space="preserve"><value>Browse</value></data>
+  <data name="database.connectionUrlTitle" xml:space="preserve"><value>Connection URL</value></data>
+  <data name="database.connectionUrlDescription" xml:space="preserve"><value>Required for postgres and mysql.</value></data>
+  <data name="database.moreDatabases" xml:space="preserve"><value>More databases</value></data>
+  <data name="database.targetsTitle" xml:space="preserve"><value>Additional named targets (DB_TARGETS)</value></data>
+  <data name="database.targetsDescription" xml:space="preserve"><value>A JSON array of {name, driver, file|url}. Once configured, switch between them from the web UI's Settings page.</value></data>
+  <data name="database.browseDialogTitle" xml:space="preserve"><value>JobTrack database</value></data>
+  <data name="database.browseFilter" xml:space="preserve"><value>SQLite database (*.db)|*.db|All files (*.*)|*.*</value></data>
+
+  <data name="search.title" xml:space="preserve"><value>Search</value></data>
+  <data name="search.semantic" xml:space="preserve"><value>Semantic search</value></data>
+  <data name="search.enableTitle" xml:space="preserve"><value>Enable semantic search</value></data>
+  <data name="search.enableDescription" xml:space="preserve"><value>Off means lexical search only. Left on, JobTrack downloads a small embedding model the first time it is needed and falls back to lexical if that fails.</value></data>
+  <data name="search.model" xml:space="preserve"><value>Model</value></data>
+  <data name="search.embeddingModelTitle" xml:space="preserve"><value>Embedding model</value></data>
+  <data name="search.embeddingModelDescription" xml:space="preserve"><value>Leave empty to use the default model.</value></data>
+  <data name="search.cacheFolderTitle" xml:space="preserve"><value>Model cache folder</value></data>
+  <data name="search.cacheFolderDescription" xml:space="preserve"><value>Where the downloaded model is kept. A relative path is resolved from the data folder.</value></data>
+  <data name="search.open" xml:space="preserve"><value>Open</value></data>
+
+  <data name="access.title" xml:space="preserve"><value>Access</value></data>
+  <data name="access.browserExtension" xml:space="preserve"><value>Browser extension</value></data>
+  <data name="access.apiTokenTitle" xml:space="preserve"><value>API token</value></data>
+  <data name="access.apiTokenDescription" xml:space="preserve"><value>Paste this into the JobTrack Clipper extension's options page.</value></data>
+  <data name="access.copyTokenTooltip" xml:space="preserve"><value>Copy the token</value></data>
+  <data name="access.showHideTooltip" xml:space="preserve"><value>Show or hide the token</value></data>
+  <data name="access.regenerateTitle" xml:space="preserve"><value>Regenerate token</value></data>
+  <data name="access.regenerateDescription" xml:space="preserve"><value>Invalidates the current token; every browser extension using it has to be updated.</value></data>
+  <data name="access.regenerate" xml:space="preserve"><value>Regenerate</value></data>
+  <data name="access.webPages" xml:space="preserve"><value>Web pages</value></data>
+  <data name="access.corsTitle" xml:space="preserve"><value>Extra allowed browser origins</value></data>
+  <data name="access.corsDescription" xml:space="preserve"><value>One per line. JobTrack's own address is always allowed, and the extension uses the token instead.</value></data>
+  <data name="access.tokenCopiedTitle" xml:space="preserve"><value>API token copied</value></data>
+  <data name="access.tokenCopiedMessage" xml:space="preserve"><value>Paste it into the JobTrack Clipper extension's options page.</value></data>
+  <data name="access.tokenSetInEnvTitle" xml:space="preserve"><value>The token is set in .env</value></data>
+  <data name="access.tokenSetInEnvMessage" xml:space="preserve"><value>API_TOKEN is set in .env, so JobTrack is using the token you configured. Change it on the Advanced page.</value></data>
+  <data name="access.confirmRegenerateTitle" xml:space="preserve"><value>Generate a new API token?</value></data>
+  <data name="access.confirmRegenerateMessage" xml:space="preserve"><value>Any browser extension using the current token will stop working until you paste in the new one.</value></data>
+  <data name="access.tokenPlaceholderFirst" xml:space="preserve"><value>Generated when the server first starts</value></data>
+  <data name="access.tokenPlaceholderNext" xml:space="preserve"><value>Generated when the server next starts</value></data>
+
+  <data name="settingsModel.needsConnectionUrl" xml:space="preserve"><value>The {0} driver needs a connection URL.</value></data>
+  <data name="settingsModel.targetsNotArray" xml:space="preserve"><value>DB_TARGETS must be a JSON array.</value></data>
+  <data name="settingsModel.targetNeedsName" xml:space="preserve"><value>Every target needs a name.</value></data>
+  <data name="settingsModel.targetNameDefault" xml:space="preserve"><value>"default" is the name of the target configured above; pick another.</value></data>
+  <data name="settingsModel.targetDuplicateName" xml:space="preserve"><value>There is more than one target called "{0}".</value></data>
+  <data name="settingsModel.targetUnknownDriver" xml:space="preserve"><value>Target "{0}" has an unknown driver. Use sqlite, postgres or mysql.</value></data>
+  <data name="settingsModel.targetNeedsField" xml:space="preserve"><value>Target "{0}" uses {1}, so it needs a "{2}".</value></data>
+  <data name="settingsModel.targetsInvalidJson" xml:space="preserve"><value>DB_TARGETS is not valid JSON: {0}</value></data>
+  <data name="settingsModel.couldNotSave" xml:space="preserve"><value>Could not save {0}.
+
+{1}</value></data>
+
+  <data name="advanced.title" xml:space="preserve"><value>Advanced</value></data>
+  <data name="advanced.infoBarTitle" xml:space="preserve"><value>Editing .env directly</value></data>
+  <data name="advanced.infoBarMessage" xml:space="preserve"><value>This is the whole .env file. While this page is open, what you type here is what gets saved, and the other pages pick up your edits when you leave it.</value></data>
+  <data name="advanced.openInNotepad" xml:space="preserve"><value>Open .env in Notepad</value></data>
+  <data name="advanced.openDataFolder" xml:space="preserve"><value>Open data folder</value></data>
+
+  <data name="updates.title" xml:space="preserve"><value>Updates</value></data>
+  <data name="updates.problemTitle" xml:space="preserve"><value>The update did not go through</value></data>
+  <data name="updates.preferences" xml:space="preserve"><value>Preferences</value></data>
+  <data name="updates.autoCheckTitle" xml:space="preserve"><value>Check for updates automatically</value></data>
+  <data name="updates.autoCheckDescription" xml:space="preserve"><value>Looks for a new release on GitHub twice a day. An update is only ever installed when you choose to. Applies immediately.</value></data>
+  <data name="updates.releaseNotesTitle" xml:space="preserve"><value>Release notes</value></data>
+  <data name="updates.releaseNotesDescription" xml:space="preserve"><value>What changed in each version, on GitHub.</value></data>
+  <data name="updates.availableTitle" xml:space="preserve"><value>JobTrack {0} is available</value></data>
+  <data name="updates.availableDetail" xml:space="preserve"><value>You have {0}. Installing restarts JobTrack, which takes a minute.</value></data>
+  <data name="updates.installAction" xml:space="preserve"><value>Install update</value></data>
+  <data name="updates.downloadingTitle" xml:space="preserve"><value>Downloading JobTrack {0}</value></data>
+  <data name="updates.downloadingDetail" xml:space="preserve"><value>{0} of {1} MB</value></data>
+  <data name="updates.installingTitle" xml:space="preserve"><value>Installing JobTrack {0}</value></data>
+  <data name="updates.installingDetail" xml:space="preserve"><value>JobTrack closes now and starts again when the installer is done.</value></data>
+  <data name="updates.checkingTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.checkingDetail" xml:space="preserve"><value>Checking for updates...</value></data>
+  <data name="updates.checkAction" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="updates.upToDateTitle" xml:space="preserve"><value>You're up to date</value></data>
+  <data name="updates.upToDateDetail" xml:space="preserve"><value>JobTrack {0}. Last checked {1}.</value></data>
+  <data name="updates.failedAvailableTitle" xml:space="preserve"><value>JobTrack {0} is available</value></data>
+  <data name="updates.failedTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.failedDetail" xml:space="preserve"><value>You have {0}.</value></data>
+  <data name="updates.tryAgainAction" xml:space="preserve"><value>Try again</value></data>
+  <data name="updates.defaultTitle" xml:space="preserve"><value>JobTrack {0}</value></data>
+  <data name="updates.lastChecked" xml:space="preserve"><value>Last checked {0}.</value></data>
+  <data name="updates.notCheckedYet" xml:space="preserve"><value>Not checked for updates yet.</value></data>
+  <data name="updates.checkFailed" xml:space="preserve"><value>Could not reach GitHub to check for updates.</value></data>
+  <data name="updates.downloadFailed" xml:space="preserve"><value>The update could not be downloaded. Try again later.</value></data>
+  <data name="updates.installerCouldNotStart" xml:space="preserve"><value>The installer could not be started.</value></data>
+  <data name="updates.checksumMismatch" xml:space="preserve"><value>The downloaded update did not match its published checksum, so it was not installed.</value></data>
+  <data name="updates.notSigned" xml:space="preserve"><value>The downloaded update is not signed by the JobTrack publisher, so it was not installed.</value></data>
+  <data name="updates.checksumUnreadable" xml:space="preserve"><value>The update's published checksum could not be read, so it was not installed.</value></data>
+
+  <data name="about.title" xml:space="preserve"><value>About</value></data>
+  <data name="about.tagline" xml:space="preserve"><value>A personal job-application tracker. Single user, runs on your machine.</value></data>
+  <data name="about.builtBy" xml:space="preserve"><value>Built by Martin Dahl,</value></data>
+  <data name="about.components" xml:space="preserve"><value>Components</value></data>
+  <data name="about.installedVersionsTitle" xml:space="preserve"><value>Installed versions</value></data>
+  <data name="about.installedVersionsDescription" xml:space="preserve"><value>What this installation is made of.</value></data>
+  <data name="about.help" xml:space="preserve"><value>Help</value></data>
+  <data name="about.projectPageTitle" xml:space="preserve"><value>Project page</value></data>
+  <data name="about.projectPageDescription" xml:space="preserve"><value>Documentation and source code on GitHub.</value></data>
+  <data name="about.reportProblemTitle" xml:space="preserve"><value>Report a problem</value></data>
+  <data name="about.reportProblemDescription" xml:space="preserve"><value>Opens a new issue on GitHub. Attaching the log helps.</value></data>
+  <data name="about.viewLogTitle" xml:space="preserve"><value>View log</value></data>
+  <data name="about.viewLogDescription" xml:space="preserve"><value>What the server and the tray app have been doing.</value></data>
+  <data name="about.dataFolderTitle" xml:space="preserve"><value>Open data folder</value></data>
+  <data name="about.dataFolderDescription" xml:space="preserve"><value>Your database, settings and downloaded search model.</value></data>
+  <data name="about.versionJobTrack" xml:space="preserve"><value>JobTrack</value></data>
+  <data name="about.versionApiServer" xml:space="preserve"><value>API server</value></data>
+  <data name="about.versionMcpServer" xml:space="preserve"><value>MCP server</value></data>
+  <data name="about.versionNodeRuntime" xml:space="preserve"><value>Node.js runtime</value></data>
+  <data name="about.versionDatabaseDriver" xml:space="preserve"><value>Database driver</value></data>
+
+  <data name="log.title" xml:space="preserve"><value>JobTrack log</value></data>
+  <data name="log.server" xml:space="preserve"><value>Server</value></data>
+  <data name="log.trayApp" xml:space="preserve"><value>Tray app</value></data>
+  <data name="log.refresh" xml:space="preserve"><value>Refresh</value></data>
+  <data name="log.copy" xml:space="preserve"><value>Copy</value></data>
+  <data name="log.openFolder" xml:space="preserve"><value>Open folder</value></data>
+
+  <data name="tray.open" xml:space="preserve"><value>Open JobTrack</value></data>
+  <data name="tray.settings" xml:space="preserve"><value>Settings</value></data>
+  <data name="tray.copyApiToken" xml:space="preserve"><value>Copy API token</value></data>
+  <data name="tray.copyMcpConfig" xml:space="preserve"><value>Copy MCP client config</value></data>
+  <data name="tray.openDataFolder" xml:space="preserve"><value>Open data folder</value></data>
+  <data name="tray.viewLog" xml:space="preserve"><value>View log</value></data>
+  <data name="tray.checkForUpdates" xml:space="preserve"><value>Check for updates</value></data>
+  <data name="tray.checkingForUpdates" xml:space="preserve"><value>Checking for updates...</value></data>
+  <data name="tray.installUpdate" xml:space="preserve"><value>Install update {0}</value></data>
+  <data name="tray.downloadingUpdate" xml:space="preserve"><value>Downloading update... {0}</value></data>
+  <data name="tray.installingUpdate" xml:space="preserve"><value>Installing update...</value></data>
+  <data name="tray.retryUpdate" xml:space="preserve"><value>Retry update {0}</value></data>
+  <data name="tray.restartServer" xml:space="preserve"><value>Restart server</value></data>
+  <data name="tray.quit" xml:space="preserve"><value>Quit</value></data>
+  <data name="tray.tooltipStarting" xml:space="preserve"><value>JobTrack: starting...</value></data>
+  <data name="tray.tooltipRestarting" xml:space="preserve"><value>JobTrack: restarting...</value></data>
+  <data name="tray.tooltipRunning" xml:space="preserve"><value>JobTrack {0} at {1}</value></data>
+  <data name="tray.tooltipFailed" xml:space="preserve"><value>JobTrack: not running</value></data>
+  <data name="tray.tooltipStopped" xml:space="preserve"><value>JobTrack: stopped</value></data>
+  <data name="tray.tooltipStopping" xml:space="preserve"><value>JobTrack: stopping...</value></data>
+  <data name="tray.headerRunning" xml:space="preserve"><value>Running at {0}</value></data>
+  <data name="tray.headerStarting" xml:space="preserve"><value>Starting...</value></data>
+  <data name="tray.headerRestarting" xml:space="preserve"><value>Restarting...</value></data>
+  <data name="tray.headerFailed" xml:space="preserve"><value>Not running</value></data>
+  <data name="tray.headerStopped" xml:space="preserve"><value>Stopped</value></data>
+  <data name="tray.alreadyRunningTitle" xml:space="preserve"><value>JobTrack is already running</value></data>
+  <data name="tray.alreadyRunningMessage" xml:space="preserve"><value>Something is already using port {0}. Click here to open it, or change the port in Settings.</value></data>
+  <data name="tray.couldNotStartTitle" xml:space="preserve"><value>JobTrack could not start</value></data>
+  <data name="tray.couldNotStartMessage" xml:space="preserve"><value>Click here to see the log.</value></data>
+  <data name="tray.firstRunTitle" xml:space="preserve"><value>JobTrack is running</value></data>
+  <data name="tray.firstRunMessage" xml:space="preserve"><value>It lives in the notification area. You may want to pin it there.{0}</value></data>
+  <data name="tray.updatedTitle" xml:space="preserve"><value>JobTrack was updated</value></data>
+  <data name="tray.updatedMessage" xml:space="preserve"><value>You are now running JobTrack {0}.{1}</value></data>
+  <data name="tray.restartClaudeTitle" xml:space="preserve"><value>Restart Claude Desktop</value></data>
+  <data name="tray.claudeConnectedMessage" xml:space="preserve"><value>Claude Desktop now uses JobTrack's MCP server {0}. Quit and reopen Claude Desktop to load it.</value></data>
+  <data name="tray.claudeRemovedMessage" xml:space="preserve"><value>JobTrack's MCP server was removed from Claude Desktop. Quit and reopen Claude Desktop to apply it.</value></data>
+  <data name="tray.updateAvailableTitle" xml:space="preserve"><value>JobTrack {0} is available</value></data>
+  <data name="tray.updateAvailableMessage" xml:space="preserve"><value>Click here to install it. JobTrack restarts when the update is done.</value></data>
+  <data name="tray.upToDateTitle" xml:space="preserve"><value>JobTrack is up to date</value></data>
+  <data name="tray.upToDateMessage" xml:space="preserve"><value>Version {0} is the latest release.</value></data>
+  <data name="tray.updateFailedTitle" xml:space="preserve"><value>JobTrack could not update</value></data>
+  <data name="tray.stillStartingTitle" xml:space="preserve"><value>JobTrack is still starting</value></data>
+  <data name="tray.stillStartingMessage" xml:space="preserve"><value>The window will open as soon as the server is ready.</value></data>
+  <data name="tray.noTokenTitle" xml:space="preserve"><value>No API token yet</value></data>
+  <data name="tray.noTokenMessage" xml:space="preserve"><value>JobTrack writes it the first time the server starts.</value></data>
+  <data name="tray.tokenCopiedTitle" xml:space="preserve"><value>API token copied</value></data>
+  <data name="tray.tokenCopiedMessage" xml:space="preserve"><value>Paste it into the JobTrack Clipper extension's options page.</value></data>
+  <data name="tray.mcpConfigCopiedTitle" xml:space="preserve"><value>MCP configuration copied</value></data>
+  <data name="tray.mcpConfigCopiedMessage" xml:space="preserve"><value>Paste it into your MCP client's config file.</value></data>
+</root>

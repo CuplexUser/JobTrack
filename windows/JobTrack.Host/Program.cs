@@ -1,5 +1,7 @@
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Localization;
+using JobTrack.Host.Resources;
 using JobTrack.Host.UI;
 using JobTrack.Host.Updates;
 
@@ -44,6 +46,12 @@ internal static class Program
 
         Paths.EnsureDataDirectories();
 
+        var hostSettings = HostSettings.Load();
+        // Before any window is built: TranslationSource's setter also sets CultureInfo.CurrentUICulture
+        // and Strings.Culture, so every {loc:Loc} binding and every Strings.Get call from here on
+        // resolves in the right language, including the two error dialogs below.
+        TranslationSource.Instance.Culture = SupportedLanguages.Resolve(hostSettings.Language);
+
         using var hostLog = new RollingLog("host.log");
         using var serverLog = new RollingLog("server.log");
         var launchedAtSignIn = args.Contains(Autostart.AutostartSwitch, StringComparer.OrdinalIgnoreCase);
@@ -60,8 +68,8 @@ internal static class Program
             // Nothing can work without the payload, and there is no console to print to.
             hostLog.Write($"could not load the launch manifest: {error.Message}");
             System.Windows.MessageBox.Show(
-                $"JobTrack could not start because part of its installation is missing.\n\n{error.Message}",
-                "JobTrack", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
+                string.Format(Strings.Get("program.missingInstallMessage"), error.Message),
+                Strings.Get("program.missingInstallTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Error);
             instance.Dispose();
             return 2;
         }
@@ -73,15 +81,15 @@ internal static class Program
         app.DispatcherUnhandledException += (_, e) =>
         {
             hostLog.Write($"unhandled UI exception: {e.Exception}");
-            System.Windows.MessageBox.Show($"Something went wrong in JobTrack's window.\n\n{e.Exception.Message}\n\nThe details are in the log.",
-                "JobTrack", System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
+            System.Windows.MessageBox.Show(string.Format(Strings.Get("program.uiErrorMessage"), e.Exception.Message),
+                Strings.Get("program.uiErrorTitle"), System.Windows.MessageBoxButton.OK, System.Windows.MessageBoxImage.Warning);
             e.Handled = true;
         };
 
         using var supervisor = new NodeSupervisor(manifest, hostLog, serverLog);
         // Constructed once the theme resources exist, on the thread that will run the dispatcher.
         TrayController? tray = null;
-        app.Startup += (_, _) => tray = new TrayController(supervisor, manifest, instance, hostLog, serverLog,
+        app.Startup += (_, _) => tray = new TrayController(supervisor, manifest, instance, hostSettings, hostLog, serverLog,
             new LaunchReason(launchedAtSignIn, justUpdated));
 
         app.Run();

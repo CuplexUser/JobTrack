@@ -594,6 +594,25 @@ export const profilePatchSchema = z.object({
 });
 
 /**
+ * Which language the UI shows, shared between the web app and the Windows tray app so a choice
+ * made in either one shows up in the other. `code` is a bare string, not an enum of known
+ * languages: the set of languages either app actually ships is a UI concern (see `apps/web`'s
+ * `SUPPORTED_LANGUAGES` and the Windows app's own list), not something the stored preference
+ * should have to be re-validated against here. `null` means "no shared preference has been set
+ * yet", which each app is free to resolve its own way (the browser's language, the Windows
+ * display language, ...).
+ */
+export const languageSchema = z.object({
+  code: optionalTrimmed(16),
+});
+
+export const languagePatchSchema = z.object({
+  code: optionalTrimmed(16).optional(),
+});
+
+export type Language = z.output<typeof languageSchema>;
+
+/**
  * Automation the user opts into. Both are off (null) until switched on, because each one
  * writes to records the user did not touch.
  */

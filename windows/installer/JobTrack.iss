@@ -57,13 +57,28 @@ WizardStyle=modern
 ; We stop the running instance ourselves in PrepareToInstall, which is more reliable than Inno's
 ; window-based detection for a process whose only window is a tray icon.
 CloseApplications=no
+; Silently picks whichever of the two below matches the machine's UI language, with no dialog
+; asking first — the same "just follow the system" behavior JobTrack itself defaults to.
+ShowLanguageDialog=no
 
 [Languages]
 Name: "english"; MessagesFile: "compiler:Default.isl"
+Name: "swedish"; MessagesFile: "compiler:Languages\Swedish.isl"
+
+[CustomMessages]
+english.AutostartTask=Start {#AppName} when I sign in
+english.DesktopIconTask=Create a desktop shortcut
+english.DeleteDataQuestion=Also delete your JobTrack data?
+english.DeleteDataDetail=This is your applications database, settings and downloaded search model. It cannot be undone.
+
+swedish.AutostartTask=Starta {#AppName} när jag loggar in
+swedish.DesktopIconTask=Skapa en genväg på skrivbordet
+swedish.DeleteDataQuestion=Vill du också radera din JobTrack-data?
+swedish.DeleteDataDetail=Det här är din ansökningsdatabas, dina inställningar och den nedladdade sökmodellen. Det går inte att ångra.
 
 [Tasks]
-Name: "autostart"; Description: "Start {#AppName} when I sign in"; GroupDescription: "Startup:"
-Name: "desktopicon"; Description: "Create a desktop shortcut"; GroupDescription: "Shortcuts:"; Flags: unchecked
+Name: "autostart"; Description: "{cm:AutostartTask}"; GroupDescription: "Startup:"
+Name: "desktopicon"; Description: "{cm:DesktopIconTask}"; GroupDescription: "Shortcuts:"; Flags: unchecked
 
 [Files]
 ; payload\host is the published .NET output; payload\node and payload\app come from
@@ -196,10 +211,9 @@ begin
   DataDir := ExpandConstant('{userappdata}\jobtrack');
   if DirExists(DataDir) and (not UninstallSilent) then
   begin
-    if MsgBox('Also delete your JobTrack data?' + #13#10#13#10 +
+    if MsgBox(CustomMessage('DeleteDataQuestion') + #13#10#13#10 +
               DataDir + #13#10#13#10 +
-              'This is your applications database, settings and downloaded search model. ' +
-              'It cannot be undone.',
+              CustomMessage('DeleteDataDetail'),
               mbConfirmation, MB_YESNO or MB_DEFBUTTON2) = IDYES then
       DelTree(DataDir, True, True, True);
   end;

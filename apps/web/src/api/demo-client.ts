@@ -42,6 +42,7 @@ import {
   duplicateCheckSchema,
   exportQuerySchema,
   fitWeightsPatchSchema,
+  languagePatchSchema,
   linkContactSchema,
   linkedInImportSchema,
   monthName,
@@ -89,7 +90,16 @@ import { listTags } from '@jobtrack/api/services/tags';
 import { getDashboard } from '@jobtrack/api/services/dashboard';
 import { getStatistics } from '@jobtrack/api/services/statistics';
 import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
-import { getFitWeights, getProfile, getRules, updateFitWeights, updateProfile, updateRules } from '@jobtrack/api/services/settings';
+import {
+  getFitWeights,
+  getLanguage,
+  getProfile,
+  getRules,
+  updateFitWeights,
+  updateLanguage,
+  updateProfile,
+  updateRules,
+} from '@jobtrack/api/services/settings';
 import { runAutoGhost } from '@jobtrack/api/services/rules';
 import {
   commitLinkedInImport,
@@ -766,6 +776,20 @@ export const demoApi: typeof httpApi = {
       const weights = await updateFitWeights(repos, fitWeightsPatchSchema.parse(body));
       await persist(repos);
       return weights;
+    }),
+
+  getLanguage: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getLanguage(repos);
+    }),
+
+  updateLanguage: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const language = await updateLanguage(repos, languagePatchSchema.parse(body));
+      await persist(repos);
+      return language;
     }),
 
   previewAutoGhost: () =>

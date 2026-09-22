@@ -6,6 +6,8 @@ using H.NotifyIcon;
 using H.NotifyIcon.Core;
 using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
+using JobTrack.Host.Localization;
+using JobTrack.Host.Resources;
 using JobTrack.Host.Updates;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -34,9 +36,10 @@ internal sealed class TrayController : IDisposable
     private readonly SingleInstance _instance;
     private readonly RollingLog _hostLog;
     private readonly RollingLog _serverLog;
-    private readonly HostSettings _settings = HostSettings.Load();
+    private readonly HostSettings _settings;
     private readonly LaunchReason _launch;
     private readonly Dispatcher _dispatcher = Dispatcher.CurrentDispatcher;
+    private readonly LanguageSync _languageSync;
 
     private readonly TaskbarIcon _icon;
     private readonly TextBlock _headerTitle = new() { FontWeight = FontWeights.SemiBold, FontSize = 14 };
@@ -60,6 +63,7 @@ internal sealed class TrayController : IDisposable
         NodeSupervisor supervisor,
         LaunchManifest manifest,
         SingleInstance instance,
+        HostSettings settings,
         RollingLog hostLog,
         RollingLog serverLog,
         LaunchReason launch)
@@ -67,39 +71,41 @@ internal sealed class TrayController : IDisposable
         _supervisor = supervisor;
         _manifest = manifest;
         _instance = instance;
+        _settings = settings;
         _hostLog = hostLog;
         _serverLog = serverLog;
         _launch = launch;
+        _languageSync = new LanguageSync(ReadApiToken, hostLog);
 
-        _open = Item("Open JobTrack", SymbolRegular.Open24, OpenUi);
+        _open = Item(Strings.Get("tray.open"), SymbolRegular.Open24, OpenUi);
         // Bold marks the default verb, which is the Windows convention for the action a
         // double-click performs, and double-clicking the tray icon does open the UI.
         _open.FontWeight = FontWeights.SemiBold;
         _open.IsEnabled = false;
-        _copyMcp = Item("Copy MCP client config", SymbolRegular.BracesVariable24, CopyMcpConfig);
+        _copyMcp = Item(Strings.Get("tray.copyMcpConfig"), SymbolRegular.BracesVariable24, CopyMcpConfig);
         // Only meaningful when the payload actually bundled the MCP server.
         _copyMcp.Visibility = McpConfig.IsBundled(manifest) ? Visibility.Visible : Visibility.Collapsed;
-        _update = Item("Check for updates", SymbolRegular.ArrowSync24, () => _ = OnUpdateItemClicked());
-        _restart = Item("Restart server", SymbolRegular.ArrowClockwise24, () => _ = _supervisor.RestartAsync());
+        _update = Item(Strings.Get("tray.checkForUpdates"), SymbolRegular.ArrowSync24, () => _ = OnUpdateItemClicked());
+        _restart = Item(Strings.Get("tray.restartServer"), SymbolRegular.ArrowClockwise24, () => _ = _supervisor.RestartAsync());
 
         var menu = new ContextMenu { MinWidth = 280 };
         menu.Items.Add(BuildHeader());
         menu.Items.Add(new Separator());
         menu.Items.Add(_open);
-        menu.Items.Add(Item("Settings", SymbolRegular.Settings24, ShowSettings));
-        menu.Items.Add(Item("Copy API token", SymbolRegular.Key24, CopyApiToken));
+        menu.Items.Add(Item(Strings.Get("tray.settings"), SymbolRegular.Settings24, ShowSettings));
+        menu.Items.Add(Item(Strings.Get("tray.copyApiToken"), SymbolRegular.Key24, CopyApiToken));
         menu.Items.Add(_copyMcp);
-        menu.Items.Add(Item("Open data folder", SymbolRegular.Folder24, () => Shell.OpenFolder(Paths.JobtrackHome)));
-        menu.Items.Add(Item("View log", SymbolRegular.DocumentText24, ShowLog));
+        menu.Items.Add(Item(Strings.Get("tray.openDataFolder"), SymbolRegular.Folder24, () => Shell.OpenFolder(Paths.JobtrackHome)));
+        menu.Items.Add(Item(Strings.Get("tray.viewLog"), SymbolRegular.DocumentText24, ShowLog));
         menu.Items.Add(new Separator());
         menu.Items.Add(_update);
         menu.Items.Add(_restart);
-        menu.Items.Add(Item("Quit", SymbolRegular.Power24, () => _ = QuitAsync()));
+        menu.Items.Add(Item(Strings.Get("tray.quit"), SymbolRegular.Power24, () => _ = QuitAsync()));
 
         _icon = new TaskbarIcon
         {
             Icon = Icons.App,
-            ToolTipText = "JobTrack: starting...",
+            ToolTipText = Strings.Get("tray.tooltipStarting"),
             ContextMenu = menu,
             MenuActivation = PopupActivationMode.RightClick,
             NoLeftClickDelay = true,
@@ -169,11 +175,11 @@ internal sealed class TrayController : IDisposable
         _headerTitle.Text = $"JobTrack {VersionInfo.Host}";
         (_headerStatus.Text, var color) = state switch
         {
-            ServerState.Running => ($"Running at {ready?.Url}", Color.FromRgb(0x2E, 0xA0, 0x43)),
-            ServerState.Starting => ("Starting...", Color.FromRgb(0xE0, 0x9B, 0x1B)),
-            ServerState.Restarting => ("Restarting...", Color.FromRgb(0xE0, 0x9B, 0x1B)),
-            ServerState.Failed => ("Not running", Color.FromRgb(0xD1, 0x34, 0x38)),
-            _ => ("Stopped", Color.FromRgb(0x8A, 0x8A, 0x8A)),
+            ServerState.Running => (string.Format(Strings.Get("tray.headerRunning"), ready?.Url), Color.FromRgb(0x2E, 0xA0, 0x43)),
+            ServerState.Starting => (Strings.Get("tray.headerStarting"), Color.FromRgb(0xE0, 0x9B, 0x1B)),
+            ServerState.Restarting => (Strings.Get("tray.headerRestarting"), Color.FromRgb(0xE0, 0x9B, 0x1B)),
+            ServerState.Failed => (Strings.Get("tray.headerFailed"), Color.FromRgb(0xD1, 0x34, 0x38)),
+            _ => (Strings.Get("tray.headerStopped"), Color.FromRgb(0x8A, 0x8A, 0x8A)),
         };
         _statusDot.Fill = new SolidColorBrush(color);
     }
@@ -197,17 +203,26 @@ internal sealed class TrayController : IDisposable
 
         _icon.ToolTipText = state switch
         {
-            ServerState.Starting => "JobTrack: starting...",
-            ServerState.Restarting => "JobTrack: restarting...",
+            ServerState.Starting => Strings.Get("tray.tooltipStarting"),
+            ServerState.Restarting => Strings.Get("tray.tooltipRestarting"),
             // Tray tooltips are capped at 127 characters, which the URL comfortably fits inside.
-            ServerState.Running => $"JobTrack {ready?.Version} at {ready?.Url}",
-            ServerState.Failed => "JobTrack: not running",
-            _ => "JobTrack: stopped",
+            ServerState.Running => string.Format(Strings.Get("tray.tooltipRunning"), ready?.Version, ready?.Url),
+            ServerState.Failed => Strings.Get("tray.tooltipFailed"),
+            _ => Strings.Get("tray.tooltipStopped"),
         };
         if (ready is not null) _headerTitle.Text = $"JobTrack {ready.Version} ({ready.Driver})";
 
         if (state == ServerState.Running && ready is not null && _settings.RemindersEnabled) _reminders.Start(ready.Port);
         else if (state != ServerState.Running) _reminders.Stop();
+
+        if (state == ServerState.Running && ready is not null)
+        {
+            // The server just came up (or came back up after a restart), and would otherwise be
+            // holding whatever language it last saw, which is stale if this app's language changed
+            // while it was down or before it was ever contacted.
+            _languageSync.SetPort(ready.Port);
+            _ = _languageSync.PushAsync(TranslationSource.Instance.Culture.TwoLetterISOLanguageName);
+        }
 
         switch (state)
         {
@@ -219,13 +234,13 @@ internal sealed class TrayController : IDisposable
                 // The overwhelmingly likely cause is a second JobTrack, very often an
                 // npm-installed one. Restart-looping into a taken port helps nobody; offering the
                 // two things a person might actually want to do does.
-                Notify("JobTrack is already running",
-                    $"Something is already using port {portError.Port}. Click here to open it, or change the port in Settings.",
+                Notify(Strings.Get("tray.alreadyRunningTitle"),
+                    string.Format(Strings.Get("tray.alreadyRunningMessage"), portError.Port),
                     NotificationIcon.Warning, BalloonAction.OpenExistingServer);
                 break;
 
             case ServerState.Failed:
-                Notify("JobTrack could not start", "Click here to see the log.", NotificationIcon.Error, BalloonAction.ShowLog);
+                Notify(Strings.Get("tray.couldNotStartTitle"), Strings.Get("tray.couldNotStartMessage"), NotificationIcon.Error, BalloonAction.ShowLog);
                 break;
         }
     }
@@ -276,17 +291,17 @@ internal sealed class TrayController : IDisposable
             // Windows 11 hides new notification-area icons by default, so without this the app looks
             // like it did nothing at all. One notification replaces another, so the Claude Desktop
             // hint rides along rather than being shown and immediately covered.
-            Notify("JobTrack is running", $"It lives in the notification area. You may want to pin it there.{suffix}",
+            Notify(Strings.Get("tray.firstRunTitle"), string.Format(Strings.Get("tray.firstRunMessage"), suffix),
                 NotificationIcon.Info, BalloonAction.None);
         }
         else if (_launch.AfterUpdate)
         {
             // An upgrade usually brings a new MCP server as well, so the two messages arrive together.
-            Notify("JobTrack was updated", $"You are now running JobTrack {VersionInfo.Host}.{suffix}", NotificationIcon.Info, BalloonAction.None);
+            Notify(Strings.Get("tray.updatedTitle"), string.Format(Strings.Get("tray.updatedMessage"), VersionInfo.Host, suffix), NotificationIcon.Info, BalloonAction.None);
         }
         else if (claudeDesktopNote is not null)
         {
-            Notify("Restart Claude Desktop", claudeDesktopNote, NotificationIcon.Info, BalloonAction.None);
+            Notify(Strings.Get("tray.restartClaudeTitle"), claudeDesktopNote, NotificationIcon.Info, BalloonAction.None);
         }
     }
 
@@ -308,14 +323,14 @@ internal sealed class TrayController : IDisposable
         if (result.Changed == 0 && _settings.ClaudeDesktopMcpVersion == _manifest.McpVersion) return null;
         _settings.ClaudeDesktopMcpVersion = _manifest.McpVersion;
         _settings.Save();
-        return $"Claude Desktop now uses JobTrack's MCP server {_manifest.McpVersion}. Quit and reopen Claude Desktop to load it.";
+        return string.Format(Strings.Get("tray.claudeConnectedMessage"), _manifest.McpVersion);
     }
 
     private void OnClaudeDesktopChanged(bool connect)
     {
         if (connect)
         {
-            if (ConnectClaudeDesktop() is { } note) Notify("Restart Claude Desktop", note, NotificationIcon.Info, BalloonAction.None);
+            if (ConnectClaudeDesktop() is { } note) Notify(Strings.Get("tray.restartClaudeTitle"), note, NotificationIcon.Info, BalloonAction.None);
             return;
         }
 
@@ -326,7 +341,7 @@ internal sealed class TrayController : IDisposable
         if (result.Changed > 0)
         {
             _hostLog.Write("removed the bundled MCP server from Claude Desktop");
-            Notify("Restart Claude Desktop", "JobTrack's MCP server was removed from Claude Desktop. Quit and reopen Claude Desktop to apply it.",
+            Notify(Strings.Get("tray.restartClaudeTitle"), Strings.Get("tray.claudeRemovedMessage"),
                 NotificationIcon.Info, BalloonAction.None);
         }
     }
@@ -350,12 +365,12 @@ internal sealed class TrayController : IDisposable
     {
         var (text, symbol, enabled, accent) = status switch
         {
-            UpdateStatus.Checking => ("Checking for updates...", SymbolRegular.ArrowSync24, false, false),
-            UpdateStatus.Available available => ($"Install update {available.Release.Version.ToString(3)}", SymbolRegular.ArrowDownload24, true, true),
-            UpdateStatus.Downloading downloading => ($"Downloading update... {downloading.Progress:P0}", SymbolRegular.ArrowDownload24, false, true),
-            UpdateStatus.Installing => ("Installing update...", SymbolRegular.ArrowDownload24, false, true),
-            UpdateStatus.Failed { Release: not null } failed => ($"Retry update {failed.Release.Version.ToString(3)}", SymbolRegular.ArrowDownload24, true, true),
-            _ => ("Check for updates", SymbolRegular.ArrowSync24, true, false),
+            UpdateStatus.Checking => (Strings.Get("tray.checkingForUpdates"), SymbolRegular.ArrowSync24, false, false),
+            UpdateStatus.Available available => (string.Format(Strings.Get("tray.installUpdate"), available.Release.Version.ToString(3)), SymbolRegular.ArrowDownload24, true, true),
+            UpdateStatus.Downloading downloading => (string.Format(Strings.Get("tray.downloadingUpdate"), downloading.Progress.ToString("P0")), SymbolRegular.ArrowDownload24, false, true),
+            UpdateStatus.Installing => (Strings.Get("tray.installingUpdate"), SymbolRegular.ArrowDownload24, false, true),
+            UpdateStatus.Failed { Release: not null } failed => (string.Format(Strings.Get("tray.retryUpdate"), failed.Release.Version.ToString(3)), SymbolRegular.ArrowDownload24, true, true),
+            _ => (Strings.Get("tray.checkForUpdates"), SymbolRegular.ArrowSync24, true, false),
         };
         _update.Header = text;
         _update.IsEnabled = enabled;
@@ -369,17 +384,17 @@ internal sealed class TrayController : IDisposable
             case UpdateStatus.Available available when manual || _announcedUpdate != available.Release.Version:
                 _checkRequestedFromMenu = false;
                 _announcedUpdate = available.Release.Version;
-                Notify($"JobTrack {available.Release.Version.ToString(3)} is available",
-                    "Click here to install it. JobTrack restarts when the update is done.",
+                Notify(string.Format(Strings.Get("tray.updateAvailableTitle"), available.Release.Version.ToString(3)),
+                    Strings.Get("tray.updateAvailableMessage"),
                     NotificationIcon.Info, BalloonAction.InstallUpdate);
                 break;
             case UpdateStatus.UpToDate when manual:
                 _checkRequestedFromMenu = false;
-                Notify("JobTrack is up to date", $"Version {VersionInfo.Host} is the latest release.", NotificationIcon.Info, BalloonAction.None);
+                Notify(Strings.Get("tray.upToDateTitle"), string.Format(Strings.Get("tray.upToDateMessage"), VersionInfo.Host), NotificationIcon.Info, BalloonAction.None);
                 break;
             case UpdateStatus.Failed failed when manual || failed.Release is not null:
                 _checkRequestedFromMenu = false;
-                Notify("JobTrack could not update", failed.Message, NotificationIcon.Warning, BalloonAction.ShowLog);
+                Notify(Strings.Get("tray.updateFailedTitle"), failed.Message, NotificationIcon.Warning, BalloonAction.ShowLog);
                 break;
         }
     }
@@ -430,7 +445,7 @@ internal sealed class TrayController : IDisposable
         var url = _supervisor.Ready?.Url;
         if (url is null)
         {
-            Notify("JobTrack is still starting", "The window will open as soon as the server is ready.",
+            Notify(Strings.Get("tray.stillStartingTitle"), Strings.Get("tray.stillStartingMessage"),
                 NotificationIcon.Info, BalloonAction.None);
             return;
         }
@@ -445,6 +460,7 @@ internal sealed class TrayController : IDisposable
             _settingsWindow.RemindersChanged += enabled => Post(() => OnRemindersChanged(enabled));
             _settingsWindow.ClaudeDesktopChanged += connect => Post(() => OnClaudeDesktopChanged(connect));
             _settingsWindow.UpdateScheduleChanged += () => Post(_updates.ApplySchedule);
+            _settingsWindow.LanguageChanged += code => _ = _languageSync.PushAsync(code);
             _settingsWindow.Closed += (_, _) => _settingsWindow = null;
             _settingsWindow.Show();
         }
@@ -480,12 +496,12 @@ internal sealed class TrayController : IDisposable
         var token = ReadApiToken();
         if (token is null)
         {
-            Notify("No API token yet", "JobTrack writes it the first time the server starts.", NotificationIcon.Info, BalloonAction.None);
+            Notify(Strings.Get("tray.noTokenTitle"), Strings.Get("tray.noTokenMessage"), NotificationIcon.Info, BalloonAction.None);
             return;
         }
         if (Shell.TrySetClipboard(token))
         {
-            Notify("API token copied", "Paste it into the JobTrack Clipper extension's options page.",
+            Notify(Strings.Get("tray.tokenCopiedTitle"), Strings.Get("tray.tokenCopiedMessage"),
                 NotificationIcon.Info, BalloonAction.None);
         }
     }
@@ -494,7 +510,7 @@ internal sealed class TrayController : IDisposable
     {
         if (Shell.TrySetClipboard(McpConfig.Build(_manifest)))
         {
-            Notify("MCP configuration copied", "Paste it into your MCP client's config file.",
+            Notify(Strings.Get("tray.mcpConfigCopiedTitle"), Strings.Get("tray.mcpConfigCopiedMessage"),
                 NotificationIcon.Info, BalloonAction.None);
         }
     }
@@ -504,7 +520,7 @@ internal sealed class TrayController : IDisposable
         if (_quitting) return;
         _quitting = true;
         _hostLog.Write("quitting");
-        _icon.ToolTipText = "JobTrack: stopping...";
+        _icon.ToolTipText = Strings.Get("tray.tooltipStopping");
         _reminders.Stop();
         _settingsWindow?.Close();
         _logWindow?.Close();
@@ -518,5 +534,6 @@ internal sealed class TrayController : IDisposable
         _icon.Dispose();
         _reminders.Dispose();
         _updates.Dispose();
+        _languageSync.Dispose();
     }
 }

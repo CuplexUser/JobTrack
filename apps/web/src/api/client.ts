@@ -19,6 +19,7 @@ import type {
   JobApplicationDetail,
   JobApplicationView,
   JobOpeningView,
+  Language,
   LinkedContact,
   Note,
   Profile,
@@ -523,6 +524,12 @@ export const httpApi = {
 
   updateFitWeights: (body: unknown) =>
     request<FitWeights>('/api/fit-weights', { method: 'PUT', body: JSON.stringify(body) }),
+
+  /** Shared with the Windows tray app; see `settings.service.ts`'s `getLanguage`. */
+  getLanguage: () => request<Language>('/api/settings/language'),
+
+  updateLanguage: (body: unknown) =>
+    request<Language>('/api/settings/language', { method: 'PUT', body: JSON.stringify(body) }),
 
   previewAutoGhost: () => request<AutoGhostResponse>('/api/rules/auto-ghost'),
 

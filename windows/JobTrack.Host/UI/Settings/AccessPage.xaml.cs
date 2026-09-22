@@ -1,5 +1,6 @@
 using System.Windows;
 using System.Windows.Controls;
+using JobTrack.Host.Resources;
 
 namespace JobTrack.Host.UI.Settings;
 
@@ -20,7 +21,7 @@ internal partial class AccessPage : Page
     {
         if (_model.Token is { } token && Shell.TrySetClipboard(token))
         {
-            _host.ShowToast("API token copied", "Paste it into the JobTrack Clipper extension's options page.");
+            _host.ShowToast(Strings.Get("access.tokenCopiedTitle"), Strings.Get("access.tokenCopiedMessage"));
         }
     }
 
@@ -28,14 +29,14 @@ internal partial class AccessPage : Page
     {
         if (_model.TokenIsConfigured)
         {
-            await _host.ShowMessageAsync("The token is set in .env",
-                "API_TOKEN is set in .env, so JobTrack is using the token you configured. Change it on the Advanced page.");
+            await _host.ShowMessageAsync(Strings.Get("access.tokenSetInEnvTitle"),
+                Strings.Get("access.tokenSetInEnvMessage"));
             return;
         }
 
-        var confirmed = await _host.ConfirmAsync("Generate a new API token?",
-            "Any browser extension using the current token will stop working until you paste in the new one.",
-            "Regenerate");
+        var confirmed = await _host.ConfirmAsync(Strings.Get("access.confirmRegenerateTitle"),
+            Strings.Get("access.confirmRegenerateMessage"),
+            Strings.Get("access.regenerate"));
         if (confirmed) _model.RegenerateToken();
     }
 }

@@ -5,14 +5,15 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:ui="http://schemas.lepo.co/wpfui/2022/xaml"
     xmlns:local="clr-namespace:JobTrack.Host.UI.Settings"
-    Title="Database">
+    xmlns:loc="clr-namespace:JobTrack.Host.Localization"
+    Title="{loc:Loc database.title}">
     <StackPanel Margin="0,0,0,24">
-        <TextBlock Style="{StaticResource PageTitle}" Text="Database" />
+        <TextBlock Style="{StaticResource PageTitle}" Text="{loc:Loc database.title}" />
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="Default database" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc database.defaultDb}" />
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon Database24}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="Driver" Description="Where JobTrack keeps your applications." />
+                <local:SettingHeader Title="{loc:Loc database.driverTitle}" Description="{loc:Loc database.driverDescription}" />
             </ui:CardControl.Header>
             <ComboBox
                 Width="160"
@@ -22,8 +23,8 @@
         <ui:CardControl Margin="0,0,0,4" Icon="{ui:SymbolIcon DocumentDatabase24}" IsEnabled="{Binding IsSqlite}">
             <ui:CardControl.Header>
                 <local:SettingHeader
-                    Title="SQLite file"
-                    Description="A bare file name goes in the data folder; a relative path is resolved from it; an absolute path is used as written." />
+                    Title="{loc:Loc database.sqliteFileTitle}"
+                    Description="{loc:Loc database.sqliteFileDescription}" />
             </ui:CardControl.Header>
             <StackPanel Orientation="Horizontal">
                 <ui:TextBox
@@ -33,13 +34,13 @@
                 <ui:Button
                     Margin="8,0,0,0"
                     Click="OnBrowse"
-                    Content="Browse"
+                    Content="{loc:Loc database.browse}"
                     Icon="{ui:SymbolIcon FolderOpen24}" />
             </StackPanel>
         </ui:CardControl>
         <ui:CardControl Icon="{ui:SymbolIcon PlugConnected24}" IsEnabled="{Binding IsServerDriver}">
             <ui:CardControl.Header>
-                <local:SettingHeader Title="Connection URL" Description="Required for postgres and mysql." />
+                <local:SettingHeader Title="{loc:Loc database.connectionUrlTitle}" Description="{loc:Loc database.connectionUrlDescription}" />
             </ui:CardControl.Header>
             <ui:PasswordBox
                 Width="360"
@@ -48,12 +49,12 @@
                 RevealButtonEnabled="True" />
         </ui:CardControl>
 
-        <TextBlock Style="{StaticResource SectionHeader}" Text="More databases" />
+        <TextBlock Style="{StaticResource SectionHeader}" Text="{loc:Loc database.moreDatabases}" />
         <ui:CardExpander Icon="{ui:SymbolIcon DatabaseLink24}">
             <ui:CardExpander.Header>
                 <local:SettingHeader
-                    Title="Additional named targets (DB_TARGETS)"
-                    Description="A JSON array of {name, driver, file|url}. Once configured, switch between them from the web UI's Settings page." />
+                    Title="{loc:Loc database.targetsTitle}"
+                    Description="{loc:Loc database.targetsDescription}" />
             </ui:CardExpander.Header>
             <ui:TextBox
                 MinHeight="140"
