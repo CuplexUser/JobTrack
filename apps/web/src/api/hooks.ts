@@ -19,7 +19,7 @@ import { api } from './index.js';
 export const keys = {
   applications: (filter: unknown) => ['applications', filter] as const,
   application: (id: string) => ['application', id] as const,
-  periods: () => ['periods'] as const,
+  periods: (archived: boolean) => ['periods', archived] as const,
   // Under `applications`, so every application write already refreshes the suggestions.
   applicationLocations: () => ['applications', 'locations'] as const,
   companies: (params: unknown) => ['companies', params] as const,
@@ -96,8 +96,18 @@ export function useApplication(id: string | undefined) {
   });
 }
 
-export function usePeriods() {
-  return useQuery({ queryKey: keys.periods(), queryFn: () => api.periods() });
+/** The year/month tree for either the active applications or the archived ones. */
+export function usePeriods(archived = false) {
+  return useQuery({ queryKey: keys.periods(archived), queryFn: () => api.periods(archived) });
+}
+
+/** How many applications are archived, for the list's Active/Archived switch. */
+export function useArchivedApplicationCount() {
+  return useQuery({
+    queryKey: keys.applications({ archived: 'true', limit: 1 }),
+    queryFn: () => api.listApplications({ archived: 'true', limit: 1 }),
+    select: (data) => data.total,
+  });
 }
 
 export function useApplicationLocations() {

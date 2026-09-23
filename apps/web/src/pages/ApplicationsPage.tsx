@@ -19,6 +19,7 @@ import {
   Flex,
   Input,
   Row,
+  Segmented,
   Select,
   Space,
   Table,
@@ -45,7 +46,13 @@ import {
   WORK_MODE_LABELS,
   type JobApplicationView,
 } from '@jobtrack/shared';
-import { useApplicationLocations, useApplicationsInfinite, usePeriods, useTags } from '../api/hooks.js';
+import {
+  useApplicationLocations,
+  useApplicationsInfinite,
+  useArchivedApplicationCount,
+  usePeriods,
+  useTags,
+} from '../api/hooks.js';
 import { api } from '../api/index.js';
 import { demoExportCsv } from '../api/demo-client.js';
 import { PeriodTree } from '../components/PeriodTree.js';
@@ -113,10 +120,13 @@ export function ApplicationsPage() {
   // A URL without an explicit direction sorts the way the picker says it does, rather than
   // falling back to the API's date-shaped default.
   const direction = params.get('direction') ?? defaultDirection(sort);
+  // Archived applications are kept out of the way, but one click away rather than hidden.
+  const showArchived = params.get('archived') === 'true';
 
   // The URL is the single source of truth for the filter state.
   const filter = useMemo(() => {
     const entries: Record<string, unknown> = { sort, direction };
+    if (showArchived) entries.archived = 'true';
     // `location` stays a `|`-joined string all the way to the API: locations contain
     // commas, so the comma-joining every other list filter uses would split them apart.
     for (const key of ['q', 'source', 'from', 'to', 'location'] as const) {
@@ -132,11 +142,12 @@ export function ApplicationsPage() {
       if (value) entries[key] = value.split(',');
     }
     return entries;
-  }, [params, sort, direction]);
+  }, [params, sort, direction, showArchived]);
 
   const { data, isLoading, isFetching, hasNextPage, fetchNextPage, isFetchingNextPage } =
     useApplicationsInfinite(filter);
-  const { data: periodData } = usePeriods();
+  const { data: periodData } = usePeriods(showArchived);
+  const { data: archivedCount } = useArchivedApplicationCount();
   const { data: tagData } = useTags();
   const { data: locationData } = useApplicationLocations();
   const selectedLocations = params.get('location')?.split('|').filter(Boolean) ?? [];
@@ -293,9 +304,26 @@ export function ApplicationsPage() {
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
           <Flex justify="space-between" align="center" wrap gap={12}>
             <Space direction="vertical" size={0}>
-              <Typography.Title level={4} style={{ margin: 0 }}>
-                {scopeLabel}
-              </Typography.Title>
+              <Flex align="center" gap={12} wrap>
+                <Typography.Title level={4} style={{ margin: 0 }}>
+                  {scopeLabel}
+                </Typography.Title>
+                <Segmented
+                  size="small"
+                  value={showArchived ? 'archived' : 'active'}
+                  // The two views have different period trees, so a selected month is dropped.
+                  onChange={(value) =>
+                    patchFilter({ archived: value === 'archived' ? 'true' : '', year: '', month: '' })
+                  }
+                  options={[
+                    { value: 'active', label: t('list.view.active') },
+                    {
+                      value: 'archived',
+                      label: t('list.view.archived', { count: archivedCount ?? 0 }),
+                    },
+                  ]}
+                />
+              </Flex>
               <Typography.Text type="secondary">
                 {summary
                   ? items.length < summary.total

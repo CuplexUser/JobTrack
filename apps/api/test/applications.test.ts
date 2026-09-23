@@ -344,7 +344,17 @@ describe('computePeriods', () => {
     await patchApplication(repos, created.id, { archived: true });
 
     expect(await computePeriods(repos)).toEqual([]);
-    expect(await computePeriods(repos, { includeArchived: true })).toHaveLength(1);
+    expect(await computePeriods(repos, { archived: 'all' })).toHaveLength(1);
+  });
+
+  it('tallies only archived applications when asked', async () => {
+    await createApplication(repos, applicationInput({ jobTitle: 'Active' }));
+    const archived = await createApplication(repos, applicationInput({ jobTitle: 'Archived' }));
+    await patchApplication(repos, archived.id, { archived: true });
+
+    const periods = await computePeriods(repos, { archived: true });
+    expect(periods).toHaveLength(1);
+    expect(periods[0]!.count).toBe(1);
   });
 });
 

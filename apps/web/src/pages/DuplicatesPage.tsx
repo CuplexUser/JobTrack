@@ -174,7 +174,6 @@ function DuplicateGroupCard({ group, keptId, busy, onKeep, onDismiss, onRemove }
       render: (_, row) => (
         <Space size={8} wrap>
           <Link to={`/applications/${row.id}`}>{row.jobTitle}</Link>
-          {row.archived && <Tag>{t('duplicates.archived')}</Tag>}
           {row.id === keptId ? <Tag color="green">{t('duplicates.keep')}</Tag> : <Tag color="red">{t('duplicates.remove')}</Tag>}
         </Space>
       ),

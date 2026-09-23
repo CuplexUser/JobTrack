@@ -395,10 +395,10 @@ export const demoApi: typeof httpApi = {
       return application;
     }),
 
-  periods: () =>
+  periods: (archived = false) =>
     guarded(async () => {
       const { repos } = await getState();
-      return { periods: await computePeriods(repos, {}) };
+      return { periods: await computePeriods(repos, { archived }) };
     }),
 
   applicationLocations: () =>

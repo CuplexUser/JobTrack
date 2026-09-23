@@ -30,9 +30,11 @@ import {
   ArrowLeftOutlined,
   DeleteOutlined,
   EditOutlined,
+  InboxOutlined,
   LinkOutlined,
   PlusOutlined,
   PushpinFilled,
+  UndoOutlined,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
@@ -47,6 +49,7 @@ import {
   useChangeStatus,
   useDeleteApplication,
   useDeleteNote,
+  useUpdateApplication,
 } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
@@ -61,6 +64,7 @@ export function ApplicationDetailPage() {
   const { data, isLoading } = useApplication(id);
   const changeStatus = useChangeStatus();
   const remove = useDeleteApplication();
+  const update = useUpdateApplication();
   const removeNote = useDeleteNote();
   const [editing, setEditing] = useState(false);
   const [noteEditing, setNoteEditing] = useState<Note | null>(null);
@@ -74,6 +78,12 @@ export function ApplicationDetailPage() {
     if (!id) return;
     await changeStatus.mutateAsync({ id, body: { status, comment: null } });
     message.success(t('detail.movedMessage', { status: STATUS_LABELS[status as never] }));
+  }
+
+  async function setArchived(archived: boolean): Promise<void> {
+    if (!id) return;
+    await update.mutateAsync({ id, body: { archived } });
+    message.success(t(archived ? 'detail.archivedMessage' : 'detail.restoredMessage'));
   }
 
   return (
@@ -95,6 +105,7 @@ export function ApplicationDetailPage() {
             <Link to={`/companies/${data.company.id}`}>{data.company.name}</Link>
             <Typography.Text type="secondary">{t('detail.appliedOn', { date: data.appliedOn })}</Typography.Text>
             <StatusTag status={data.status} />
+            {data.archived && <Tag>{t('detail.archivedTag')}</Tag>}
           </Space>
         </Space>
 
@@ -112,6 +123,13 @@ export function ApplicationDetailPage() {
           />
           <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
             {t('detail.edit')}
+          </Button>
+          <Button
+            icon={data.archived ? <UndoOutlined /> : <InboxOutlined />}
+            loading={update.isPending}
+            onClick={() => void setArchived(!data.archived)}
+          >
+            {t(data.archived ? 'detail.restore' : 'detail.archive')}
           </Button>
           <Popconfirm
             title={t('detail.deleteTitle')}

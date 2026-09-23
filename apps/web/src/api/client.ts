@@ -388,7 +388,8 @@ export const httpApi = {
 
   getApplication: (id: string) => request<JobApplicationDetail>(`/api/applications/${id}`),
 
-  periods: () => request<{ periods: PeriodNode[] }>('/api/applications/periods'),
+  periods: (archived = false) =>
+    request<{ periods: PeriodNode[] }>(`/api/applications/periods${archived ? '?archived=true' : ''}`),
 
   applicationLocations: () =>
     request<{ locations: LocationOption[] }>('/api/applications/locations'),

@@ -88,8 +88,10 @@ export async function checkDuplicates(
     };
   }
 
+  // Archived applications are settled history, not something the user could be about to
+  // repeat by accident, so they never count as a match.
   const rows = await repos.applications.findMany({
-    where: { companyId: companyRow.id },
+    where: { companyId: companyRow.id, archived: false },
     orderBy: [{ field: 'appliedOn', direction: 'desc' }],
   });
 
@@ -156,15 +158,15 @@ function richnessOf(view: JobApplicationView): number {
 }
 
 /**
- * Sweep the whole database for applications that duplicate each other.
+ * Sweep the active applications for ones that duplicate each other.
  *
- * Archived records are included on purpose: a duplicate is a data problem whatever its
- * archive state, and hiding half a pair would make the remaining one look legitimate.
+ * Archived records are left out, the same as in the live check: archiving one half of a
+ * pair is a legitimate way to settle it, and the scan should then stop reporting it.
  */
 export async function findDuplicateGroups(repos: Repos): Promise<DuplicateScan> {
   const applications = await findAllMatching(
     repos,
-    applicationFilterSchema.parse({ archived: 'all' }),
+    applicationFilterSchema.parse({ archived: 'false' }),
   );
 
   const groups = groupDuplicates(

@@ -53,6 +53,15 @@ describe('checkDuplicates', () => {
     expect(check.matches[0]!.appliedOn).toBe('2024-02-12');
   });
 
+  it('ignores archived applications', async () => {
+    const klarna = await checkDuplicates(repos, null, { company: 'Klarna', title: 'Platform Engineer' });
+    await patchApplication(repos, klarna.matches[0]!.id, { archived: true });
+
+    const check = await checkDuplicates(repos, null, { company: 'Klarna', title: 'Platform Engineer' });
+    expect(check.verdict).toBe('none');
+    expect(check.matches).toHaveLength(0);
+  });
+
   it('flags a near-identical title as similar', async () => {
     const check = await checkDuplicates(repos, null, {
       company: 'Spotify',
@@ -155,7 +164,7 @@ describe('findDuplicateGroups', () => {
     expect(klarna.members[0]!.id).toBe(other.id);
   });
 
-  it('includes archived records, so half a pair cannot hide', async () => {
+  it('leaves archived records out, so archiving one half settles a pair', async () => {
     const extra = await createApplication(
       repos,
       applicationInput({ companyName: 'Klarna', jobTitle: 'Platform Engineer', appliedOn: '2026-03-12' }),
@@ -163,8 +172,7 @@ describe('findDuplicateGroups', () => {
     await patchApplication(repos, extra.id, { archived: true });
 
     const scan = await findDuplicateGroups(repos);
-    const klarna = scan.groups.find((g) => g.companyName === 'Klarna')!;
-    expect(klarna.members.map((m) => m.id)).toContain(extra.id);
+    expect(scan.groups.some((g) => g.companyName === 'Klarna')).toBe(false);
   });
 });
 

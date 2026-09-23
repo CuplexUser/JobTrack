@@ -592,10 +592,12 @@ export interface PeriodNode extends Period {
  */
 export async function computePeriods(
   repos: Repos,
-  options: { includeArchived?: boolean } = {},
+  options: { archived?: boolean | 'all' } = {},
 ): Promise<PeriodNode[]> {
+  // Same meaning as the list filter's `archived`: active only, archived only, or both.
+  const archived = options.archived ?? false;
   const rows = await repos.applications.findMany(
-    options.includeArchived ? {} : { where: { archived: false } },
+    archived === 'all' ? {} : { where: { archived } },
   );
 
   const years = new Map<number, Map<number, number>>();

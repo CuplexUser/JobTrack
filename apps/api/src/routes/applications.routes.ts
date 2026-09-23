@@ -54,7 +54,7 @@ export async function applicationRoutes(app: FastifyInstance, deps: Deps): Promi
   app.get('/api/applications/periods', async (request) => {
     const query = request.query as { archived?: string };
     const periods = await computePeriods(repos, {
-      includeArchived: query.archived === 'all' || query.archived === 'true',
+      archived: query.archived === 'all' ? 'all' : query.archived === 'true',
     });
     return { periods };
   });

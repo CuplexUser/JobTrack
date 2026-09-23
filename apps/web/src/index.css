@@ -249,3 +249,18 @@ mark.jobtrack-hit {
   padding: 12px 0 4px;
   text-align: center;
 }
+
+/* Row actions (edit, delete) sit beside the title rather than drifting to the vertical
+   middle, so expanding a long note does not move them. The negative margins center the
+   buttons (32px, or 24px when small) on the 22px title line. */
+.ant-list-item:has(> .ant-list-item-action) {
+  align-items: flex-start;
+}
+
+.ant-list-item > .ant-list-item-action {
+  margin-top: -5px;
+}
+
+.ant-list-item > .ant-list-item-action:has(.ant-btn-sm) {
+  margin-top: -1px;
+}
