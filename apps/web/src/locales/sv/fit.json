@@ -7,6 +7,7 @@
   "summary.far": "Ligger långt från din profil",
 
   "location.matched": "I {{place}}",
+  "location.matchedTier": "I {{place}}, prioritet {{tier}} ({{share}} %)",
   "location.remote": "Distans, så platsen spelar ingen roll",
   "location.notStated": "Plats ej angiven",
   "location.mismatch": "I {{location}}, inte en plats du angett",

@@ -4,14 +4,29 @@
  */
 
 import type { FastifyInstance } from 'fastify';
-import { fitWeightsPatchSchema, languagePatchSchema, profilePatchSchema, rulesPatchSchema } from '@jobtrack/shared';
+import {
+  fitWeightsPatchSchema,
+  jobSourcesPatchSchema,
+  knownLocationAddSchema,
+  knownLocationRemoveSchema,
+  knownLocationRenameSchema,
+  languagePatchSchema,
+  profilePatchSchema,
+  rulesPatchSchema,
+} from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
 import {
+  addKnownLocation,
   getFitWeights,
+  getJobSources,
+  getKnownLocations,
   getLanguage,
   getProfile,
   getRules,
+  removeKnownLocation,
+  renameKnownLocation,
   updateFitWeights,
+  updateJobSources,
   updateLanguage,
   updateProfile,
   updateRules,
@@ -43,6 +58,28 @@ export async function settingsRoutes(app: FastifyInstance, deps: Deps): Promise<
   app.get('/api/settings/language', async () => getLanguage(repos));
 
   app.put('/api/settings/language', async (request) => updateLanguage(repos, languagePatchSchema.parse(request.body)));
+
+  /** Job platforms and APIs the user searches, best first. Reference only; nothing here is called. */
+  app.get('/api/job-sources', async () => getJobSources(repos));
+
+  /** Either list, replaced as a whole. A list left out keeps its stored value. */
+  app.put('/api/job-sources', async (request) => updateJobSources(repos, jobSourcesPatchSchema.parse(request.body)));
+
+  /** Places offered when typing a location into the profile, alphabetical. */
+  app.get('/api/known-locations', async () => getKnownLocations(repos));
+
+  app.post('/api/known-locations', async (request) => addKnownLocation(repos, knownLocationAddSchema.parse(request.body).place));
+
+  /** Fixes the spelling in the profile's priority levels too; returns both. */
+  app.post('/api/known-locations/rename', async (request) => {
+    const { from, to } = knownLocationRenameSchema.parse(request.body);
+    return renameKnownLocation(repos, from, to);
+  });
+
+  /** Takes the place out of the profile's priority levels too; returns both. */
+  app.post('/api/known-locations/remove', async (request) =>
+    removeKnownLocation(repos, knownLocationRemoveSchema.parse(request.body).place),
+  );
 
   /** What the auto-ghost rule would change right now, without changing anything. */
   app.get('/api/rules/auto-ghost', async () => runAutoGhost(repos, { dryRun: true }));

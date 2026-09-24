@@ -15,6 +15,9 @@ import type {
   ContactView,
   DuplicateCheck,
   FitWeights,
+  JobSources,
+  KnownLocationChange,
+  KnownLocations,
   Interaction,
   JobApplicationDetail,
   JobApplicationView,
@@ -525,6 +528,22 @@ export const httpApi = {
 
   updateFitWeights: (body: unknown) =>
     request<FitWeights>('/api/fit-weights', { method: 'PUT', body: JSON.stringify(body) }),
+
+  getKnownLocations: () => request<KnownLocations>('/api/known-locations'),
+
+  addKnownLocation: (place: string) =>
+    request<KnownLocations>('/api/known-locations', { method: 'POST', body: JSON.stringify({ place }) }),
+
+  renameKnownLocation: (from: string, to: string) =>
+    request<KnownLocationChange>('/api/known-locations/rename', { method: 'POST', body: JSON.stringify({ from, to }) }),
+
+  removeKnownLocation: (place: string) =>
+    request<KnownLocationChange>('/api/known-locations/remove', { method: 'POST', body: JSON.stringify({ place }) }),
+
+  getJobSources: () => request<JobSources>('/api/job-sources'),
+
+  updateJobSources: (body: unknown) =>
+    request<JobSources>('/api/job-sources', { method: 'PUT', body: JSON.stringify(body) }),
 
   /** Shared with the Windows tray app; see `settings.service.ts`'s `getLanguage`. */
   getLanguage: () => request<Language>('/api/settings/language'),

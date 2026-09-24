@@ -6,7 +6,18 @@ import type { Deps } from '../src/deps.js';
 import type { RepoBundle } from '../src/db/repos.js';
 import { changeStatus, createApplication, getApplication } from '../src/services/applications.service.js';
 import { convertOpening, createOpening } from '../src/services/openings.service.js';
-import { getProfile, getRules, updateProfile, updateRules } from '../src/services/settings.service.js';
+import {
+  addKnownLocation,
+  getJobSources,
+  getKnownLocations,
+  getProfile,
+  getRules,
+  removeKnownLocation,
+  renameKnownLocation,
+  updateJobSources,
+  updateProfile,
+  updateRules,
+} from '../src/services/settings.service.js';
 import { autoGhostComment, runAutoGhost } from '../src/services/rules.service.js';
 import { rankOpenings, rankPostings } from '../src/services/fit.service.js';
 import { startBackgroundJobs } from '../src/jobs/scheduler.js';
@@ -29,15 +40,59 @@ describe('settings', () => {
   });
 
   it('merges a partial profile update into what is stored', async () => {
-    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] });
     const next = await updateProfile(repos, { salaryFloor: 700000 });
-    expect(next).toMatchObject({ targetTitles: ['Backend Engineer'], locations: ['Stockholm'], salaryFloor: 700000 });
-    expect(await repos.appSettings.count()).toBe(1);
+    expect(next).toMatchObject({ targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], salaryFloor: 700000 });
+    // One profile document, plus the known locations its ranked places joined.
+    expect(await repos.appSettings.count()).toBe(2);
   });
 
   it('reads a stored document that no longer fits the schema as unset, rather than failing', async () => {
     await repos.appSettings.create({ settingKey: 'rules', value: { autoGhostAfterDays: 'soon' } });
     expect(await getRules(repos)).toEqual({ defaultFollowUpDays: null, autoGhostAfterDays: null });
+  });
+
+  it('reads a profile saved with a flat location list as one priority level', async () => {
+    await repos.appSettings.create({ settingKey: 'profile', value: { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] } });
+    expect((await getProfile(repos)).locationTiers).toEqual([{ places: ['Stockholm'], share: 100 }]);
+  });
+
+  it('starts job sources from the defaults and replaces one list without touching the other', async () => {
+    const initial = await getJobSources(repos);
+    expect(initial.apis.map((source) => source.name)).toEqual(['JobTech Jobsearch']);
+    const next = await updateJobSources(repos, { platforms: [{ name: 'Jobbsafari', url: null, notes: null, enabled: false }] });
+    expect(next.platforms).toEqual([{ name: 'Jobbsafari', url: null, notes: null, enabled: false }]);
+    expect(next.apis).toEqual(initial.apis);
+  });
+
+  it('knows every ranked place, and places added ahead of ranking them', async () => {
+    await repos.appSettings.create({ settingKey: 'profile', value: { locations: ['Stockholm'] } });
+    expect((await getKnownLocations(repos)).places).toEqual(['Stockholm']);
+    await addKnownLocation(repos, 'Lund');
+    await updateProfile(repos, { locationTiers: [{ places: ['Stockholm', 'Göteborg'], share: 100 }] });
+    expect((await getKnownLocations(repos)).places).toEqual(['Göteborg', 'Lund', 'Stockholm']);
+  });
+
+  it('fixes a misspelled place in the known list and in the profile at once', async () => {
+    await updateProfile(repos, { locationTiers: [{ places: ['Stockholm'], share: 100 }, { places: ['Upsala'], share: 60 }] });
+    const { known, profile } = await renameKnownLocation(repos, 'Upsala', 'Uppsala');
+    expect(known.places).toEqual(['Stockholm', 'Uppsala']);
+    expect(profile.locationTiers).toEqual([{ places: ['Stockholm'], share: 100 }, { places: ['Uppsala'], share: 60 }]);
+    expect(await getProfile(repos)).toEqual(profile);
+  });
+
+  it('merges a rename onto a ranked place into the higher level', async () => {
+    await updateProfile(repos, { locationTiers: [{ places: ['Stockholm'], share: 100 }, { places: ['Sthlm'], share: 60 }] });
+    const { known, profile } = await renameKnownLocation(repos, 'Sthlm', 'stockholm');
+    expect(known.places).toEqual(['stockholm']);
+    expect(profile.locationTiers).toEqual([{ places: ['Stockholm'], share: 100 }]);
+  });
+
+  it('removes a place from the known list and from its level, dropping a level left empty', async () => {
+    await updateProfile(repos, { locationTiers: [{ places: ['Stockholm'], share: 100 }, { places: ['Malmö'], share: 60 }] });
+    const { known, profile } = await removeKnownLocation(repos, 'malmo');
+    expect(known.places).toEqual(['Stockholm']);
+    expect(profile.locationTiers).toEqual([{ places: ['Stockholm'], share: 100 }]);
   });
 
   it('does not count settings when deciding whether the database is empty', async () => {
@@ -154,7 +209,7 @@ describe('ranking openings by fit', () => {
   });
 
   it('scores every opening, sorts best first, and drops weak matches', async () => {
-    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locations: ['Stockholm'], workModes: ['hybrid', 'remote'] });
+    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], workModes: ['hybrid', 'remote'] });
 
     const ranked = await rankOpenings(repos, null, { sort: 'fit' });
     expect(ranked[0]).toMatchObject({ jobTitle: 'Senior Backend Engineer', fit: { score: 100 } });
@@ -195,7 +250,7 @@ describe('scoring postings that are not saved', () => {
   });
 
   it('ranks best first, keeps each input position, and reads the description', async () => {
-    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locations: ['Stockholm'], excludeKeywords: ['crypto'] });
+    await updateProfile(repos, { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], excludeKeywords: ['crypto'] });
     const result = await rankPostings(repos, deps.search, [
       posting({ jobTitle: 'Graphic Designer', location: 'Malmö' }),
       posting({ location: 'Stockholm', description: 'Build our crypto exchange.' }),
@@ -222,9 +277,9 @@ describe('over HTTP', () => {
   });
 
   it('saves a partial profile without wiping the rest, and ranks openings with it', async () => {
-    await app.inject({ method: 'PUT', url: '/api/profile', payload: { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] } });
+    await app.inject({ method: 'PUT', url: '/api/profile', payload: { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] } });
     const saved = await app.inject({ method: 'PUT', url: '/api/profile', payload: { salaryFloor: 650000 } });
-    expect(saved.json()).toMatchObject({ targetTitles: ['Backend Engineer'], locations: ['Stockholm'], salaryFloor: 650000 });
+    expect(saved.json()).toMatchObject({ targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], salaryFloor: 650000 });
 
     await createOpening(repos, openingInput({ jobTitle: 'Backend Engineer' }));
     const openings = await app.inject({ method: 'GET', url: '/api/openings?sort=fit' });
@@ -235,7 +290,7 @@ describe('over HTTP', () => {
     const noProfile = await app.inject({ method: 'POST', url: '/api/openings/score', payload: { postings: [{ jobTitle: 'Backend Engineer' }] } });
     expect(noProfile.json()).toMatchObject({ hasProfile: false, postings: [{ index: 0, fit: null }] });
 
-    await app.inject({ method: 'PUT', url: '/api/profile', payload: { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] } });
+    await app.inject({ method: 'PUT', url: '/api/profile', payload: { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] } });
     const scored = await app.inject({
       method: 'POST',
       url: '/api/openings/score',
@@ -252,6 +307,27 @@ describe('over HTTP', () => {
     expect(created.json().fit.score).toBeGreaterThan(0);
     const fetched = await app.inject({ method: 'GET', url: `/api/openings/${created.json().id}` });
     expect(fetched.json().fit).toEqual(created.json().fit);
+  });
+
+  it('refuses a profile with a place in two levels, and renames known locations', async () => {
+    const twice = await app.inject({
+      method: 'PUT',
+      url: '/api/profile',
+      payload: { locationTiers: [{ places: ['Stockholm'], share: 100 }, { places: ['Stockholm'], share: 50 }] },
+    });
+    expect(twice.statusCode).toBe(400);
+    await app.inject({ method: 'POST', url: '/api/known-locations', payload: { place: 'Upsala' } });
+    const renamed = await app.inject({ method: 'POST', url: '/api/known-locations/rename', payload: { from: 'Upsala', to: 'Uppsala' } });
+    expect(renamed.json().known.places).toEqual(['Uppsala']);
+    const removed = await app.inject({ method: 'POST', url: '/api/known-locations/remove', payload: { place: 'Uppsala' } });
+    expect(removed.json().known.places).toEqual([]);
+  });
+
+  it('reads and saves job sources', async () => {
+    expect((await app.inject({ method: 'GET', url: '/api/job-sources' })).json().platforms.length).toBeGreaterThan(0);
+    const saved = await app.inject({ method: 'PUT', url: '/api/job-sources', payload: { apis: [] } });
+    expect(saved.json().apis).toEqual([]);
+    expect((await app.inject({ method: 'PUT', url: '/api/job-sources', payload: { apis: [{ name: '' }] } })).statusCode).toBe(400);
   });
 
   it('rejects a rule outside its range, and previews and runs auto-ghost', async () => {

@@ -31,6 +31,8 @@ import {
 import {
   DatabaseOutlined,
   DesktopOutlined,
+  EnvironmentOutlined,
+  CompassOutlined,
   ExperimentOutlined,
   InboxOutlined,
   InfoCircleOutlined,
@@ -51,6 +53,8 @@ const DEMO = import.meta.env.VITE_DEMO === 'true';
 import { useClearDatabase, useDataStatus, useDbTargets, useMeta, useSeedDatabase, useSwitchDb } from '../api/hooks.js';
 import { ProfileCard } from '../components/ProfileCard.js';
 import { FitWeightsCard } from '../components/FitWeightsCard.js';
+import { JobSourcesCard } from '../components/JobSourcesCard.js';
+import { KnownLocationsCard } from '../components/KnownLocationsCard.js';
 import { AutomationCard } from '../components/AutomationCard.js';
 import { RememberCard } from '../components/RememberCard.js';
 import { LanguageCard } from '../components/LanguageCard.js';
@@ -424,7 +428,7 @@ function AboutCard() {
   );
 }
 
-const SETTINGS_TABS = ['profile', 'automation', 'browser', 'database', 'about'] as const;
+const SETTINGS_TABS = ['profile', 'sources', 'locations', 'automation', 'browser', 'database', 'about'] as const;
 type SettingsTab = (typeof SETTINGS_TABS)[number];
 
 export function SettingsPage() {
@@ -453,6 +457,29 @@ export function SettingsPage() {
                 <FitWeightsCard />
               </Space>
             ),
+          },
+          {
+            key: 'sources',
+            label: (
+              <span>
+                <CompassOutlined /> {t('tabs.sources')}
+              </span>
+            ),
+            children: (
+              <Space direction="vertical" size={16} style={{ width: '100%' }}>
+                <JobSourcesCard kind="platforms" />
+                <JobSourcesCard kind="apis" />
+              </Space>
+            ),
+          },
+          {
+            key: 'locations',
+            label: (
+              <span>
+                <EnvironmentOutlined /> {t('tabs.locations')}
+              </span>
+            ),
+            children: <KnownLocationsCard />,
           },
           {
             key: 'automation',

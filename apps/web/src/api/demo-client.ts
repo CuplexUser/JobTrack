@@ -42,6 +42,10 @@ import {
   duplicateCheckSchema,
   exportQuerySchema,
   fitWeightsPatchSchema,
+  jobSourcesPatchSchema,
+  knownLocationAddSchema,
+  knownLocationRemoveSchema,
+  knownLocationRenameSchema,
   languagePatchSchema,
   linkContactSchema,
   linkedInImportSchema,
@@ -91,11 +95,17 @@ import { getDashboard } from '@jobtrack/api/services/dashboard';
 import { getStatistics } from '@jobtrack/api/services/statistics';
 import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
 import {
+  addKnownLocation,
   getFitWeights,
+  getJobSources,
+  getKnownLocations,
   getLanguage,
   getProfile,
   getRules,
+  removeKnownLocation,
+  renameKnownLocation,
   updateFitWeights,
+  updateJobSources,
   updateLanguage,
   updateProfile,
   updateRules,
@@ -776,6 +786,51 @@ export const demoApi: typeof httpApi = {
       const weights = await updateFitWeights(repos, fitWeightsPatchSchema.parse(body));
       await persist(repos);
       return weights;
+    }),
+
+  getKnownLocations: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getKnownLocations(repos);
+    }),
+
+  addKnownLocation: (place) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const known = await addKnownLocation(repos, knownLocationAddSchema.parse({ place }).place);
+      await persist(repos);
+      return known;
+    }),
+
+  renameKnownLocation: (from, to) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const input = knownLocationRenameSchema.parse({ from, to });
+      const change = await renameKnownLocation(repos, input.from, input.to);
+      await persist(repos);
+      return change;
+    }),
+
+  removeKnownLocation: (place) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const change = await removeKnownLocation(repos, knownLocationRemoveSchema.parse({ place }).place);
+      await persist(repos);
+      return change;
+    }),
+
+  getJobSources: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getJobSources(repos);
+    }),
+
+  updateJobSources: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const sources = await updateJobSources(repos, jobSourcesPatchSchema.parse(body));
+      await persist(repos);
+      return sources;
     }),
 
   getLanguage: () =>

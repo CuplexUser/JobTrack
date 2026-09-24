@@ -9,13 +9,14 @@
 import { useEffect } from 'react';
 import { App as AntApp, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { WORK_MODES, WORK_MODE_LABELS, type Profile, type WorkMode } from '@jobtrack/shared';
+import { WORK_MODES, WORK_MODE_LABELS, type LocationTier, type Profile, type WorkMode } from '@jobtrack/shared';
 import { useProfile, useSaveProfile } from '../api/hooks.js';
+import { LocationTiersInput } from './LocationTiersInput.js';
 
 interface FormValues {
   summary?: string;
   targetTitles: string[];
-  locations: string[];
+  locationTiers: LocationTier[];
   workModes: WorkMode[];
   salaryFloor?: number | null;
   salaryCurrency?: string;
@@ -40,7 +41,7 @@ export function ProfileCard() {
     form.setFieldsValue({
       summary: data.summary ?? undefined,
       targetTitles: data.targetTitles,
-      locations: data.locations,
+      locationTiers: data.locationTiers,
       workModes: data.workModes,
       salaryFloor: data.salaryFloor,
       salaryCurrency: data.salaryCurrency ?? undefined,
@@ -53,7 +54,7 @@ export function ProfileCard() {
     const body: Profile = {
       summary: values.summary?.trim() || null,
       targetTitles: values.targetTitles ?? [],
-      locations: values.locations ?? [],
+      locationTiers: (values.locationTiers ?? []).filter((tier) => tier.places.length > 0),
       workModes: values.workModes ?? [],
       salaryFloor: values.salaryFloor ?? null,
       salaryCurrency: values.salaryCurrency?.trim() || null,
@@ -80,18 +81,13 @@ export function ProfileCard() {
             <Input.TextArea rows={6} placeholder={t('profile.aboutYou.placeholder')} />
           </Form.Item>
 
-          <Row gutter={12}>
-            <Col xs={24} md={12}>
-              <Form.Item name="targetTitles" label={t('profile.targetTitles.label')}>
-                <ListInput placeholder={t('profile.targetTitles.placeholder')} />
-              </Form.Item>
-            </Col>
-            <Col xs={24} md={12}>
-              <Form.Item name="locations" label={t('profile.locations.label')}>
-                <ListInput placeholder={t('profile.locations.placeholder')} />
-              </Form.Item>
-            </Col>
-          </Row>
+          <Form.Item name="targetTitles" label={t('profile.targetTitles.label')}>
+            <ListInput placeholder={t('profile.targetTitles.placeholder')} />
+          </Form.Item>
+
+          <Form.Item name="locationTiers" label={t('profile.locationTiers.label')} tooltip={t('profile.locationTiers.tooltip')}>
+            <LocationTiersInput />
+          </Form.Item>
 
           <Row gutter={12}>
             <Col xs={24} md={12}>

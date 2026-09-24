@@ -23,7 +23,8 @@ import type { JobOpeningView, WorkMode } from './types.js';
 export interface FitProfile {
   summary: string | null;
   targetTitles: readonly string[];
-  locations: readonly string[];
+  /** Preferred locations in priority levels, best first; see `locationTierSchema`. */
+  locationTiers: readonly { places: readonly string[]; share: number }[];
   workModes: readonly WorkMode[];
   salaryFloor: number | null;
   salaryCurrency: string | null;
@@ -93,7 +94,7 @@ export function hasFitCriteria(profile: FitProfile): boolean {
   return (
     Boolean(profile.summary?.trim()) ||
     profile.targetTitles.length > 0 ||
-    profile.locations.length > 0 ||
+    profile.locationTiers.some((tier) => tier.places.length > 0) ||
     profile.workModes.length > 0 ||
     profile.salaryFloor !== null ||
     profile.includeKeywords.length > 0 ||
@@ -183,15 +184,31 @@ export function scoreFit(
     }
   }
 
-  if (profile.locations.length > 0) {
+  if (profile.locationTiers.some((tier) => tier.places.length > 0)) {
     possible += weights.location;
     const where = posting.location ? locationKey(posting.location) : '';
-    const matched = profile.locations.find((place) => where.includes(locationKey(place)));
-    if (matched) {
-      earned += weights.location;
-      reasons.push({ factor: 'location', effect: 'plus', label: `In ${matched}`, i18nKey: 'location.matched', i18nParams: { place: matched } });
-    } else if (posting.workMode === 'remote' && profile.workModes.includes('remote')) {
-      // A remote role is in every location the user is willing to work remotely from.
+    // The best level the posting is in wins; a level only scales the location weight, so
+    // priorities never reach into the rest of the score.
+    const tierIndex = where ? profile.locationTiers.findIndex((tier) => tier.places.some((place) => where.includes(locationKey(place)))) : -1;
+    const tier = tierIndex >= 0 ? profile.locationTiers[tierIndex]! : null;
+    const matched = tier?.places.find((place) => where.includes(locationKey(place)));
+    // A remote role is in every location the user is willing to work remotely from, so it
+    // must never score worse for also naming a lower-priority city.
+    const remoteOk = posting.workMode === 'remote' && profile.workModes.includes('remote');
+    if (tier && matched && !(remoteOk && tier.share < 100)) {
+      earned += (weights.location * tier.share) / 100;
+      reasons.push(
+        tier.share === 100
+          ? { factor: 'location', effect: 'plus', label: `In ${matched}`, i18nKey: 'location.matched', i18nParams: { place: matched } }
+          : {
+              factor: 'location',
+              effect: tier.share > 0 ? 'plus' : 'neutral',
+              label: `In ${matched}, priority ${tierIndex + 1} (${tier.share}%)`,
+              i18nKey: 'location.matchedTier',
+              i18nParams: { place: matched, tier: tierIndex + 1, share: tier.share },
+            },
+      );
+    } else if (remoteOk) {
       earned += weights.location;
       reasons.push({ factor: 'location', effect: 'plus', label: 'Remote, so location does not matter', i18nKey: 'location.remote' });
     } else if (!posting.location) {

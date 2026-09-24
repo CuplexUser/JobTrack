@@ -8,11 +8,22 @@
  */
 
 import {
+  dedupeLocationTiers,
   fitWeightsSchema,
+  jobSourcesSchema,
+  knownLocationsSchema,
+  locationKey,
+  mergePlaces,
+  rankedPlaces,
+  renamePlace,
+  withoutPlace,
   languageSchema,
   profileSchema,
   rulesSchema,
   type FitWeights,
+  type JobSources,
+  type KnownLocationChange,
+  type KnownLocations,
   type Language,
   type Profile,
   type Rules,
@@ -24,6 +35,8 @@ const PROFILE_KEY = 'profile';
 const RULES_KEY = 'rules';
 const FIT_WEIGHTS_KEY = 'fitWeights';
 const LANGUAGE_KEY = 'language';
+const JOB_SOURCES_KEY = 'jobSources';
+const KNOWN_LOCATIONS_KEY = 'knownLocations';
 
 async function readSetting<S extends z.ZodType>(repos: Repos, key: string, schema: S): Promise<z.output<S>> {
   const row = await repos.appSettings.findOne({ where: { settingKey: key } });
@@ -53,6 +66,8 @@ export async function getProfile(repos: Repos): Promise<Profile> {
 export async function updateProfile(repos: Repos, patch: Partial<Profile>): Promise<Profile> {
   const next = profileSchema.parse({ ...(await getProfile(repos)), ...sentFields(patch) });
   await writeSetting(repos, PROFILE_KEY, next);
+  // A place typed straight into a level becomes one the Locations tab can offer and tidy.
+  if (patch.locationTiers) await writeKnownPlaces(repos, mergePlaces(await storedKnownPlaces(repos), rankedPlaces(next.locationTiers)));
   return next;
 }
 
@@ -93,4 +108,68 @@ export async function updateLanguage(repos: Repos, patch: Partial<Language>): Pr
   const next = languageSchema.parse({ ...(await getLanguage(repos)), ...sentFields(patch) });
   await writeSetting(repos, LANGUAGE_KEY, next);
   return next;
+}
+
+/** The job platforms and APIs the user searches, each list best first. */
+export async function getJobSources(repos: Repos): Promise<JobSources> {
+  return readSetting(repos, JOB_SOURCES_KEY, jobSourcesSchema);
+}
+
+/** A list sent replaces the stored one as a whole; a list left out is kept. */
+export async function updateJobSources(repos: Repos, patch: Partial<JobSources>): Promise<JobSources> {
+  const next = jobSourcesSchema.parse({ ...(await getJobSources(repos)), ...sentFields(patch) });
+  await writeSetting(repos, JOB_SOURCES_KEY, next);
+  return next;
+}
+
+async function storedKnownPlaces(repos: Repos): Promise<string[]> {
+  return (await readSetting(repos, KNOWN_LOCATIONS_KEY, knownLocationsSchema)).places;
+}
+
+async function writeKnownPlaces(repos: Repos, places: string[]): Promise<void> {
+  await writeSetting(repos, KNOWN_LOCATIONS_KEY, knownLocationsSchema.parse({ places }));
+}
+
+/**
+ * Every place the user has added or ranked, one entry per place, alphabetical. Ranked places
+ * are folded in on read too, so a profile saved before this list existed still shows its
+ * places here.
+ */
+export async function getKnownLocations(repos: Repos): Promise<KnownLocations> {
+  const [stored, profile] = await Promise.all([storedKnownPlaces(repos), getProfile(repos)]);
+  return { places: mergePlaces(stored, rankedPlaces(profile.locationTiers)) };
+}
+
+export async function addKnownLocation(repos: Repos, place: string): Promise<KnownLocations> {
+  const places = mergePlaces((await getKnownLocations(repos)).places, [place]);
+  await writeKnownPlaces(repos, places);
+  return { places };
+}
+
+/**
+ * Fix a place's spelling everywhere: in the known list and in whichever priority level holds
+ * it. Renaming onto a place that already exists merges the two, keeping the higher priority.
+ */
+export async function renameKnownLocation(repos: Repos, from: string, to: string): Promise<KnownLocationChange> {
+  const fromKey = locationKey(from);
+  const known = (await getKnownLocations(repos)).places.filter((place) => locationKey(place) !== fromKey);
+  const profile = await getProfile(repos);
+  const nextProfile = profileSchema.parse({ ...profile, locationTiers: renamePlace(profile.locationTiers, from, to) });
+  await writeSetting(repos, PROFILE_KEY, nextProfile);
+  // The new spelling replaces any existing entry for the same place, so a case fix sticks.
+  const toKey = locationKey(to);
+  const places = mergePlaces([to], known.filter((place) => locationKey(place) !== toKey));
+  await writeKnownPlaces(repos, places);
+  return { known: { places }, profile: nextProfile };
+}
+
+/** Forget a place: out of the known list, and out of the priority level that held it. */
+export async function removeKnownLocation(repos: Repos, place: string): Promise<KnownLocationChange> {
+  const key = locationKey(place);
+  const places = (await getKnownLocations(repos)).places.filter((p) => locationKey(p) !== key);
+  const profile = await getProfile(repos);
+  const nextProfile = profileSchema.parse({ ...profile, locationTiers: dedupeLocationTiers(withoutPlace(profile.locationTiers, place)) });
+  await writeSetting(repos, PROFILE_KEY, nextProfile);
+  await writeKnownPlaces(repos, places);
+  return { known: { places }, profile: nextProfile };
 }

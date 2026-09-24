@@ -20,6 +20,7 @@ function userPrompt(text: string): GetPromptResult {
 export const PROMPT_NAMES = [
   'weekly_review',
   'triage_openings',
+  'find_openings',
   'log_email_update',
   'prepare_application',
   'interview_prep',
@@ -59,6 +60,22 @@ Keep it concise and do not change anything I have not agreed to.`),
 2. For each opening, call check_duplicate with its company and title so you know whether I have applied there before and how that went (get_application on a prior match if it matters).
 3. Give me a table: company, title, location, how long it has been saved, prior history at the company, who I know there (the contacts check_duplicate returns), and your recommendation (apply / research first / archive) with a one-line reason.
 4. Then ask me what to do. For the ones I want to apply to, call convert_opening_to_application. For the ones I want gone, call update_opening with archived: true. Do nothing without my go-ahead.`),
+  );
+
+  server.registerPrompt(
+    'find_openings',
+    {
+      title: 'Find new openings',
+      description: 'Search the job platforms and APIs you listed, in your priority order, and suggest the postings that fit.',
+    },
+    () =>
+      userPrompt(`Find new job openings for me.
+
+1. Call get_profile to learn what I am looking for, and get_job_sources for where to look. If my profile is empty, stop and suggest I fill it in first (Settings in JobTrack, or update_profile).
+2. Search the sources in priority order, APIs and platforms alike, following each one's notes. Use whatever search or fetch tools you have; if you cannot reach a source, say so and move on. Search my target titles in my top-priority locations first.
+3. Call score_postings on what you found (with the description when you have it), then call check_duplicate on the best ones so you skip anything I already have.
+4. Give me a table of the ten best: company, title, location, source, fit score with its main reasons, and the link.
+5. Ask which to save. Only for the ones I pick, call capture_posting with the link, or create_opening when there is no link that can be read.`),
   );
 
   server.registerPrompt(

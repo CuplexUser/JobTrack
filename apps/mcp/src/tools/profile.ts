@@ -21,7 +21,7 @@ export function registerProfileTools(server: McpServer, deps: Deps): void {
     'get_profile',
     {
       description:
-        "The user's job search profile: a summary of their experience, target job titles, preferred locations and work modes, salary floor, and keywords to look for or avoid. Empty fields are simply not used when ranking.",
+        "The user's job search profile: a summary of their experience, target job titles, preferred locations (`locationTiers`: priority levels, best first) and work modes, salary floor, and keywords to look for or avoid. Empty fields are simply not used when ranking.",
       inputSchema: z.object({}),
     },
     async () => jsonResult(await getProfile(repos)),
@@ -31,7 +31,7 @@ export function registerProfileTools(server: McpServer, deps: Deps): void {
     'update_profile',
     {
       description:
-        "Change parts of the user's profile. Only the fields given are changed; lists are replaced as a whole, so to add a target title, send the existing titles plus the new one (call get_profile first). Confirm with the user before changing what they are looking for.",
+        "Change parts of the user's profile. Only the fields given are changed; lists are replaced as a whole, so to add a target title, send the existing titles plus the new one (call get_profile first). `locationTiers` is a list of priority levels, best first: a place may be in one level only, every place in one level counts the same, and `share` (0 to 100) is the percent of the location fit weight a posting in that level earns, e.g. [{ places: ['Stockholm'], share: 100 }, { places: ['Uppsala', 'Västerås'], share: 60 }]. Confirm with the user before changing what they are looking for.",
       inputSchema: profilePatchSchema,
     },
     async (patch) => jsonResult(await updateProfile(repos, patch)),

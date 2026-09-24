@@ -24,6 +24,7 @@ import { registerAgendaTool } from '../src/tools/agenda.js';
 import { registerCaptureTool } from '../src/tools/capture.js';
 import { registerContactTools } from '../src/tools/contacts.js';
 import { registerProfileTools } from '../src/tools/profile.js';
+import { registerSourceTools } from '../src/tools/sources.js';
 import { PROMPT_NAMES, registerPrompts } from '../src/prompts.js';
 
 let deps: Deps;
@@ -43,6 +44,7 @@ beforeEach(async () => {
   registerCaptureTool(server, deps);
   registerContactTools(server, deps);
   registerProfileTools(server, deps);
+  registerSourceTools(server, deps);
   registerPrompts(server);
 
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
@@ -103,6 +105,8 @@ describe('discovery', () => {
       'update_profile',
       'rank_openings',
       'score_postings',
+      'get_job_sources',
+      'update_job_sources',
       'get_statistics',
     ]) {
       expect(names).toContain(name);
@@ -313,11 +317,22 @@ describe('people', () => {
 });
 
 describe('profile and fit', () => {
+  it('scores a lower-priority location for part of the location weight', async () => {
+    await call('update_profile', {
+      locationTiers: [
+        { places: ['Stockholm'], share: 100 },
+        { places: ['Uppsala'], share: 40 },
+      ],
+    });
+    const { body } = await call('score_postings', { postings: [{ jobTitle: 'Backend Engineer', location: 'Uppsala' }] });
+    expect(body.postings[0].fit.score).toBe(40);
+  });
+
   it('updates part of the profile without touching the rest', async () => {
-    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] });
     const { body } = await call('update_profile', { salaryFloor: 700000 });
-    expect(body).toMatchObject({ targetTitles: ['Backend Engineer'], locations: ['Stockholm'], salaryFloor: 700000 });
-    expect((await call('get_profile')).body.locations).toEqual(['Stockholm']);
+    expect(body).toMatchObject({ targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], salaryFloor: 700000 });
+    expect((await call('get_profile')).body.locationTiers).toEqual([{ places: ['Stockholm'], share: 100 }]);
   });
 
   it('ranks openings best first with readable reasons, and says when there is no profile', async () => {
@@ -327,7 +342,7 @@ describe('profile and fit', () => {
     const before = await call('rank_openings');
     expect(before.body.hasProfile).toBe(false);
 
-    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] });
     const after = await call('rank_openings', { limit: 5 });
     expect(after.body.hasProfile).toBe(true);
     expect(after.body.openings[0]).toMatchObject({ company: 'Spotify', fit: { score: 100 } });
@@ -341,7 +356,7 @@ describe('profile and fit', () => {
     const before = await call('score_postings', { postings: [{ jobTitle: 'Backend Engineer' }] });
     expect(before.body).toEqual({ hasProfile: false, postings: [{ index: 0, jobTitle: 'Backend Engineer' }] });
 
-    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'], excludeKeywords: ['crypto'] });
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }], excludeKeywords: ['crypto'] });
     const { body } = await call('score_postings', {
       postings: [
         { companyName: 'Axis', jobTitle: 'Graphic Designer', location: 'Lund' },
@@ -358,7 +373,7 @@ describe('profile and fit', () => {
   });
 
   it('carries fit on a captured draft and on a single opening', async () => {
-    await call('update_profile', { targetTitles: ['Backend Engineer'], locations: ['Stockholm'] });
+    await call('update_profile', { targetTitles: ['Backend Engineer'], locationTiers: [{ places: ['Stockholm'], share: 100 }] });
 
     const captured = await call('capture_posting', { text: POSTING });
     expect(captured.body.saved).toBe(false);
@@ -367,5 +382,28 @@ describe('profile and fit', () => {
     const created = await call('create_opening', { companyName: 'Axis', jobTitle: 'Graphic Designer', location: 'Lund' });
     expect(created.body.fit.reasons).toContain('- Title is not one you are looking for');
     expect((await call('get_opening', { id: created.body.id })).body.fit).toEqual(created.body.fit);
+  });
+});
+
+describe('job sources', () => {
+  it('lists enabled sources in priority order, and replaces one list without touching the other', async () => {
+    const initial = (await call('get_job_sources')).body;
+    expect(initial.apis[0]).toMatchObject({ priority: 1, name: 'JobTech Jobsearch' });
+
+    await call('update_job_sources', {
+      platforms: [
+        { name: 'Jobbsafari', url: 'https://jobbsafari.se/', enabled: false },
+        { name: 'Platsbanken', url: 'https://arbetsformedlingen.se/platsbanken/' },
+      ],
+    });
+    const enabled = (await call('get_job_sources')).body;
+    expect(enabled.platforms).toEqual([
+      { priority: 1, name: 'Platsbanken', url: 'https://arbetsformedlingen.se/platsbanken/', notes: null, enabled: true },
+    ]);
+    expect(enabled.apis).toEqual(initial.apis);
+    expect((await call('get_job_sources', { includeDisabled: true })).body.platforms.map((p: { name: string }) => p.name)).toEqual([
+      'Jobbsafari',
+      'Platsbanken',
+    ]);
   });
 });

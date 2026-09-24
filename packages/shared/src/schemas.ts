@@ -17,6 +17,7 @@ import {
   LINK_TARGETS,
 } from './types.js';
 import { STATISTICS_GRANULARITIES } from './statistics.js';
+import { dedupeLocationTiers, duplicatePlace } from './locations.js';
 
 /** A calendar day. Kept as a string end to end; see periods.ts for why. */
 export const dateOnly = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, 'Expected a YYYY-MM-DD date');
@@ -552,28 +553,114 @@ export const linkContactSchema = z.object({
 
 const shortList = (max: number) => z.array(z.string().trim().min(1).max(200)).max(max);
 
+/** Most places the profile can list, across every priority level. */
+export const MAX_PROFILE_LOCATIONS = 50;
+
+/** Most priority levels the profile's locations can be split into. */
+export const MAX_LOCATION_TIERS = 10;
+
+/**
+ * One priority level of preferred locations. Every place in a level counts the same, and a
+ * posting in one of them earns `share` percent of the location fit weight. Levels are listed
+ * best first, so the first level a posting matches is the one that counts.
+ */
+export const locationTierSchema = z.object({
+  places: shortList(MAX_PROFILE_LOCATIONS).min(1),
+  /** Percent of the location fit weight a posting in one of these places earns. */
+  share: z.number().int().min(0).max(100).default(100),
+});
+
+export type LocationTier = z.output<typeof locationTierSchema>;
+
+const locationTierList = z
+  .array(locationTierSchema)
+  .max(MAX_LOCATION_TIERS)
+  .refine((tiers) => tiers.reduce((total, tier) => total + tier.places.length, 0) <= MAX_PROFILE_LOCATIONS, {
+    message: `At most ${MAX_PROFILE_LOCATIONS} locations in total`,
+  });
+
+/** What a save must satisfy on top of `locationTierList`: every place in one level only. */
+const uniqueLocationTierList = locationTierList.superRefine((tiers, ctx) => {
+  const duplicate = duplicatePlace(tiers);
+  if (duplicate) ctx.addIssue({ code: 'custom', message: `${duplicate} is in more than one priority level; keep it in one` });
+});
+
+/**
+ * A profile stored before locations had priority levels kept them as a flat `locations` list,
+ * every one worth full marks. Read that back as a single level at 100%, so an upgrade scores
+ * every opening exactly as before.
+ */
+function migrateLegacyLocations(value: unknown): unknown {
+  if (!value || typeof value !== 'object' || !('locations' in value)) return value;
+  const { locations, ...rest } = value as Record<string, unknown>;
+  if (rest.locationTiers !== undefined || !Array.isArray(locations)) return rest;
+  return { ...rest, locationTiers: locations.length > 0 ? [{ places: locations, share: 100 }] : [] };
+}
+
+/**
+ * A place saved in two levels, before that was refused, is kept in the higher one rather
+ * than failing the whole profile, which would read back as unset and lose everything in it.
+ */
+function keepPlacesInOneLevel(value: unknown): unknown {
+  if (!value || typeof value !== 'object') return value;
+  const tiers = (value as Record<string, unknown>).locationTiers;
+  const wellFormed =
+    Array.isArray(tiers) &&
+    tiers.every((tier) => tier && typeof tier === 'object' && Array.isArray(tier.places) && tier.places.every((p: unknown) => typeof p === 'string'));
+  return wellFormed ? { ...value, locationTiers: dedupeLocationTiers(tiers) } : value;
+}
+
 /**
  * What the user is looking for, used to rank openings by fit. Every part is optional, and a
  * part left empty is simply not scored.
  */
-export const profileSchema = z.object({
-  /** A CV or a few paragraphs about the user's experience, compared against posting text by meaning. */
-  summary: optionalTrimmed(50000),
-  targetTitles: shortList(20).default([]),
-  locations: shortList(20).default([]),
-  workModes: z.array(workModeSchema).max(4).default([]),
-  salaryFloor: z
-    .number()
-    .int()
-    .nonnegative()
-    .nullish()
-    .transform((v) => v ?? null),
-  salaryCurrency: optionalTrimmed(8),
-  includeKeywords: shortList(30).default([]),
-  excludeKeywords: shortList(30).default([]),
-});
+export const profileSchema = z.preprocess(
+  (value) => keepPlacesInOneLevel(migrateLegacyLocations(value)),
+  z.object({
+    /** A CV or a few paragraphs about the user's experience, compared against posting text by meaning. */
+    summary: optionalTrimmed(50000),
+    targetTitles: shortList(20).default([]),
+    /** Preferred locations in priority levels, best first. */
+    locationTiers: locationTierList.default([]),
+    workModes: z.array(workModeSchema).max(4).default([]),
+    salaryFloor: z
+      .number()
+      .int()
+      .nonnegative()
+      .nullish()
+      .transform((v) => v ?? null),
+    salaryCurrency: optionalTrimmed(8),
+    includeKeywords: shortList(30).default([]),
+    excludeKeywords: shortList(30).default([]),
+  }),
+);
 
 export type Profile = z.output<typeof profileSchema>;
+
+const knownPlace = z.string().trim().min(1).max(200);
+
+/**
+ * Places the user has used or added, offered when they type a location into a priority level.
+ * Every ranked place is also known (the API adds it on save), so this is the full vocabulary
+ * the Locations tab lets them tidy: fix a misspelling once and it is fixed everywhere.
+ */
+export const knownLocationsSchema = z.object({
+  places: z.array(knownPlace).max(1000).default([]),
+});
+
+export type KnownLocations = z.output<typeof knownLocationsSchema>;
+
+/** What a rename or removal changed: both lists, since either can reach into the profile. */
+export interface KnownLocationChange {
+  known: KnownLocations;
+  profile: Profile;
+}
+
+export const knownLocationAddSchema = z.object({ place: knownPlace });
+
+export const knownLocationRenameSchema = z.object({ from: knownPlace, to: knownPlace });
+
+export const knownLocationRemoveSchema = z.object({ place: knownPlace });
 
 /**
  * Changing some of the profile. Fields left out keep their stored value.
@@ -585,7 +672,8 @@ export type Profile = z.output<typeof profileSchema>;
 export const profilePatchSchema = z.object({
   summary: optionalTrimmed(50000).optional(),
   targetTitles: shortList(20).optional(),
-  locations: shortList(20).optional(),
+  /** Replaced as a whole: send every level, best first, each place in one level only. */
+  locationTiers: uniqueLocationTierList.optional(),
   workModes: z.array(workModeSchema).max(4).optional(),
   salaryFloor: z.number().int().nonnegative().nullish(),
   salaryCurrency: optionalTrimmed(8).optional(),
@@ -611,6 +699,54 @@ export const languagePatchSchema = z.object({
 });
 
 export type Language = z.output<typeof languageSchema>;
+
+/**
+ * A place the user looks for jobs: a job board they browse, or an API an assistant can query.
+ * Reference only. JobTrack does not call these itself; they tell an assistant (over MCP) where
+ * to search and in what order, and remind the user of the same in Settings.
+ */
+export const jobSourceSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  url: optionalTrimmed(2000),
+  /** How to use it: search tips, filters worth setting, what it is good for. */
+  notes: optionalTrimmed(2000),
+  /** A source switched off is kept for later but not suggested for searching. */
+  enabled: z.boolean().default(true),
+});
+
+export type JobSource = z.output<typeof jobSourceSchema>;
+
+const jobSourceList = z.array(jobSourceSchema).max(50);
+
+/** What a fresh install starts with, until the lists are first saved. */
+export const DEFAULT_JOB_PLATFORMS: JobSource[] = [
+  { name: 'Platsbanken', url: 'https://arbetsformedlingen.se/platsbanken/', notes: null, enabled: true },
+  { name: 'LinkedIn Jobs', url: 'https://www.linkedin.com/jobs/', notes: null, enabled: true },
+  { name: 'Indeed', url: 'https://se.indeed.com/', notes: null, enabled: true },
+];
+
+export const DEFAULT_JOB_APIS: JobSource[] = [
+  {
+    name: 'JobTech Jobsearch',
+    url: 'https://jobsearch.api.jobtechdev.se/',
+    notes: "Arbetsförmedlingen's open API over every ad in Platsbanken. No key needed for searching.",
+    enabled: true,
+  },
+];
+
+/** Job platforms and APIs, each list best first. */
+export const jobSourcesSchema = z.object({
+  platforms: jobSourceList.default(() => DEFAULT_JOB_PLATFORMS.map((source) => ({ ...source }))),
+  apis: jobSourceList.default(() => DEFAULT_JOB_APIS.map((source) => ({ ...source }))),
+});
+
+export type JobSources = z.output<typeof jobSourcesSchema>;
+
+/** Either list, replaced as a whole. A list left out keeps its stored value. */
+export const jobSourcesPatchSchema = z.object({
+  platforms: jobSourceList.optional(),
+  apis: jobSourceList.optional(),
+});
 
 /**
  * Automation the user opts into. Both are off (null) until switched on, because each one

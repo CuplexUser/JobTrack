@@ -37,6 +37,7 @@ import { registerAgendaTool } from './tools/agenda.js';
 import { registerCaptureTool } from './tools/capture.js';
 import { registerContactTools } from './tools/contacts.js';
 import { registerProfileTools } from './tools/profile.js';
+import { registerSourceTools } from './tools/sources.js';
 import { registerPrompts } from './prompts.js';
 import { MCP_VERSION } from './version.js';
 
@@ -81,6 +82,7 @@ registerAgendaTool(server, deps);
 registerCaptureTool(server, deps);
 registerContactTools(server, deps);
 registerProfileTools(server, deps);
+registerSourceTools(server, deps);
 registerPrompts(server);
 
 const transport = new StdioServerTransport();

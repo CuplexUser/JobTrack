@@ -19,9 +19,11 @@ of days (`get_statistics`), change several
 statuses at once (`bulk_change_status`) and sweep for duplicates (`find_duplicate_groups`).
 It knows what you are looking for (`get_profile`, `update_profile`), ranks your saved
 openings against it (`rank_openings`) and scores postings before you save them
-(`score_postings`), so it can tell which of the jobs it finds are worth adding. It keeps track of your network too (`list_contacts`, `log_interaction`, `link_contact` and
+(`score_postings`), so it can tell which of the jobs it finds are worth adding. It knows where you
+search, too: the job platforms and APIs you listed in Settings, in your priority order
+(`get_job_sources`, `update_job_sources`). It keeps track of your network too (`list_contacts`, `log_interaction`, `link_contact` and
 friends), and `check_duplicate` names who you know at a company. It also ships prompts for
-the routine chores: `weekly_review`, `triage_openings`, `log_email_update`,
+the routine chores: `weekly_review`, `triage_openings`, `find_openings`, `log_email_update`,
 `prepare_application`, `interview_prep` and `draft_outreach`.
 
 ## Install

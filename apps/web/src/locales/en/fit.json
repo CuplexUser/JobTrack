@@ -7,6 +7,7 @@
   "summary.far": "Reads far from your profile",
 
   "location.matched": "In {{place}}",
+  "location.matchedTier": "In {{place}}, priority {{tier}} ({{share}}%)",
   "location.remote": "Remote, so location does not matter",
   "location.notStated": "Location not stated",
   "location.mismatch": "In {{location}}, not a place you listed",

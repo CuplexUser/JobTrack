@@ -14,6 +14,7 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
+import type { KnownLocationChange } from '@jobtrack/shared';
 import { api } from './index.js';
 
 export const keys = {
@@ -38,6 +39,8 @@ export const keys = {
   profile: () => ['profile'] as const,
   rules: () => ['rules'] as const,
   fitWeights: () => ['fit-weights'] as const,
+  jobSources: () => ['job-sources'] as const,
+  knownLocations: () => ['known-locations'] as const,
   language: () => ['language'] as const,
   autoGhostPreview: () => ['rules', 'auto-ghost'] as const,
   contact: (id: string) => ['contact', id] as const,
@@ -452,8 +455,44 @@ export function useSaveProfile() {
     onSuccess: (profile) => {
       client.setQueryData(keys.profile(), profile);
       void client.invalidateQueries({ queryKey: ['openings'] });
+      // Places typed into a level on save join the known list.
+      void client.invalidateQueries({ queryKey: keys.knownLocations() });
     },
   });
+}
+
+/** Places offered when typing a location into the profile. */
+export function useKnownLocations() {
+  return useQuery({ queryKey: keys.knownLocations(), queryFn: () => api.getKnownLocations() });
+}
+
+export function useAddKnownLocation() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (place: string) => api.addKnownLocation(place),
+    onSuccess: (known) => client.setQueryData(keys.knownLocations(), known),
+  });
+}
+
+/** A rename or removal also reaches into the profile's levels, and so into every fit. */
+function useKnownLocationChange<T>(mutationFn: (input: T) => Promise<KnownLocationChange>) {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn,
+    onSuccess: ({ known, profile }) => {
+      client.setQueryData(keys.knownLocations(), known);
+      client.setQueryData(keys.profile(), profile);
+      void client.invalidateQueries({ queryKey: ['openings'] });
+    },
+  });
+}
+
+export function useRenameKnownLocation() {
+  return useKnownLocationChange(({ from, to }: { from: string; to: string }) => api.renameKnownLocation(from, to));
+}
+
+export function useRemoveKnownLocation() {
+  return useKnownLocationChange((place: string) => api.removeKnownLocation(place));
 }
 
 export function useRules() {
@@ -481,6 +520,19 @@ export function useSaveFitWeights() {
       client.setQueryData(keys.fitWeights(), weights);
       void client.invalidateQueries({ queryKey: ['openings'] });
     },
+  });
+}
+
+/** The job platforms and APIs the user searches, each list best first. */
+export function useJobSources() {
+  return useQuery({ queryKey: keys.jobSources(), queryFn: () => api.getJobSources() });
+}
+
+export function useSaveJobSources() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateJobSources(body),
+    onSuccess: (sources) => client.setQueryData(keys.jobSources(), sources),
   });
 }
 
