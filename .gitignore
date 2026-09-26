@@ -18,6 +18,7 @@ publish-plan.json
 *.db-wal
 data/active-db.json
 data/api-token
+data/
 
 # Transformers.js model cache
 .cache/
