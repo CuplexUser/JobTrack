@@ -37,6 +37,7 @@
             <ui:NavigationView.MenuItems>
                 <ui:NavigationViewItem Content="{loc:Loc general.title}" Icon="{ui:SymbolIcon Settings24}" TargetPageType="{x:Type settings:GeneralPage}" />
                 <ui:NavigationViewItem Content="{loc:Loc database.title}" Icon="{ui:SymbolIcon Database24}" TargetPageType="{x:Type settings:DatabasePage}" />
+                <ui:NavigationViewItem Content="{loc:Loc backup.title}" Icon="{ui:SymbolIcon CloudArrowUp24}" TargetPageType="{x:Type settings:BackupPage}" />
                 <ui:NavigationViewItem Content="{loc:Loc search.title}" Icon="{ui:SymbolIcon Search24}" TargetPageType="{x:Type settings:SearchPage}" />
                 <ui:NavigationViewItem Content="{loc:Loc access.title}" Icon="{ui:SymbolIcon ShieldKeyhole24}" TargetPageType="{x:Type settings:AccessPage}" />
                 <ui:NavigationViewItem Content="{loc:Loc updates.title}" Icon="{ui:SymbolIcon ArrowSync24}" TargetPageType="{x:Type settings:UpdatesPage}" />

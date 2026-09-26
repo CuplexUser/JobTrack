@@ -28,6 +28,14 @@ import type {
   Profile,
   RankedOpening,
   Rules,
+  BackupConfigPatch,
+  BackupEncryption,
+  BackupDestination,
+  BackupFile,
+  BackupRunResult,
+  BackupStatus,
+  BackupTestResult,
+  GeneratedBackupKey,
   NoteWithTarget,
   PostingDraft,
   StatisticsSummary,
@@ -286,6 +294,12 @@ export interface BackupCommitResponse {
   counts: Record<string, number>;
 }
 
+/** What opens an encrypted backup: its passphrase, or the contents of a secret key file. */
+export interface BackupSecrets {
+  passphrase?: string;
+  identity?: string;
+}
+
 export interface DataStatusResponse {
   counts: Record<string, number>;
   empty: boolean;
@@ -359,10 +373,15 @@ async function importRequest<T>(
  * already gzip + xor-obfuscated (see `backup/codec.ts`), so it goes over as
  * `application/octet-stream`, never as JSON.
  */
-async function backupRequest<T>(file: File, mode: 'preview' | 'commit'): Promise<T> {
+async function backupRequest<T>(file: File, mode: 'preview' | 'commit', secrets: BackupSecrets = {}): Promise<T> {
+  // Headers, not the URL, so a secret never lands in a log. URI-encoded because an identity
+  // file spans several lines.
+  const headers: Record<string, string> = { 'Content-Type': 'application/octet-stream' };
+  if (secrets.passphrase) headers['X-Backup-Passphrase'] = encodeURIComponent(secrets.passphrase);
+  if (secrets.identity) headers['X-Backup-Identity'] = encodeURIComponent(secrets.identity);
   const response = await fetch(`/api/backup/import${toQuery({ mode })}`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/octet-stream' },
+    headers,
     body: file,
   });
 
@@ -594,9 +613,26 @@ export const httpApi = {
   /** Same reasoning as `exportUrl` — a plain navigation, so the browser downloads it directly. */
   backupExportUrl: '/api/backup/export',
 
-  previewBackup: (file: File) => backupRequest<BackupPreviewResponse>(file, 'preview'),
+  previewBackup: (file: File, secrets?: BackupSecrets) => backupRequest<BackupPreviewResponse>(file, 'preview', secrets),
 
-  commitBackup: (file: File) => backupRequest<BackupCommitResponse>(file, 'commit'),
+  commitBackup: (file: File, secrets?: BackupSecrets) => backupRequest<BackupCommitResponse>(file, 'commit', secrets),
+
+  getAutoBackup: () => request<BackupStatus>('/api/backup/auto'),
+
+  updateAutoBackup: (patch: BackupConfigPatch) =>
+    request<BackupStatus>('/api/backup/auto', { method: 'PUT', body: JSON.stringify(patch) }),
+
+  setBackupPassphrase: (passphrase: string | null) =>
+    request<BackupStatus>('/api/backup/auto/passphrase', { method: 'PUT', body: JSON.stringify({ passphrase }) }),
+
+  generateBackupKey: () => request<GeneratedBackupKey>('/api/backup/auto/keypair', { method: 'POST' }),
+
+  testAutoBackup: (override: { destination?: BackupDestination; encryption?: BackupEncryption } = {}) =>
+    request<BackupTestResult>('/api/backup/auto/test', { method: 'POST', body: JSON.stringify(override) }),
+
+  runAutoBackup: () => request<BackupRunResult>('/api/backup/auto/run', { method: 'POST' }),
+
+  listAutoBackups: () => request<BackupFile[]>('/api/backup/auto/files'),
 
   getDataStatus: () => request<DataStatusResponse>('/api/backup/status'),
 

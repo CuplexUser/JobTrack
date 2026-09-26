@@ -496,11 +496,68 @@ reconstruct the database exactly, so it's useful for:
 A restore **replaces** everything in the active database — every backed-up table is wiped and
 recreated from the file, inside one transaction, not merged with what's already there.
 
-The file (`.jtbak`) is gzip-compressed and then obfuscated with a fixed XOR keystream, so it
-isn't plain, readable JSON if it's opened in a text editor. **This is not encryption** — there
-is no passphrase, the "key" is a constant in `apps/api/src/backup/codec.ts`, and it does not
-protect the personal data inside (salaries, notes, company names) from anyone who actually
-wants it. Treat a `.jtbak` file the same way you'd treat a database dump.
+On its own, the file (`.jtbak`) is gzip-compressed and then obfuscated with a fixed XOR
+keystream, so it isn't plain, readable JSON if it's opened in a text editor. **That alone is not
+encryption**: the "key" is a constant in `apps/api/src/backup/codec.ts`, and it does not protect
+the personal data inside (salaries, notes, company names) from anyone who actually wants it.
+Treat an unencrypted `.jtbak` the way you'd treat a database dump, or turn on encryption (below).
+
+### Automatic backups
+
+Settings → Database → **Automatic backups** (or the tray app's Settings → Backup) writes a
+backup on a schedule to a folder you choose:
+
+- **Where**: any folder the server can write to. A folder inside OneDrive, Dropbox, Google
+  Drive or iCloud is uploaded by that app, and a mapped drive or a UNC share
+  (`\\server\backups`) works too. Destinations sit behind a small interface
+  (`apps/api/src/backup/destinations/`), so WebDAV, S3 or SFTP can be added later.
+- **When**: every N hours, daily at a time, or weekly on chosen days, in local time. A run
+  missed while the computer was off happens soon after the server starts again. By default a
+  run is skipped when nothing has changed since the last backup. *Back up now* always writes one.
+- **How long**: keep the newest N backups and/or delete backups older than N days. The newest
+  backup is never deleted, and retention only touches files JobTrack named itself
+  (`jobtrack-<target>-<UTC time>.jtbak[.age]`) for the active database target.
+
+Each file is written under a `.partial` name, renamed when complete, and read back to check it,
+so a sync app never uploads half a backup. A failed run is shown on the Settings page, retried
+after an hour, and announced by the Windows tray app.
+
+These settings are kept in `data/backup.json` next to the API token, **not** in the database, so
+restoring an older backup never rolls back your backup schedule. Run history is in
+`data/backup-state.json`.
+
+### Encryption
+
+Encryption uses [age](https://age-encryption.org), an open, audited format (through
+[typage](https://github.com/FiloSottile/typage)). An encrypted backup is an ordinary `.jtbak`
+inside an age envelope, saved as `.jtbak.age`. So if JobTrack itself is ever gone,
+`age -d -i key.txt backup.jtbak.age > backup.jtbak` gives you a file any JobTrack can restore.
+
+Choose one of:
+
+- **Passphrase.** Simple, but a scheduled backup needs the passphrase, so it is saved on this
+  computer (`data/backup-secret`). It protects the copies in the cloud or on the network share,
+  not this computer.
+- **Keys** (recommended). Backups are encrypted to one or more public keys, and any one of them
+  can decrypt. JobTrack stores only public keys, so nothing on this computer can read the
+  backups it writes. Supported:
+  - `age1…` keys: *Generate a key pair* shows the secret key once, to copy or download. Keep it
+    in a password manager or on paper. Keys from `age-keygen` work too, as do post-quantum
+    `age1pq1…` keys.
+  - **YubiKey and other hardware keys** through age plugins: install
+    [`age-plugin-yubikey`](https://github.com/str4d/age-plugin-yubikey) (or `age-plugin-fido2-hmac`,
+    `age-plugin-tpm`, …) so it is on `PATH`, set up the key with it, and add the `age1yubikey1…`
+    key it prints. JobTrack runs the plugin to encrypt, which needs only the public key, so the
+    YubiKey does not have to be plugged in for scheduled backups. **Test** checks that the plugin
+    is installed. `age1tag1…` hardware keys need no plugin at all.
+
+Add at least two keys (for example a YubiKey and a paper key), so losing one does not lose the
+backups. When encryption is on, the manual **Export backup** is encrypted the same way.
+
+**Restoring** an encrypted backup in the app asks for its passphrase or secret key (pasted, or
+loaded from the key file). A backup encrypted only to a hardware key has to be decrypted with
+the age tool first, since the key's PIN and touch prompts can't go through the browser:
+`age -d -i yubikey-identity.txt -o backup.jtbak backup.jtbak.age`, then restore `backup.jtbak`.
 
 One known gap: repolayer stamps `createdAt`/`updatedAt` to the moment of restore — it has no
 way to pass a specific timestamp through `create()`. Every other field, including all of the

@@ -8,6 +8,7 @@ using JobTrack.Host.Config;
 using JobTrack.Host.Hosting;
 using JobTrack.Host.Localization;
 using JobTrack.Host.Resources;
+using JobTrack.Host.UI.Settings;
 using JobTrack.Host.Updates;
 using Wpf.Ui.Appearance;
 using Wpf.Ui.Controls;
@@ -51,6 +52,7 @@ internal sealed class TrayController : IDisposable
     private readonly MenuItem _restart;
 
     private readonly ReminderPoller _reminders;
+    private readonly BackupClient _backups;
     private readonly UpdateService _updates;
 
     private SettingsWindow? _settingsWindow;
@@ -129,6 +131,11 @@ internal sealed class TrayController : IDisposable
 
         _reminders = new ReminderPoller(ReadApiToken, hostLog);
         _reminders.RemindersDue += due => Post(() => ShowReminders(due));
+
+        // Always on, unlike reminders: a backup that silently stopped working is the one thing
+        // nobody finds out about until they need it.
+        _backups = new BackupClient(ReadApiToken, hostLog);
+        _backups.BackupFailed += failure => Post(() => ShowBackupFailed(failure));
 
         _updates = new UpdateService(_settings, hostLog);
         _updates.StatusChanged += status => Post(() => OnUpdateStatusChanged(status));
@@ -215,6 +222,9 @@ internal sealed class TrayController : IDisposable
         if (state == ServerState.Running && ready is not null && _settings.RemindersEnabled) _reminders.Start(ready.Port);
         else if (state != ServerState.Running) _reminders.Stop();
 
+        if (state == ServerState.Running && ready is not null) _backups.Start(ready.Port);
+        else if (state != ServerState.Running) _backups.Stop();
+
         if (state == ServerState.Running && ready is not null)
         {
             // The server just came up (or came back up after a restart), and would otherwise be
@@ -247,7 +257,7 @@ internal sealed class TrayController : IDisposable
 
     // ---------------------------------------------------------------------------- notifications
 
-    private enum BalloonAction { None, ShowLog, OpenExistingServer, OpenDashboard, InstallUpdate }
+    private enum BalloonAction { None, ShowLog, OpenExistingServer, OpenDashboard, InstallUpdate, OpenBackupSettings }
 
     private BalloonAction _balloonAction = BalloonAction.None;
 
@@ -274,6 +284,10 @@ internal sealed class TrayController : IDisposable
                 break;
             case BalloonAction.InstallUpdate:
                 _ = InstallUpdateAsync();
+                break;
+            case BalloonAction.OpenBackupSettings:
+                ShowSettings();
+                _settingsWindow?.ShowPage(typeof(BackupPage));
                 break;
         }
         _balloonAction = BalloonAction.None;
@@ -351,6 +365,12 @@ internal sealed class TrayController : IDisposable
         if (!_settings.RemindersEnabled || _quitting) return;
         var (title, message) = due.Describe();
         Notify(title, message, NotificationIcon.Info, BalloonAction.OpenDashboard);
+    }
+
+    private void ShowBackupFailed(BackupFailure failure)
+    {
+        if (_quitting) return;
+        Notify(Strings.Get("tray.backupFailedTitle"), failure.Error, NotificationIcon.Warning, BalloonAction.OpenBackupSettings);
     }
 
     private void OnRemindersChanged(bool enabled)
@@ -456,7 +476,7 @@ internal sealed class TrayController : IDisposable
     {
         if (_settingsWindow is null)
         {
-            _settingsWindow = new SettingsWindow(_supervisor, _manifest, _settings, _updates, InstallUpdateAsync, ShowLog);
+            _settingsWindow = new SettingsWindow(_supervisor, _manifest, _settings, _updates, _backups, InstallUpdateAsync, ShowLog);
             _settingsWindow.RemindersChanged += enabled => Post(() => OnRemindersChanged(enabled));
             _settingsWindow.ClaudeDesktopChanged += connect => Post(() => OnClaudeDesktopChanged(connect));
             _settingsWindow.UpdateScheduleChanged += () => Post(_updates.ApplySchedule);
@@ -533,6 +553,7 @@ internal sealed class TrayController : IDisposable
     {
         _icon.Dispose();
         _reminders.Dispose();
+        _backups.Dispose();
         _updates.Dispose();
         _languageSync.Dispose();
     }

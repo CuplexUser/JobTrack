@@ -2,7 +2,7 @@
  * Settings, split into tabs so a rarely-touched section (Database) never makes a frequently
  * touched one (Profile) something to scroll past: Profile (job search profile and fit
  * scoring), Automation, Browser (what this browser remembers), Database (which target is
- * active, full-fidelity backup/restore, reset/demo data), and About. The active tab is
+ * active, full-fidelity backup/restore, automatic backups, reset/demo data), and About. The active tab is
  * remembered per browser, same as any other view preference.
  *
  * Connection parameters (`DB_DRIVER`, `DATABASE_URL`, …) live in `.env` only — nothing here
@@ -36,12 +36,14 @@ import {
   ExperimentOutlined,
   InboxOutlined,
   InfoCircleOutlined,
+  KeyOutlined,
+  LockOutlined,
   ReloadOutlined,
   RobotOutlined,
   UserOutlined,
 } from '@ant-design/icons';
 import { Trans, useTranslation } from 'react-i18next';
-import { api, type BackupCommitResponse, type BackupPreviewResponse } from '../api/index.js';
+import { api, ApiError, type BackupCommitResponse, type BackupPreviewResponse, type BackupSecrets } from '../api/index.js';
 import { parse, usePreference } from '../preferences.js';
 
 /**
@@ -56,6 +58,7 @@ import { FitWeightsCard } from '../components/FitWeightsCard.js';
 import { JobSourcesCard } from '../components/JobSourcesCard.js';
 import { KnownLocationsCard } from '../components/KnownLocationsCard.js';
 import { AutomationCard } from '../components/AutomationCard.js';
+import { AutoBackupCard } from '../components/AutoBackupCard.js';
 import { RememberCard } from '../components/RememberCard.js';
 import { LanguageCard } from '../components/LanguageCard.js';
 
@@ -189,12 +192,37 @@ function BackupCard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [restoreOpen, setRestoreOpen] = useState(false);
+  /** Set when the chosen file is encrypted: the dialog then asks for its passphrase or key. */
+  const [locked, setLocked] = useState(false);
+  const [secrets, setSecrets] = useState<BackupSecrets>({});
 
   function reset(): void {
     setFile(null);
     setPreview(null);
     setResult(null);
     setError(null);
+    setLocked(false);
+    setSecrets({});
+  }
+
+  function loadPreview(uploaded: File, withSecrets: BackupSecrets): void {
+    setError(null);
+    setLoading(true);
+    api
+      .previewBackup(uploaded, withSecrets)
+      .then((response) => {
+        setPreview(response);
+        setLocked(false);
+      })
+      .catch((err: unknown) => {
+        if (err instanceof ApiError && (err.code === 'backup_encrypted' || err.code === 'backup_decrypt_failed')) {
+          setLocked(true);
+          if (err.code === 'backup_decrypt_failed') setError(err.message);
+          return;
+        }
+        setError(err instanceof Error ? err.message : t('backup.readError'));
+      })
+      .finally(() => setLoading(false));
   }
 
   function handleClose(): void {
@@ -204,13 +232,14 @@ function BackupCard() {
 
   const beforeUpload: UploadProps['beforeUpload'] = (uploaded) => {
     setFile(uploaded);
-    setError(null);
-    setLoading(true);
-    api
-      .previewBackup(uploaded)
-      .then(setPreview)
-      .catch((err: unknown) => setError(err instanceof Error ? err.message : t('backup.readError')))
-      .finally(() => setLoading(false));
+    setSecrets({});
+    loadPreview(uploaded, {});
+    return false;
+  };
+
+  /** A key file dropped here fills the key box, so nobody has to open it in an editor. */
+  const beforeKeyUpload: UploadProps['beforeUpload'] = (keyFile) => {
+    void keyFile.text().then((identity) => setSecrets((current) => ({ ...current, identity })));
     return false;
   };
 
@@ -225,7 +254,7 @@ function BackupCard() {
         setLoading(true);
         setError(null);
         try {
-          const response = await api.commitBackup(file);
+          const response = await api.commitBackup(file, secrets);
           setResult(response);
         } catch (err) {
           message.error(err instanceof Error ? err.message : t('backup.restoreFailed'));
@@ -257,13 +286,46 @@ function BackupCard() {
 
       <Modal title={t('backup.restoreModalTitle')} open={restoreOpen} onCancel={handleClose} width={600} footer={null} destroyOnHidden>
         <Space direction="vertical" size={16} style={{ width: '100%' }}>
-          {!preview && !result && (
-            <Upload.Dragger accept=".jtbak" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
+          {!preview && !result && !locked && (
+            <Upload.Dragger accept=".jtbak,.age" maxCount={1} showUploadList={false} beforeUpload={beforeUpload} disabled={loading}>
               <p className="ant-upload-drag-icon">
                 <InboxOutlined />
               </p>
               <p className="ant-upload-text">{t('backup.dropzone')}</p>
             </Upload.Dragger>
+          )}
+
+          {locked && file && !preview && (
+            <Space direction="vertical" size={10} style={{ width: '100%' }}>
+              <Alert type="info" showIcon icon={<LockOutlined />} message={t('backup.encryptedTitle', { name: file.name })} description={t('backup.encryptedHint')} />
+              <Input.Password
+                placeholder={t('backup.passphrasePlaceholder')}
+                value={secrets.passphrase ?? ''}
+                onChange={(e) => setSecrets({ ...secrets, passphrase: e.target.value })}
+              />
+              <Input.TextArea
+                rows={3}
+                placeholder={t('backup.identityPlaceholder')}
+                value={secrets.identity ?? ''}
+                onChange={(e) => setSecrets({ ...secrets, identity: e.target.value })}
+                style={{ fontFamily: 'monospace' }}
+              />
+              <Upload accept=".txt,.key" maxCount={1} showUploadList={false} beforeUpload={beforeKeyUpload}>
+                <Button icon={<KeyOutlined />}>{t('backup.loadKeyFile')}</Button>
+              </Upload>
+              <Typography.Text type="secondary">{t('backup.hardwareKeyHint')}</Typography.Text>
+              <Space>
+                <Button onClick={reset}>{t('backup.chooseAnotherFile')}</Button>
+                <Button
+                  type="primary"
+                  loading={loading}
+                  disabled={!secrets.passphrase && !secrets.identity}
+                  onClick={() => loadPreview(file, secrets)}
+                >
+                  {t('backup.unlock')}
+                </Button>
+              </Space>
+            </Space>
           )}
 
           {error && <Alert type="error" showIcon message={error} />}
@@ -515,6 +577,7 @@ export function SettingsPage() {
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
                 <DatabaseCard />
                 {!DEMO && <BackupCard />}
+                {!DEMO && <AutoBackupCard />}
                 <DataCard />
               </Space>
             ),

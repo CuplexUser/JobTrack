@@ -39,6 +39,7 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
         LaunchManifest manifest,
         HostSettings hostSettings,
         UpdateService updates,
+        BackupClient backups,
         Func<Task> installUpdate,
         Action showLog)
     {
@@ -54,13 +55,23 @@ internal partial class SettingsWindow : FluentWindow, ISettingsHost
         Navigation.SetPageProviderService(new PageProvider(
             new GeneralPage(_model),
             new DatabasePage(_model),
+            new BackupPage(backups, this, () => supervisor.Ready?.Url),
             new SearchPage(_model),
             new AccessPage(_model, this),
             new UpdatesPage(updates, hostSettings, installUpdate, () => UpdateScheduleChanged?.Invoke()),
             new AdvancedPage(_model),
             new AboutPage(manifest, supervisor, showLog)));
         Navigation.Navigating += (_, e) => _model.SetRawEditing(e.Page is AdvancedPage);
-        Loaded += (_, _) => Navigation.Navigate(typeof(GeneralPage));
+        Loaded += (_, _) => Navigation.Navigate(_initialPage);
+    }
+
+    private Type _initialPage = typeof(GeneralPage);
+
+    /// <summary>Open on <paramref name="page"/>, whether or not the window has finished loading.</summary>
+    public void ShowPage(Type page)
+    {
+        if (IsLoaded) Navigation.Navigate(page);
+        else _initialPage = page;
     }
 
     // ---------------------------------------------------------------------------------- actions

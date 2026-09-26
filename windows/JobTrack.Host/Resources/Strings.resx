@@ -150,6 +150,55 @@ The details are in the log.</value></data>
   <data name="updates.checksumMismatch" xml:space="preserve"><value>The downloaded update did not match its published checksum, so it was not installed.</value></data>
   <data name="updates.notSigned" xml:space="preserve"><value>The downloaded update is not signed by the JobTrack publisher, so it was not installed.</value></data>
   <data name="updates.checksumUnreadable" xml:space="preserve"><value>The update's published checksum could not be read, so it was not installed.</value></data>
+  <data name="backup.title" xml:space="preserve"><value>Backup</value></data>
+  <data name="backup.runNow" xml:space="preserve"><value>Back up now</value></data>
+  <data name="backup.problemTitle" xml:space="preserve"><value>The last automatic backup failed</value></data>
+  <data name="backup.whereAndWhen" xml:space="preserve"><value>Where and when</value></data>
+  <data name="backup.enabledTitle" xml:space="preserve"><value>Back up automatically</value></data>
+  <data name="backup.enabledDescription" xml:space="preserve"><value>Writes a full backup of the database to the folder below on a schedule.</value></data>
+  <data name="backup.folderTitle" xml:space="preserve"><value>Backup folder</value></data>
+  <data name="backup.folderDescription" xml:space="preserve"><value>Any folder works. Pick one inside OneDrive, Dropbox or Google Drive and its sync app uploads the backups; a network share works too.</value></data>
+  <data name="backup.browseTitle" xml:space="preserve"><value>Choose the backup folder</value></data>
+  <data name="backup.frequencyTitle" xml:space="preserve"><value>How often</value></data>
+  <data name="backup.frequencyDescription" xml:space="preserve"><value>A backup missed while the computer was off runs soon after JobTrack starts again.</value></data>
+  <data name="backup.hourly" xml:space="preserve"><value>Every few hours</value></data>
+  <data name="backup.daily" xml:space="preserve"><value>Daily</value></data>
+  <data name="backup.weekly" xml:space="preserve"><value>Weekly</value></data>
+  <data name="backup.hours" xml:space="preserve"><value>hours</value></data>
+  <data name="backup.at" xml:space="preserve"><value>at</value></data>
+  <data name="backup.weekdaysTitle" xml:space="preserve"><value>On these days</value></data>
+  <data name="backup.skipUnchangedTitle" xml:space="preserve"><value>Skip when nothing changed</value></data>
+  <data name="backup.skipUnchangedDescription" xml:space="preserve"><value>No new backup is written when nothing has changed since the last one.</value></data>
+  <data name="backup.keep" xml:space="preserve"><value>Keep</value></data>
+  <data name="backup.keepLastTitle" xml:space="preserve"><value>Keep at most</value></data>
+  <data name="backup.keepLastDescription" xml:space="preserve"><value>The number of backups to keep. 0 keeps any number.</value></data>
+  <data name="backup.maxAgeTitle" xml:space="preserve"><value>Delete backups older than (days)</value></data>
+  <data name="backup.maxAgeDescription" xml:space="preserve"><value>0 keeps them forever. The newest backup is always kept, and only files JobTrack wrote are ever deleted.</value></data>
+  <data name="backup.encryption" xml:space="preserve"><value>Encryption</value></data>
+  <data name="backup.encryptionTitle" xml:space="preserve"><value>Encryption</value></data>
+  <data name="backup.encryptionNone" xml:space="preserve"><value>Off. Set up a passphrase or keys, including a YubiKey, in the browser.</value></data>
+  <data name="backup.encryptionPassphrase" xml:space="preserve"><value>Encrypted with a passphrase. Change it in the browser.</value></data>
+  <data name="backup.encryptionKeys" xml:space="preserve"><value>Encrypted to {0} key(s). Manage keys in the browser.</value></data>
+  <data name="backup.save" xml:space="preserve"><value>Save</value></data>
+  <data name="backup.test" xml:space="preserve"><value>Test</value></data>
+  <data name="backup.appliesNow" xml:space="preserve"><value>Saved to the running server at once. Unlike the other pages, this page does not wait for the Save button at the bottom.</value></data>
+  <data name="backup.lastBackup" xml:space="preserve"><value>Last backup {0}</value></data>
+  <data name="backup.noBackupYet" xml:space="preserve"><value>No backup yet</value></data>
+  <data name="backup.nextBackup" xml:space="preserve"><value>Next backup {0}</value></data>
+  <data name="backup.off" xml:space="preserve"><value>Automatic backups are off</value></data>
+  <data name="backup.lastFailed" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="backup.unavailableTitle" xml:space="preserve"><value>Backup settings are not available</value></data>
+  <data name="backup.serverNotRunning" xml:space="preserve"><value>The JobTrack server is not running. Backup settings can be changed once it has started.</value></data>
+  <data name="backup.notSavedTitle" xml:space="preserve"><value>Backup settings not saved</value></data>
+  <data name="backup.badTime" xml:space="preserve"><value>Enter the time as HH:mm, for example 02:30.</value></data>
+  <data name="backup.noWeekdays" xml:space="preserve"><value>Choose at least one day for a weekly backup.</value></data>
+  <data name="backup.savedTitle" xml:space="preserve"><value>Saved</value></data>
+  <data name="backup.savedMessage" xml:space="preserve"><value>Backup settings are saved and apply now.</value></data>
+  <data name="backup.testOkTitle" xml:space="preserve"><value>Everything checks out</value></data>
+  <data name="backup.testOkMessage" xml:space="preserve"><value>The folder is writable and every key works.</value></data>
+  <data name="backup.testFailedTitle" xml:space="preserve"><value>The next backup would fail</value></data>
+  <data name="backup.runDoneTitle" xml:space="preserve"><value>Backup written</value></data>
+  <data name="backup.runFailedTitle" xml:space="preserve"><value>The backup failed</value></data>
 
   <data name="about.title" xml:space="preserve"><value>About</value></data>
   <data name="about.tagline" xml:space="preserve"><value>A personal job-application tracker. Single user, runs on your machine.</value></data>
@@ -220,6 +269,7 @@ The details are in the log.</value></data>
   <data name="tray.upToDateTitle" xml:space="preserve"><value>JobTrack is up to date</value></data>
   <data name="tray.upToDateMessage" xml:space="preserve"><value>Version {0} is the latest release.</value></data>
   <data name="tray.updateFailedTitle" xml:space="preserve"><value>JobTrack could not update</value></data>
+  <data name="tray.backupFailedTitle" xml:space="preserve"><value>JobTrack could not back up</value></data>
   <data name="tray.stillStartingTitle" xml:space="preserve"><value>JobTrack is still starting</value></data>
   <data name="tray.stillStartingMessage" xml:space="preserve"><value>The window will open as soon as the server is ready.</value></data>
   <data name="tray.noTokenTitle" xml:space="preserve"><value>No API token yet</value></data>

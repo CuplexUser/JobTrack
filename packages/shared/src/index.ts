@@ -12,3 +12,4 @@ export * from './fit.js';
 export * from './locations.js';
 export * from './rules.js';
 export * from './statistics.js';
+export * from './backup.js';

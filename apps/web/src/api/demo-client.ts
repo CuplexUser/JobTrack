@@ -977,6 +977,29 @@ export const demoApi: typeof httpApi = {
       throw unsupported('Backup restore is not available in this demo.');
     }),
 
+  /** Automatic backups write to the server's disk; the card is hidden in the demo, like restore. */
+  getAutoBackup: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  updateAutoBackup: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  setBackupPassphrase: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  generateBackupKey: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  testAutoBackup: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  runAutoBackup: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+  listAutoBackups: () => guarded(async () => {
+    throw unsupported('Automatic backups are not available in this demo.');
+  }),
+
   getDataStatus: () =>
     guarded(async () => {
       const { repos } = await getState();

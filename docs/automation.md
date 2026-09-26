@@ -91,6 +91,12 @@ and idle openings are not announced: they are prompts to look, not appointments.
 Reminders are on by default and can be switched off in the tray's Settings dialog, under
 General.
 
+The tray app also checks the automatic backup's status every 15 minutes, and shows a
+notification when a backup has failed. Clicking it opens the tray's Backup settings. Each failed
+run is announced once. Unlike reminders, this cannot be switched off: a backup that quietly
+stopped working is the kind of failure nobody notices until they need the backup. Setting up
+automatic backups is described in the README's "Backup & restore".
+
 ---
 
 ## From Claude Desktop

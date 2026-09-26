@@ -150,6 +150,55 @@ Detaljerna finns i loggen.</value></data>
   <data name="updates.checksumMismatch" xml:space="preserve"><value>Den nedladdade uppdateringen matchade inte den publicerade kontrollsumman, så den installerades inte.</value></data>
   <data name="updates.notSigned" xml:space="preserve"><value>Den nedladdade uppdateringen är inte signerad av JobTracks utgivare, så den installerades inte.</value></data>
   <data name="updates.checksumUnreadable" xml:space="preserve"><value>Uppdateringens publicerade kontrollsumma kunde inte läsas, så den installerades inte.</value></data>
+  <data name="backup.title" xml:space="preserve"><value>Säkerhetskopiering</value></data>
+  <data name="backup.runNow" xml:space="preserve"><value>Säkerhetskopiera nu</value></data>
+  <data name="backup.problemTitle" xml:space="preserve"><value>Den senaste automatiska säkerhetskopieringen misslyckades</value></data>
+  <data name="backup.whereAndWhen" xml:space="preserve"><value>Var och när</value></data>
+  <data name="backup.enabledTitle" xml:space="preserve"><value>Säkerhetskopiera automatiskt</value></data>
+  <data name="backup.enabledDescription" xml:space="preserve"><value>Skriver en fullständig säkerhetskopia av databasen till mappen nedan enligt schema.</value></data>
+  <data name="backup.folderTitle" xml:space="preserve"><value>Mapp för säkerhetskopior</value></data>
+  <data name="backup.folderDescription" xml:space="preserve"><value>Vilken mapp som helst fungerar. Välj en i OneDrive, Dropbox eller Google Drive så laddar synkappen upp säkerhetskopiorna; en nätverksresurs fungerar också.</value></data>
+  <data name="backup.browseTitle" xml:space="preserve"><value>Välj mapp för säkerhetskopior</value></data>
+  <data name="backup.frequencyTitle" xml:space="preserve"><value>Hur ofta</value></data>
+  <data name="backup.frequencyDescription" xml:space="preserve"><value>En säkerhetskopia som missades medan datorn var avstängd körs strax efter att JobTrack startat igen.</value></data>
+  <data name="backup.hourly" xml:space="preserve"><value>Med några timmars mellanrum</value></data>
+  <data name="backup.daily" xml:space="preserve"><value>Dagligen</value></data>
+  <data name="backup.weekly" xml:space="preserve"><value>Varje vecka</value></data>
+  <data name="backup.hours" xml:space="preserve"><value>timmar</value></data>
+  <data name="backup.at" xml:space="preserve"><value>klockan</value></data>
+  <data name="backup.weekdaysTitle" xml:space="preserve"><value>Dessa dagar</value></data>
+  <data name="backup.skipUnchangedTitle" xml:space="preserve"><value>Hoppa över när inget ändrats</value></data>
+  <data name="backup.skipUnchangedDescription" xml:space="preserve"><value>Ingen ny säkerhetskopia skrivs när inget har ändrats sedan den förra.</value></data>
+  <data name="backup.keep" xml:space="preserve"><value>Spara</value></data>
+  <data name="backup.keepLastTitle" xml:space="preserve"><value>Spara högst</value></data>
+  <data name="backup.keepLastDescription" xml:space="preserve"><value>Antal säkerhetskopior att spara. 0 sparar hur många som helst.</value></data>
+  <data name="backup.maxAgeTitle" xml:space="preserve"><value>Ta bort säkerhetskopior äldre än (dagar)</value></data>
+  <data name="backup.maxAgeDescription" xml:space="preserve"><value>0 sparar dem för alltid. Den senaste säkerhetskopian sparas alltid, och bara filer som JobTrack skrivit tas någonsin bort.</value></data>
+  <data name="backup.encryption" xml:space="preserve"><value>Kryptering</value></data>
+  <data name="backup.encryptionTitle" xml:space="preserve"><value>Kryptering</value></data>
+  <data name="backup.encryptionNone" xml:space="preserve"><value>Av. Ställ in en lösenfras eller nycklar, även en YubiKey, i webbläsaren.</value></data>
+  <data name="backup.encryptionPassphrase" xml:space="preserve"><value>Krypterad med en lösenfras. Ändra den i webbläsaren.</value></data>
+  <data name="backup.encryptionKeys" xml:space="preserve"><value>Krypterad till {0} nyckel/nycklar. Hantera nycklarna i webbläsaren.</value></data>
+  <data name="backup.save" xml:space="preserve"><value>Spara</value></data>
+  <data name="backup.test" xml:space="preserve"><value>Testa</value></data>
+  <data name="backup.appliesNow" xml:space="preserve"><value>Sparas direkt till den körande servern. Till skillnad från de andra sidorna väntar den här sidan inte på Spara-knappen längst ner.</value></data>
+  <data name="backup.lastBackup" xml:space="preserve"><value>Senaste säkerhetskopia {0}</value></data>
+  <data name="backup.noBackupYet" xml:space="preserve"><value>Ingen säkerhetskopia ännu</value></data>
+  <data name="backup.nextBackup" xml:space="preserve"><value>Nästa säkerhetskopia {0}</value></data>
+  <data name="backup.off" xml:space="preserve"><value>Automatisk säkerhetskopiering är av</value></data>
+  <data name="backup.lastFailed" xml:space="preserve"><value>{0}: {1}</value></data>
+  <data name="backup.unavailableTitle" xml:space="preserve"><value>Inställningarna för säkerhetskopiering är inte tillgängliga</value></data>
+  <data name="backup.serverNotRunning" xml:space="preserve"><value>JobTrack-servern körs inte. Inställningarna för säkerhetskopiering kan ändras när den har startat.</value></data>
+  <data name="backup.notSavedTitle" xml:space="preserve"><value>Inställningarna sparades inte</value></data>
+  <data name="backup.badTime" xml:space="preserve"><value>Ange tiden som HH:mm, till exempel 02:30.</value></data>
+  <data name="backup.noWeekdays" xml:space="preserve"><value>Välj minst en dag för en veckovis säkerhetskopia.</value></data>
+  <data name="backup.savedTitle" xml:space="preserve"><value>Sparat</value></data>
+  <data name="backup.savedMessage" xml:space="preserve"><value>Inställningarna för säkerhetskopiering är sparade och gäller nu.</value></data>
+  <data name="backup.testOkTitle" xml:space="preserve"><value>Allt ser bra ut</value></data>
+  <data name="backup.testOkMessage" xml:space="preserve"><value>Mappen går att skriva till och alla nycklar fungerar.</value></data>
+  <data name="backup.testFailedTitle" xml:space="preserve"><value>Nästa säkerhetskopiering skulle misslyckas</value></data>
+  <data name="backup.runDoneTitle" xml:space="preserve"><value>Säkerhetskopian skrevs</value></data>
+  <data name="backup.runFailedTitle" xml:space="preserve"><value>Säkerhetskopieringen misslyckades</value></data>
 
   <data name="about.title" xml:space="preserve"><value>Om</value></data>
   <data name="about.tagline" xml:space="preserve"><value>En personlig jobbansökningsspårare. En användare, körs på din dator.</value></data>
@@ -220,6 +269,7 @@ Detaljerna finns i loggen.</value></data>
   <data name="tray.upToDateTitle" xml:space="preserve"><value>JobTrack är uppdaterat</value></data>
   <data name="tray.upToDateMessage" xml:space="preserve"><value>Version {0} är den senaste versionen.</value></data>
   <data name="tray.updateFailedTitle" xml:space="preserve"><value>JobTrack kunde inte uppdateras</value></data>
+  <data name="tray.backupFailedTitle" xml:space="preserve"><value>JobTrack kunde inte säkerhetskopiera</value></data>
   <data name="tray.stillStartingTitle" xml:space="preserve"><value>JobTrack startar fortfarande</value></data>
   <data name="tray.stillStartingMessage" xml:space="preserve"><value>Fönstret öppnas så snart servern är redo.</value></data>
   <data name="tray.noTokenTitle" xml:space="preserve"><value>Ingen API-token än</value></data>

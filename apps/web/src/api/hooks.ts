@@ -14,7 +14,7 @@ import {
   useQueryClient,
   type QueryClient,
 } from '@tanstack/react-query';
-import type { KnownLocationChange } from '@jobtrack/shared';
+import type { BackupConfigPatch, KnownLocationChange } from '@jobtrack/shared';
 import { api } from './index.js';
 
 export const keys = {
@@ -38,6 +38,8 @@ export const keys = {
   contacts: (params: unknown) => ['contacts', params] as const,
   profile: () => ['profile'] as const,
   rules: () => ['rules'] as const,
+  autoBackup: () => ['auto-backup'] as const,
+  autoBackupFiles: () => ['auto-backup', 'files'] as const,
   fitWeights: () => ['fit-weights'] as const,
   jobSources: () => ['job-sources'] as const,
   knownLocations: () => ['known-locations'] as const,
@@ -505,6 +507,43 @@ export function useSaveRules() {
     mutationFn: (body: unknown) => api.updateRules(body),
     onSuccess: () => void client.invalidateQueries({ queryKey: ['rules'] }),
   });
+}
+
+/** Refreshed every minute while shown, so the last and next run times stay current. */
+export function useAutoBackup(enabled = true) {
+  return useQuery({ queryKey: keys.autoBackup(), queryFn: () => api.getAutoBackup(), enabled, refetchInterval: 60_000 });
+}
+
+export function useSaveAutoBackup() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (patch: BackupConfigPatch) => api.updateAutoBackup(patch),
+    onSuccess: (status) => {
+      client.setQueryData(keys.autoBackup(), status);
+      void client.invalidateQueries({ queryKey: keys.autoBackupFiles() });
+    },
+  });
+}
+
+export function useSetBackupPassphrase() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (passphrase: string | null) => api.setBackupPassphrase(passphrase),
+    onSuccess: (status) => client.setQueryData(keys.autoBackup(), status),
+  });
+}
+
+export function useRunAutoBackup() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: () => api.runAutoBackup(),
+    // A failed run is recorded too, so the status refreshes either way.
+    onSettled: () => void client.invalidateQueries({ queryKey: ['auto-backup'] }),
+  });
+}
+
+export function useAutoBackupFiles(enabled: boolean) {
+  return useQuery({ queryKey: keys.autoBackupFiles(), queryFn: () => api.listAutoBackups(), enabled, retry: false });
 }
 
 export function useFitWeights() {

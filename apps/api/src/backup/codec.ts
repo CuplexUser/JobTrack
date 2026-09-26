@@ -7,13 +7,17 @@
  * a constant baked into this file, so anyone who has (or guesses) this source can reverse it
  * in a few lines. All it buys is that the file isn't plain, grep-able JSON if it's opened in a
  * text editor or glanced at in a hex viewer — it does not protect the personal data inside
- * (salaries, notes, company names) from anyone who actually wants it. If that protection is
- * ever needed, this should become passphrase-based AES-GCM instead of growing "stronger" XOR.
+ * (salaries, notes, company names) from anyone who actually wants it.
+ *
+ * Real encryption is a separate, optional layer on top: `crypto.ts` wraps this exact output
+ * in age, so a decrypted `.jtbak.age` is an ordinary `.jtbak` again. `decodeBackup` accepts
+ * either kind.
  */
 
 import { createHash } from 'node:crypto';
 import { gunzipSync, gzipSync } from 'node:zlib';
 import { badRequest } from '../lib/errors.js';
+import { decryptBackup, isAgeEncrypted, type DecryptionSecrets } from './crypto.js';
 import type { BackupSnapshot } from './snapshot.js';
 
 /** Not a secret. Only long enough that the repeating pattern isn't obvious at a glance. */
@@ -40,4 +44,9 @@ export function decodeSnapshot(buffer: Buffer): unknown {
   } catch {
     throw badRequest('This file is not a JobTrack backup');
   }
+}
+
+/** Opens a `.jtbak` or an age-encrypted `.jtbak.age`, decrypting it with `secrets` first when needed. */
+export async function decodeBackup(buffer: Buffer, secrets: DecryptionSecrets = {}): Promise<unknown> {
+  return decodeSnapshot(isAgeEncrypted(buffer) ? await decryptBackup(buffer, secrets) : buffer);
 }

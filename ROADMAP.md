@@ -118,12 +118,14 @@ there needs the network — the search suite runs on `FakeEmbedder` rather than
 downloading a transformers model, and the capture tests stub `fetch` rather
 than reaching a real job site.
 
-## 8. Real backup encryption
+## 8. Real backup encryption — ✅ done
 
-The `.jtbak` backup format (`apps/api/src/backup/codec.ts`) currently does gzip
-plus a fixed XOR keystream — obfuscation, not real encryption, as the README
-already notes. Add an optional passphrase-based encryption mode for people backing
-up to shared drives or cloud storage.
+Backups can now be encrypted with age (`apps/api/src/backup/crypto.ts`): to a
+passphrase, or to public keys, including YubiKeys and other hardware keys through
+age plugins. They also run automatically to a folder on a schedule, with retention
+(`apps/api/src/backup/auto-backup.ts`). See the README's "Backup & restore". Still
+open: destinations beyond a folder (WebDAV, S3, SFTP), and decrypting a
+plugin-encrypted backup inside the app instead of with the age tool.
 
 ## 9. Publish from GitHub Actions with provenance — ✅ done
 

@@ -6,9 +6,15 @@
  * many processes are open. Every job here is idempotent, which is what lets the loop stay
  * this simple: no record of the last run, no catching up on missed ones after a restart,
  * just "do whatever is due now" once an hour.
+ *
+ * Automatic backups are the exception: they are not idempotent (each run writes a file), so
+ * they keep a record of their last run (`backup/config-store.ts`) and are checked on a
+ * shorter tick of their own, so "02:00" means close to 02:00 rather than up to an hour late.
  */
 
 import type { Deps } from '../deps.js';
+import { runScheduledBackup } from '../backup/auto-backup.js';
+import { BackupConfigStore } from '../backup/config-store.js';
 import { runAutoGhost } from '../services/rules.service.js';
 
 export interface BackgroundJobs {
@@ -23,6 +29,8 @@ export interface SchedulerOptions {
   intervalMs?: number;
   /** Time before the first run, so start-up is not slowed by it. */
   initialDelayMs?: number;
+  /** How often to check whether an automatic backup is due. */
+  backupCheckMs?: number;
 }
 
 export function startBackgroundJobs(deps: Deps, options: SchedulerOptions): BackgroundJobs {
@@ -43,6 +51,25 @@ export function startBackgroundJobs(deps: Deps, options: SchedulerOptions): Back
     }
   }
 
+  const backupContext = {
+    repos: deps.repos,
+    store: new BackupConfigStore(deps.config.dataDir),
+    target: deps.config.activeDbTarget,
+  };
+
+  async function checkBackup(): Promise<void> {
+    try {
+      const result = await runScheduledBackup(backupContext);
+      if (result?.outcome === 'written') {
+        const removed = result.removed.length > 0 ? `, removed ${result.removed.length} old` : '';
+        options.log(`automatic backup written: ${result.file}${removed}`);
+      }
+    } catch (error) {
+      // Recorded in the backup state too, where the Settings page and the tray show it.
+      options.log('automatic backup failed', error);
+    }
+  }
+
   // Never two runs at once: a slow run is joined, not doubled.
   const runNow = (): Promise<void> => {
     running ??= runJobs().finally(() => {
@@ -53,15 +80,22 @@ export function startBackgroundJobs(deps: Deps, options: SchedulerOptions): Back
 
   const first = setTimeout(() => void runNow(), options.initialDelayMs ?? 60_000);
   const every = setInterval(() => void runNow(), intervalMs);
+  const backups = setInterval(() => void checkBackup(), options.backupCheckMs ?? 5 * 60 * 1000);
+  // A backup missed while the computer was off is caught up soon after start, not on the next tick.
+  const firstBackup = setTimeout(() => void checkBackup(), options.initialDelayMs ?? 60_000);
   // Timers must never be what keeps the process alive.
   first.unref?.();
   every.unref?.();
+  backups.unref?.();
+  firstBackup.unref?.();
 
   return {
     runNow,
     stop() {
       clearTimeout(first);
       clearInterval(every);
+      clearTimeout(firstBackup);
+      clearInterval(backups);
     },
   };
 }
