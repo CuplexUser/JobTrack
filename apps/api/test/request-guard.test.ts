@@ -67,6 +67,19 @@ describe('the guard on /api', () => {
     expect(response.json().message).toMatch(/not allowed/i);
   });
 
+  it('names the refused origin and how to allow it', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/applications',
+      headers: { origin: 'http://localhost:5174' },
+      payload: { companyName: 'Acme', jobTitle: 'Engineer', appliedOn: '2026-01-01' },
+    });
+
+    expect(response.statusCode).toBe(403);
+    expect(response.json().message).toContain('http://localhost:5174');
+    expect(response.json().message).toContain('CORS_ORIGINS');
+  });
+
   it('lets an unknown origin through when it presents the token', async () => {
     const response = await app.inject({
       method: 'GET',

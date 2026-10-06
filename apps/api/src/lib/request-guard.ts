@@ -132,9 +132,11 @@ export function registerRequestGuard(app: FastifyInstance, options: GuardOptions
     if (isAllowedOrigin(request.headers.origin, options.allowedOrigins)) return;
     if (tokenOk) return;
 
+    // Name the origin: the usual way to land here is not a hostile page but JobTrack's own UI
+    // served from an address the list does not know, such as Vite on a fallback port.
     throw new HttpError(
       403,
-      'This origin is not allowed to use the JobTrack API. A browser extension needs its token (see docs/capture.md).',
+      `${request.headers.origin} is not allowed to use the JobTrack API. Add it to CORS_ORIGINS in .env, or, for a browser extension, connect it with its token (see docs/capture.md).`,
     );
   });
 }

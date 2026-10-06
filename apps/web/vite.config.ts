@@ -43,6 +43,10 @@ export default defineConfig({
   base: process.env.GITHUB_PAGES_BASE ?? '/',
   server: {
     port: 5173,
+    // Fail rather than drift to 5174 when another project holds 5173: the API only lets in
+    // the dev server's origin on 5173 (`loadCorsOrigins` in apps/api/src/config.ts), so on
+    // any other port every write would be refused with a 403.
+    strictPort: true,
     // Same-origin in development, so the browser never deals with CORS and the API can
     // stay bound to localhost. Port 3002, not the API's usual 3001, so `npm run dev` can
     // run alongside a `tray`/prod instance without a port clash (see dev:api's PORT
