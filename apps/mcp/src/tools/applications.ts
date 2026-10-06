@@ -131,7 +131,7 @@ export function registerApplicationTools(server: McpServer, deps: Deps): void {
     'change_application_status',
     {
       description:
-        'Advance or correct an application\'s status. Always records a dated status-history entry, unlike update_application setting status directly would not.',
+        'Advance or correct an application\'s status. Always records a dated status-history entry, unlike update_application setting status directly would not. The pipeline is applied -> screening -> assessment -> interview -> offer. screening means a person got in touch, typically a recruiter call; an automatic "your application is being processed" email is not screening and leaves it at applied. assessment covers tests: personality and aptitude tests (Assessio, Alva Labs) and coding tests or take-home assignments.',
       inputSchema: z.object({ id: z.string().min(1), patch: changeStatusSchema }),
     },
     async ({ id, patch }) => {

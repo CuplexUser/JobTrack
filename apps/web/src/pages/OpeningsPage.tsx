@@ -43,7 +43,6 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { Trans, useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
-  STATUS_LABELS,
   WORK_MODE_LABELS,
   locationKey,
   matchesAnyLocation,
@@ -62,6 +61,7 @@ import { OpeningDrawer } from '../components/OpeningDrawer.js';
 import { PostingIngestModal } from '../components/PostingIngestModal.js';
 import { FitBadge } from '../components/FitBadge.js';
 import { parse, usePreference } from '../preferences.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 interface ConvertFormValues {
   appliedOn: Dayjs;
@@ -74,6 +74,7 @@ type OpeningsOrder = 'newest' | 'fit';
 
 export function OpeningsPage() {
   const { t } = useTranslation('openings');
+  const statusLabel = useStatusLabel();
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
 
@@ -415,7 +416,7 @@ export function OpeningsPage() {
             <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />
           </Form.Item>
           <Form.Item name="status" label={t('page.statusLabel')}>
-            <Select options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))} />
+            <Select options={APPLICATION_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))} />
           </Form.Item>
           <Form.Item name="tags" label={t('page.tagsLabel')}>
             <Select

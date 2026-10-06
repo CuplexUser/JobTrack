@@ -32,7 +32,7 @@ import {
   PushpinFilled,
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import type { JobApplicationView, Note } from '@jobtrack/shared';
+import { isActiveStatus, type JobApplicationView, type Note } from '@jobtrack/shared';
 import { useCompany, useDeleteNote, useNotes, useTags, useUpdateCompany } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { NoteModal } from '../components/NoteModal.js';
@@ -55,9 +55,7 @@ export function CompanyDetailPage() {
   if (isLoading || !data) return <Skeleton active paragraph={{ rows: 8 }} />;
 
   const { company, applications } = data;
-  const active = applications.filter((a) =>
-    ['applied', 'screening', 'interview'].includes(a.status),
-  ).length;
+  const active = applications.filter((a) => isActiveStatus(a.status)).length;
 
   const columns: ColumnsType<JobApplicationView> = [
     { title: t('detail.history.columns.applied'), dataIndex: 'appliedOn', width: 120 },

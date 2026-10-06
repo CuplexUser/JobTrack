@@ -19,12 +19,15 @@ export const IMPORT_HEADERS = EXPORT_COLUMNS.map((c) => c.header);
  */
 export const REQUIRED_HEADERS = IMPORT_HEADERS.filter((h) => h !== 'Location');
 
-const STATUS_BY_LABEL = new Map<string, ApplicationStatus>(
-  (Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(([status, label]) => [
-    label.toLowerCase(),
-    status,
-  ]),
-);
+/** Labels earlier versions exported, so their workbooks still import. */
+const LEGACY_STATUS_LABELS: [string, ApplicationStatus][] = [['screening', 'screening']];
+
+const STATUS_BY_LABEL = new Map<string, ApplicationStatus>([
+  ...LEGACY_STATUS_LABELS,
+  ...(Object.entries(STATUS_LABELS) as [ApplicationStatus, string][]).map(
+    ([status, label]): [string, ApplicationStatus] => [label.toLowerCase(), status],
+  ),
+]);
 
 /** "Interview" -> 'interview'. Case-insensitive; null when the label is not recognized. */
 export function statusFromLabel(label: string): ApplicationStatus | null {

@@ -10,6 +10,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
+import i18n from '../../i18n.js';
 import { BarSeries } from './BarSeries.js';
 import { Funnel } from './Funnel.js';
 import { Sparkline } from './Sparkline.js';
@@ -42,6 +43,17 @@ describe('Funnel', () => {
 
     expect(screen.getAllByText('0')).toHaveLength(4);
     expect(screen.queryByText(/% of previous/)).toBeNull();
+  });
+
+  it('names the stages in the chosen language', async () => {
+    await i18n.changeLanguage('sv');
+    try {
+      render(<Funnel stages={stages} />);
+      expect(screen.getByText('Ansökt')).toBeDefined();
+      expect(screen.getByText('Rekryterarsamtal')).toBeDefined();
+    } finally {
+      await i18n.changeLanguage('en');
+    }
   });
 });
 

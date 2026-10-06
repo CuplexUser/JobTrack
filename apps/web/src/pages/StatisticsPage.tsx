@@ -34,7 +34,6 @@ import { ArrowDownOutlined, ArrowUpOutlined, ExportOutlined, UnorderedListOutlin
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
-  STATUS_LABELS,
   WORK_MODE_LABELS,
   addDays,
   endOfMonth,
@@ -50,6 +49,7 @@ import { StatusTag } from '../components/StatusTag.js';
 import { TimeBars } from '../components/charts/TimeBars.js';
 import { CalendarHeatmap } from '../components/charts/CalendarHeatmap.js';
 import { RankedBars, type RankedRow } from '../components/charts/RankedBars.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 type Row = StatisticsResponse['applications'][number];
 
@@ -152,6 +152,7 @@ function QuickTile({ quick, onPick, active }: { quick: QuickWindow; onPick: () =
 
 export function StatisticsPage() {
   const { t, i18n } = useTranslation('statistics');
+  const statusLabel = useStatusLabel();
   const [params, setParams] = useSearchParams();
   const today = todayDateOnly();
   const presets = useMemo(() => rangePresets(today, t), [today, t]);
@@ -255,7 +256,7 @@ export function StatisticsPage() {
       title: t('columns.status'),
       dataIndex: 'status',
       width: 116,
-      sorter: (a, b) => STATUS_LABELS[a.status].localeCompare(STATUS_LABELS[b.status]),
+      sorter: (a, b) => statusLabel(a.status).localeCompare(statusLabel(b.status)),
       render: (_, row) => <StatusTag status={row.status} />,
     },
   ];
@@ -451,6 +452,7 @@ export function StatisticsPage() {
                     title={t('currentStatus.summary')}
                     rows={data.byStatus.map((row) => ({
                       ...row,
+                      label: statusLabel(row.key as Row['status']),
                       labelNode: (
                         <Link to={applicationsHref(range.from, range.to, { status: row.key })}>
                           <StatusTag status={row.key as Row['status']} />

@@ -92,7 +92,7 @@ Keep it concise and do not change anything I have not agreed to.`),
 ${email}
 </email>
 
-1. Work out the company, the role, and what the email means: a rejection, a screening call, an interview invitation, an offer, or just an acknowledgement.
+1. Work out the company, the role, and what the email means: a rejection, a recruiter reaching out for a call (status screening), an invitation to a test such as Assessio, Alva Labs or a coding test (status assessment), an interview invitation, an offer, or just an automatic acknowledgement that the application is being processed (no status change; it stays applied).
 2. Find the application: list_applications with q set to the company (and the role if the company has several). If more than one could match, show me the candidates and ask. If none exists, tell me and offer to create it with create_application (call check_duplicate first).
 3. Tell me the change you intend to make, then, once I agree:
    - a status change goes through change_application_status, with occurredOn set to the email's date when it has one and a short comment summarizing the email;

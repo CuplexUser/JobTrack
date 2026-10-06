@@ -61,11 +61,11 @@ already passed, so importing last year's applications does not flood the dashboa
 overdue follow-ups, and an application that is already over gets none. This covers the New
 Application form, converting an opening, the MCP server and imports.
 
-**Mark silent applications as ghosted.** An application still at *Applied* or *Screening* is
+**Mark silent applications as ghosted.** An application still at *Applied* or *Recruiter call* is
 marked *Ghosted* once nothing has happened for the number of days you choose (14 to 365).
 Silence runs from the latest of: the date you applied, its last status change, and its
-follow-up date, so a follow-up you have planned keeps it safe. *Interview* is left alone on
-purpose, since a long wait after an interview is normal.
+follow-up date, so a follow-up you have planned keeps it safe. *Assessment* and *Interview*
+are left alone on purpose, since a long wait after a test or an interview is normal.
 
 The rule runs every hour while the server is running (from the API or the tray app, never from
 the MCP server). Every change goes through the normal status change, so it appears in the

@@ -140,6 +140,17 @@ describe('previewImport', () => {
     expect(preview?.errors[0]).toContain('not-a-date');
   });
 
+  it('still reads Screening, the label exports used before it became Recruiter call', async () => {
+    const csv =
+      'Position,Company,Date,Status,Notes\r\n' +
+      'Platform Engineer,Klarna,2026-01-10,Screening,\r\n' +
+      'Backend Engineer,Einride,2026-01-12,Recruiter call,\r\n' +
+      'Data Engineer,Tibber,2026-01-14,Assessment,\r\n';
+    const { rows } = await parseImportFile(Buffer.from(csv, 'utf8'), 'csv');
+    const preview = await previewImport(repos, search, rows);
+    expect(preview.map((r) => r.data?.status)).toEqual(['screening', 'screening', 'assessment']);
+  });
+
   it('reports an unrecognized status as an error', async () => {
     const csv = 'Position,Company,Date,Status,Notes\r\nPlatform Engineer,Klarna,2026-01-10,Not A Status,\r\n';
     const { rows } = await parseImportFile(Buffer.from(csv, 'utf8'), 'csv');

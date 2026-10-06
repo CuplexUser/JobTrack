@@ -269,7 +269,7 @@
   "automation.ghost.toggleLabel": "Markera tysta ansökningar som ignorerade",
   "automation.ghost.after": "efter",
   "automation.ghost.days": "dagar",
-  "automation.ghost.note": "Gäller ansökningar som fortfarande är i Ansökt eller Screening där inget har hänt på så länge: ingen statusändring och inget uppföljningsdatum under den tiden. En planerad framtida uppföljning håller ansökan säker. Regeln körs varje timme medan JobTrack är igång. Varje ändring skrivs till ansökans statushistorik med en anteckning om varför, så det är lätt att ångra.",
+  "automation.ghost.note": "Gäller ansökningar som fortfarande är i Ansökt eller Rekryterarsamtal där inget har hänt på så länge: ingen statusändring och inget uppföljningsdatum under den tiden. En planerad framtida uppföljning håller ansökan säker. Regeln körs varje timme medan JobTrack är igång. Varje ändring skrivs till ansökans statushistorik med en anteckning om varför, så det är lätt att ångra.",
   "automation.ghost.none": "Inget skulle markeras som ignorerat just nu.",
   "automation.ghost.candidates_one": "{{count}} ansökan skulle markeras som ignorerad vid nästa körning",
   "automation.ghost.candidates_other": "{{count}} ansökningar skulle markeras som ignorerade vid nästa körning",

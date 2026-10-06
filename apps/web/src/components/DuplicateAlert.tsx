@@ -11,14 +11,13 @@ import { Link } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
-  RELATIONSHIP_LABELS,
   STATUS_COLORS,
-  STATUS_LABELS,
   type ContactView,
   type DuplicateMatch,
   type DuplicateVerdict,
 } from '@jobtrack/shared';
 import type { DuplicateCheckResponse } from '../api/client.js';
+import { useRelationshipLabel, useStatusLabel } from '../hooks/useLabels.js';
 
 export interface DuplicateAlertProps {
   check: DuplicateCheckResponse | undefined;
@@ -93,6 +92,7 @@ export function DuplicateAlert({ check, loading }: DuplicateAlertProps) {
  */
 function KnownPeople({ people }: { people: ContactView[] }) {
   const { t } = useTranslation('applications');
+  const relationshipLabel = useRelationshipLabel();
   if (people.length === 0) return null;
   const shown = people.slice(0, 3);
   return (
@@ -102,7 +102,7 @@ function KnownPeople({ people }: { people: ContactView[] }) {
         <Space key={person.id} size={8} wrap>
           <Link to={`/people/${person.id}`}>{person.name}</Link>
           {person.headline && <Typography.Text type="secondary">{person.headline}</Typography.Text>}
-          <Tag>{RELATIONSHIP_LABELS[person.relationship]}</Tag>
+          <Tag>{relationshipLabel(person.relationship)}</Tag>
         </Space>
       ))}
     </Space>
@@ -123,13 +123,14 @@ function headline(verdict: DuplicateVerdict, company: string, priorCount: number
 
 function MatchRow({ match }: { match: DuplicateMatch }) {
   const { t } = useTranslation('applications');
+  const statusLabel = useStatusLabel();
   const strength = Math.round(Math.max(match.titleSimilarity, match.semanticSimilarity ?? 0) * 100);
 
   return (
     <Space size={8} wrap>
       <Link to={`/applications/${match.id}`}>{match.jobTitle}</Link>
       <Typography.Text type="secondary">{match.appliedOn}</Typography.Text>
-      <Tag color={STATUS_COLORS[match.status]}>{STATUS_LABELS[match.status]}</Tag>
+      <Tag color={STATUS_COLORS[match.status]}>{statusLabel(match.status)}</Tag>
       {match.matchKind === 'exact' ? (
         <Tag color="red">{t('duplicateAlert.exactTitleTag')}</Tag>
       ) : (

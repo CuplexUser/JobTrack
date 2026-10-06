@@ -25,6 +25,7 @@ describe('the funnel', () => {
   it('counts what an application reached, not only where it ended up', async () => {
     const application = await createApplication(repos, applicationInput());
     await changeStatus(repos, application.id, { status: 'screening' });
+    await changeStatus(repos, application.id, { status: 'assessment' });
     await changeStatus(repos, application.id, { status: 'interview' });
     await changeStatus(repos, application.id, { status: 'rejected' });
 
@@ -34,6 +35,7 @@ describe('the funnel', () => {
     expect(stats.byStatus.interview ?? 0).toBe(0);
     expect(stageCount(funnel, 'applied')).toBe(1);
     expect(stageCount(funnel, 'screening')).toBe(1);
+    expect(stageCount(funnel, 'assessment')).toBe(1);
     expect(stageCount(funnel, 'interview')).toBe(1);
     expect(stageCount(funnel, 'offer')).toBe(0);
   });
@@ -63,7 +65,7 @@ describe('the funnel', () => {
 
   it('leaves every stage at zero for an empty database', async () => {
     const { funnel } = await getDashboard(repos);
-    expect(funnel).toHaveLength(4);
+    expect(funnel).toHaveLength(5);
     expect(funnel.every((stage) => stage.count === 0)).toBe(true);
     expect(funnel[1]!.conversion).toBeNull();
   });

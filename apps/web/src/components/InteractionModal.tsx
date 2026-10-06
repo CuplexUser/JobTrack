@@ -10,8 +10,9 @@ import { useEffect } from 'react';
 import { App as AntApp, DatePicker, Form, Input, Modal, Segmented, Select } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
-import { CHANNELS, CHANNEL_LABELS, type Channel, type Direction } from '@jobtrack/shared';
+import { CHANNELS, type Channel, type Direction } from '@jobtrack/shared';
 import { useLogInteraction } from '../api/hooks.js';
+import { useChannelLabel } from '../hooks/useLabels.js';
 
 export interface InteractionModalProps {
   open: boolean;
@@ -31,6 +32,7 @@ interface FormValues {
 
 export function InteractionModal({ open, onClose, contact, applicationId }: InteractionModalProps) {
   const { t } = useTranslation('contacts');
+  const channelLabel = useChannelLabel();
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const log = useLogInteraction();
@@ -83,7 +85,7 @@ export function InteractionModal({ open, onClose, contact, applicationId }: Inte
           />
         </Form.Item>
         <Form.Item name="channel" label={t('interaction.channel.label')}>
-          <Select options={CHANNELS.map((value) => ({ value, label: CHANNEL_LABELS[value] }))} />
+          <Select options={CHANNELS.map((value) => ({ value, label: channelLabel(value) }))} />
         </Form.Item>
         <Form.Item name="occurredOn" label={t('interaction.occurredOn.label')} rules={[{ required: true }]}>
           <DatePicker style={{ width: '100%' }} format="YYYY-MM-DD" />

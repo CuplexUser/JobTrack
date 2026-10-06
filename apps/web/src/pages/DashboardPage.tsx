@@ -26,7 +26,6 @@ import {
 } from 'antd';
 import { ClockCircleOutlined, PlusOutlined, UploadOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { RELATIONSHIP_LABELS, STATUS_LABELS } from '@jobtrack/shared';
 import { useDashboard } from '../api/hooks.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { PreApplyCheck } from '../components/PreApplyCheck.js';
@@ -35,6 +34,7 @@ import { BarSeries } from '../components/charts/BarSeries.js';
 import { Funnel } from '../components/charts/Funnel.js';
 import { DashboardHero } from '../components/DashboardHero.js';
 import { parse, usePreference } from '../preferences.js';
+import { useRelationshipLabel, useStatusLabel } from '../hooks/useLabels.js';
 
 type Attention = 'follow-ups' | 'quiet' | 'reconnect';
 
@@ -47,6 +47,8 @@ const FILL = { flex: 1, minWidth: 0 } as const;
 
 export function DashboardPage() {
   const { t } = useTranslation('dashboard');
+  const statusLabel = useStatusLabel();
+  const relationshipLabel = useRelationshipLabel();
   const { data, isLoading } = useDashboard();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [attention, setAttention] = usePreference<Attention>('view', 'dashboard.attention', 'follow-ups', parse.oneOf(['follow-ups', 'quiet', 'reconnect']));
@@ -164,7 +166,7 @@ export function DashboardPage() {
                         </Flex>
                       }
                     />
-                    <Tag>{RELATIONSHIP_LABELS[person.relationship]}</Tag>
+                    <Tag>{relationshipLabel(person.relationship)}</Tag>
                   </List.Item>
                 )}
               />
@@ -241,8 +243,8 @@ export function DashboardPage() {
                   </Typography.Text>
                   <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                     {event.fromStatus
-                      ? t('recent.statusChange', { from: STATUS_LABELS[event.fromStatus], to: STATUS_LABELS[event.toStatus] })
-                      : t('recent.applied', { status: STATUS_LABELS[event.toStatus] })}{' '}
+                      ? t('recent.statusChange', { from: statusLabel(event.fromStatus), to: statusLabel(event.toStatus) })
+                      : t('recent.applied', { status: statusLabel(event.toStatus) })}{' '}
                     · {event.occurredOn}
                   </Typography.Text>
                 </Space>

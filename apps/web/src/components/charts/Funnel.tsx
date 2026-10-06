@@ -9,8 +9,9 @@
 
 import { Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
+import type { ApplicationStatus } from '@jobtrack/shared';
 import { palette } from '../../theme.js';
+import { useStatusLabel } from '../../hooks/useLabels.js';
 
 export interface FunnelStage {
   status: ApplicationStatus;
@@ -31,6 +32,7 @@ const STRENGTH = [0.45, 0.6, 0.78, 1];
 
 export function Funnel({ stages }: FunnelProps) {
   const { t } = useTranslation('charts');
+  const statusLabel = useStatusLabel();
   const top = stages[0]?.count ?? 0;
 
   return (
@@ -49,7 +51,7 @@ export function Funnel({ stages }: FunnelProps) {
               }}
             >
               <Typography.Text style={{ fontSize: 13 }}>
-                {STATUS_LABELS[stage.status]}
+                {statusLabel(stage.status)}
               </Typography.Text>
               <Space size={8}>
                 <Typography.Text strong>{stage.count}</Typography.Text>
@@ -65,10 +67,10 @@ export function Funnel({ stages }: FunnelProps) {
               viewBox="0 0 100 6"
               preserveAspectRatio="none"
               role="img"
-              aria-label={t('funnel.stageAriaLabel', { status: STATUS_LABELS[stage.status], count: stage.count })}
+              aria-label={t('funnel.stageAriaLabel', { status: statusLabel(stage.status), count: stage.count })}
               style={{ display: 'block', width: '100%', height: 10 }}
             >
-              <title>{`${STATUS_LABELS[stage.status]}: ${stage.count}`}</title>
+              <title>{`${statusLabel(stage.status)}: ${stage.count}`}</title>
               <rect x="0" y="0" width="100" height="6" rx="1.5" fill={palette.bgSunken} />
               {share > 0 && (
                 <rect

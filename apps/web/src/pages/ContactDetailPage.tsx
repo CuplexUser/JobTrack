@@ -32,9 +32,6 @@ import {
 } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
 import {
-  CHANNEL_LABELS,
-  CONTACT_ROLE_LABELS,
-  RELATIONSHIP_LABELS,
   todayDateOnly,
 } from '@jobtrack/shared';
 import {
@@ -46,9 +43,13 @@ import {
 } from '../api/hooks.js';
 import { ContactDrawer } from '../components/ContactDrawer.js';
 import { InteractionModal } from '../components/InteractionModal.js';
+import { useChannelLabel, useContactRoleLabel, useRelationshipLabel } from '../hooks/useLabels.js';
 
 export function ContactDetailPage() {
   const { t } = useTranslation('contacts');
+  const relationshipLabel = useRelationshipLabel();
+  const contactRoleLabel = useContactRoleLabel();
+  const channelLabel = useChannelLabel();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
@@ -81,7 +82,7 @@ export function ContactDetailPage() {
                 {[data.headline, data.companyName].filter(Boolean).join(t('detail.at'))}
               </Typography.Text>
             )}
-            <Tag>{RELATIONSHIP_LABELS[data.relationship]}</Tag>
+            <Tag>{relationshipLabel(data.relationship)}</Tag>
             {data.archived && <Tag color="default">{t('detail.archivedTag')}</Tag>}
           </Space>
         </Space>
@@ -180,7 +181,7 @@ export function ContactDetailPage() {
                         ) : (
                           <Link to="/openings">{link.targetLabel ?? t('detail.links.deletedOpening')}</Link>
                         )}
-                        <Tag color="blue">{CONTACT_ROLE_LABELS[link.role]}</Tag>
+                        <Tag color="blue">{contactRoleLabel(link.role)}</Tag>
                         {link.targetType === 'opening' && <Tag>{t('detail.links.openingTag')}</Tag>}
                       </Space>
                     </List.Item>
@@ -205,7 +206,7 @@ export function ContactDetailPage() {
                         <Typography.Text strong>
                           {interaction.direction === 'inbound' ? t('detail.conversations.inbound') : t('detail.conversations.outbound')}
                           {t('detail.conversations.via')}
-                          {CHANNEL_LABELS[interaction.channel]}
+                          {channelLabel(interaction.channel)}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>
                           {interaction.occurredOn}

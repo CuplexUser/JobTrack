@@ -152,8 +152,9 @@ export interface DuplicateGroup<T extends DuplicateCandidate = DuplicateCandidat
  * attached. A bare "applied" is what an accidental second entry looks like.
  */
 const STATUS_KEEP_WEIGHT: Record<ApplicationStatus, number> = {
-  offer: 5,
-  interview: 4,
+  offer: 6,
+  interview: 5,
+  assessment: 4,
   screening: 3,
   rejected: 2,
   withdrawn: 2,

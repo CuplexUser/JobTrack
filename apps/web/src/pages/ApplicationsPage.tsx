@@ -41,7 +41,6 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
-  STATUS_LABELS,
   WORK_MODES,
   WORK_MODE_LABELS,
   type JobApplicationView,
@@ -59,6 +58,7 @@ import { PeriodTree } from '../components/PeriodTree.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { ImportModal } from '../components/ImportModal.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 /**
  * XLSX export needs `exceljs`, which does not belong in a browser bundle, and the CSV path
@@ -111,6 +111,7 @@ function downloadBlob(filename: string, blob: Blob): void {
 
 export function ApplicationsPage() {
   const { t, i18n } = useTranslation('applications');
+  const statusLabel = useStatusLabel();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -399,7 +400,7 @@ export function ApplicationsPage() {
                   suffixIcon={<FilterOutlined />}
                   value={params.get('status')?.split(',') ?? []}
                   onChange={(value) => patchFilter({ status: value })}
-                  options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+                  options={APPLICATION_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
                 />
                 <Select
                   mode="multiple"

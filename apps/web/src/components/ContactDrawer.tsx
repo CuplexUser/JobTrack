@@ -10,9 +10,10 @@ import { useEffect, useMemo } from 'react';
 import { App as AntApp, AutoComplete, Button, Col, DatePicker, Drawer, Form, Input, Row, Select, Space } from 'antd';
 import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
-import { RELATIONSHIPS, RELATIONSHIP_LABELS, type ContactView, type Relationship } from '@jobtrack/shared';
+import { RELATIONSHIPS, type ContactView, type Relationship } from '@jobtrack/shared';
 import { useCompanySuggestions, useSaveContact } from '../api/hooks.js';
 import { ApiError } from '../api/client.js';
+import { useRelationshipLabel } from '../hooks/useLabels.js';
 
 export interface ContactDrawerProps {
   open: boolean;
@@ -38,6 +39,7 @@ interface FormValues {
 
 export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: ContactDrawerProps) {
   const { t } = useTranslation('contacts');
+  const relationshipLabel = useRelationshipLabel();
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const save = useSaveContact();
@@ -147,7 +149,7 @@ export function ContactDrawer({ open, onClose, contact, defaults, onSaved }: Con
         <Row gutter={12}>
           <Col span={12}>
             <Form.Item name="relationship" label={t('form.relationship.label')}>
-              <Select options={RELATIONSHIPS.map((value) => ({ value, label: RELATIONSHIP_LABELS[value] }))} />
+              <Select options={RELATIONSHIPS.map((value) => ({ value, label: relationshipLabel(value) }))} />
             </Form.Item>
           </Col>
           <Col span={12}>

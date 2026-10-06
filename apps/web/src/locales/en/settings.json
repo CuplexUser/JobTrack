@@ -269,7 +269,7 @@
   "automation.ghost.toggleLabel": "Mark silent applications as ghosted",
   "automation.ghost.after": "after",
   "automation.ghost.days": "days",
-  "automation.ghost.note": "Applies to applications still at Applied or Screening where nothing has happened in that long: no status change, and no follow-up date in that time. A follow-up planned for later keeps an application safe. It runs every hour while JobTrack is running. Each change is written to the application's status history with a note saying why, so it is easy to undo.",
+  "automation.ghost.note": "Applies to applications still at Applied or Recruiter call where nothing has happened in that long: no status change, and no follow-up date in that time. A follow-up planned for later keeps an application safe. It runs every hour while JobTrack is running. Each change is written to the application's status history with a note saying why, so it is easy to undo.",
   "automation.ghost.none": "Nothing would be marked ghosted right now.",
   "automation.ghost.candidates_one": "{{count}} application would be marked ghosted on the next run",
   "automation.ghost.candidates_other": "{{count}} applications would be marked ghosted on the next run",

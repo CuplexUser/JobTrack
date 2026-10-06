@@ -15,8 +15,6 @@ import { useTranslation } from 'react-i18next';
 import type { TFunction } from 'i18next';
 import {
   CONTACT_ROLES,
-  CONTACT_ROLE_LABELS,
-  RELATIONSHIP_LABELS,
   type ContactView,
   type JobApplicationView,
   type LinkedContact,
@@ -24,6 +22,7 @@ import {
 import { useContacts, useLinkContact, useLinkedContacts, useUnlinkContact } from '../api/hooks.js';
 import { ContactDrawer } from './ContactDrawer.js';
 import { InteractionModal } from './InteractionModal.js';
+import { useContactRoleLabel, useRelationshipLabel } from '../hooks/useLabels.js';
 
 function lastSpoke(contact: ContactView, t: TFunction<'contacts'>): string {
   return contact.lastInteractionOn
@@ -32,12 +31,13 @@ function lastSpoke(contact: ContactView, t: TFunction<'contacts'>): string {
 }
 
 function PersonMeta({ contact, t }: { contact: ContactView; t: TFunction<'contacts'> }) {
+  const relationshipLabel = useRelationshipLabel();
   return (
     <List.Item.Meta
       title={
         <Space size={8} wrap>
           <Link to={`/people/${contact.id}`}>{contact.name}</Link>
-          <Tag>{RELATIONSHIP_LABELS[contact.relationship]}</Tag>
+          <Tag>{relationshipLabel(contact.relationship)}</Tag>
         </Space>
       }
       description={
@@ -98,6 +98,7 @@ export function CompanyPeopleCard({ companyName }: { companyName: string }) {
 /** The people behind one application, and the rest of the user's network at that company. */
 export function ApplicationPeopleCard({ application }: { application: JobApplicationView }) {
   const { t } = useTranslation('contacts');
+  const contactRoleLabel = useContactRoleLabel();
   const { message } = AntApp.useApp();
   const { data: linkedData } = useLinkedContacts('application', application.id);
   const { data: companyData } = useContacts({ company: application.company.name });
@@ -120,7 +121,7 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
   }
 
   const roleMenu = (contact: ContactView) => ({
-    items: CONTACT_ROLES.map((role) => ({ key: role, label: CONTACT_ROLE_LABELS[role] })),
+    items: CONTACT_ROLES.map((role) => ({ key: role, label: contactRoleLabel(role) })),
     onClick: ({ key }: { key: string }) => void linkAs(contact, key),
   });
 
@@ -163,7 +164,7 @@ export function ApplicationPeopleCard({ application }: { application: JobApplica
                     title={
                       <Space size={8} wrap>
                         <Link to={`/people/${contact.id}`}>{contact.name}</Link>
-                        <Tag color="blue">{CONTACT_ROLE_LABELS[contact.role]}</Tag>
+                        <Tag color="blue">{contactRoleLabel(contact.role)}</Tag>
                       </Space>
                     }
                     description={contact.headline ?? lastSpoke(contact, t)}

@@ -16,8 +16,9 @@ import type { ColumnsType } from 'antd/es/table';
 import type { UploadProps } from 'antd';
 import { useQueryClient } from '@tanstack/react-query';
 import { useTranslation } from 'react-i18next';
-import { STATUS_LABELS, type ApplicationStatus } from '@jobtrack/shared';
+import type { ApplicationStatus } from '@jobtrack/shared';
 import { api, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from '../api/index.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 const VERDICT_COLOR: Record<ImportPreviewRow['verdict'], string> = {
   new: 'green',
@@ -32,6 +33,7 @@ export interface ImportModalProps {
 
 export function ImportModal({ open, onClose }: ImportModalProps) {
   const { t } = useTranslation('import');
+  const statusLabel = useStatusLabel();
   const queryClient = useQueryClient();
   const [file, setFile] = useState<File | null>(null);
   const [format, setFormat] = useState<'csv' | 'xlsx'>('csv');
@@ -94,7 +96,7 @@ export function ImportModal({ open, onClose }: ImportModalProps) {
       title: t('applications.columns.status'),
       dataIndex: 'status',
       width: 110,
-      render: (value: ApplicationStatus | null) => (value ? STATUS_LABELS[value] : '—'),
+      render: (value: ApplicationStatus | null) => (value ? statusLabel(value) : '—'),
     },
     {
       title: t('applications.columns.result'),

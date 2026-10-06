@@ -11,9 +11,10 @@ import { Button, Card, Flex, Input, Segmented, Select, Space, Table, Tag, Typogr
 import type { ColumnsType } from 'antd/es/table';
 import { LinkedinOutlined, PlusOutlined, SearchOutlined } from '@ant-design/icons';
 import { useTranslation } from 'react-i18next';
-import { RELATIONSHIPS, RELATIONSHIP_LABELS, todayDateOnly, type ContactView } from '@jobtrack/shared';
+import { RELATIONSHIPS, todayDateOnly, type ContactView } from '@jobtrack/shared';
 import { useContacts } from '../api/hooks.js';
 import { useDebounced } from '../hooks/useDebounced.js';
+import { useRelationshipLabel } from '../hooks/useLabels.js';
 import { ContactDrawer } from '../components/ContactDrawer.js';
 import { LinkedInImportModal } from '../components/LinkedInImportModal.js';
 import { parse, usePreference } from '../preferences.js';
@@ -28,6 +29,7 @@ const CONTACT_LIMIT = 5000;
 
 export function ContactsPage() {
   const { t } = useTranslation('contacts');
+  const relationshipLabel = useRelationshipLabel();
   const navigate = useNavigate();
   const [params, setParams] = useSearchParams();
   const [search, setSearch] = useState(params.get('q') ?? '');
@@ -84,7 +86,7 @@ export function ContactsPage() {
       title: t('list.columns.relationship'),
       dataIndex: 'relationship',
       width: 170,
-      render: (_, row) => <Tag>{RELATIONSHIP_LABELS[row.relationship]}</Tag>,
+      render: (_, row) => <Tag>{relationshipLabel(row.relationship)}</Tag>,
     },
     {
       title: t('list.columns.lastSpoke'),
@@ -154,7 +156,7 @@ export function ContactsPage() {
             style={{ minWidth: 220 }}
             value={relationship}
             onChange={(value) => patchParams({ relationship: value })}
-            options={RELATIONSHIPS.map((value) => ({ value, label: RELATIONSHIP_LABELS[value] }))}
+            options={RELATIONSHIPS.map((value) => ({ value, label: relationshipLabel(value) }))}
           />
         </Flex>
       </Card>

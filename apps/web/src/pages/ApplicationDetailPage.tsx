@@ -39,9 +39,9 @@ import {
 import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
-  STATUS_LABELS,
   WORK_MODE_LABELS,
   nextStatus,
+  type ApplicationStatus,
   type Note,
 } from '@jobtrack/shared';
 import {
@@ -55,9 +55,11 @@ import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { NoteModal } from '../components/NoteModal.js';
 import { ApplicationPeopleCard } from '../components/PeopleCard.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 export function ApplicationDetailPage() {
   const { t } = useTranslation('applications');
+  const statusLabel = useStatusLabel();
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { message } = AntApp.useApp();
@@ -74,10 +76,10 @@ export function ApplicationDetailPage() {
 
   const advance = nextStatus(data.status);
 
-  async function setStatus(status: string): Promise<void> {
+  async function setStatus(status: ApplicationStatus): Promise<void> {
     if (!id) return;
     await changeStatus.mutateAsync({ id, body: { status, comment: null } });
-    message.success(t('detail.movedMessage', { status: STATUS_LABELS[status as never] }));
+    message.success(t('detail.movedMessage', { status: statusLabel(status) }));
   }
 
   async function setArchived(archived: boolean): Promise<void> {
@@ -112,14 +114,14 @@ export function ApplicationDetailPage() {
         <Space wrap>
           {advance && (
             <Button type="primary" onClick={() => void setStatus(advance)}>
-              {t('detail.moveTo', { status: STATUS_LABELS[advance] })}
+              {t('detail.moveTo', { status: statusLabel(advance) })}
             </Button>
           )}
           <Select
             style={{ width: 150 }}
             value={data.status}
             onChange={(value) => void setStatus(value)}
-            options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+            options={APPLICATION_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
           />
           <Button icon={<EditOutlined />} onClick={() => setEditing(true)}>
             {t('detail.edit')}
@@ -214,7 +216,7 @@ export function ApplicationDetailPage() {
                       <Space direction="vertical" size={0}>
                         <Typography.Text strong>
                           {event.fromStatus
-                            ? t('detail.statusChange', { from: STATUS_LABELS[event.fromStatus], to: STATUS_LABELS[event.toStatus] })
+                            ? t('detail.statusChange', { from: statusLabel(event.fromStatus), to: statusLabel(event.toStatus) })
                             : t('detail.appliedLabel')}
                         </Typography.Text>
                         <Typography.Text type="secondary" style={{ fontSize: 12 }}>

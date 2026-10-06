@@ -29,7 +29,6 @@ import dayjs, { type Dayjs } from 'dayjs';
 import { useTranslation } from 'react-i18next';
 import {
   APPLICATION_STATUSES,
-  STATUS_LABELS,
   WORK_MODES,
   WORK_MODE_LABELS,
   shouldBlockSave,
@@ -45,6 +44,7 @@ import {
 import { ApiError } from '../api/client.js';
 import { DuplicateAlert } from './DuplicateAlert.js';
 import { useDebounced } from '../hooks/useDebounced.js';
+import { useStatusLabel } from '../hooks/useLabels.js';
 
 export interface ApplicationDrawerProps {
   open: boolean;
@@ -72,6 +72,7 @@ interface FormValues {
 
 export function ApplicationDrawer({ open, onClose, application }: ApplicationDrawerProps) {
   const { t } = useTranslation('applications');
+  const statusLabel = useStatusLabel();
   const [form] = Form.useForm<FormValues>();
   const { message, modal } = AntApp.useApp();
   const isEdit = Boolean(application);
@@ -297,7 +298,7 @@ export function ApplicationDrawer({ open, onClose, application }: ApplicationDra
           <Col span={8}>
             <Form.Item name="status" label={t('drawer.fields.status')}>
               <Select
-                options={APPLICATION_STATUSES.map((s) => ({ value: s, label: STATUS_LABELS[s] }))}
+                options={APPLICATION_STATUSES.map((s) => ({ value: s, label: statusLabel(s) }))}
               />
             </Form.Item>
           </Col>

@@ -36,7 +36,8 @@ export function defaultFollowUpDate(
 }
 
 /**
- * The statuses the auto-ghost rule may move to `ghosted`. Not `interview`: going quiet after
- * an interview is common while a decision is made, and not something to close out unasked.
+ * The statuses the auto-ghost rule may move to `ghosted`. Not `assessment` or `interview`:
+ * going quiet after a test or an interview is common while a decision is made, and not
+ * something to close out unasked.
  */
 export const AUTO_GHOST_STATUSES = ['applied', 'screening'] as const satisfies readonly ApplicationStatus[];

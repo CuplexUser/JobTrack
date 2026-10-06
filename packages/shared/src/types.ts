@@ -6,10 +6,18 @@
  * type-level test there asserts the two never drift apart.
  */
 
-/** Where an application currently sits in the pipeline. */
+/**
+ * Where an application currently sits in the pipeline.
+ *
+ * `screening` means a person got in touch, typically a recruiter call; the automatic
+ * "your application is being processed" email does not count and leaves it at `applied`.
+ * `assessment` covers tests: personality and aptitude tests (Assessio, Alva Labs) and coding
+ * tests or take-home assignments.
+ */
 export const APPLICATION_STATUSES = [
   'applied',
   'screening',
+  'assessment',
   'interview',
   'offer',
   'rejected',
@@ -20,7 +28,7 @@ export const APPLICATION_STATUSES = [
 export type ApplicationStatus = (typeof APPLICATION_STATUSES)[number];
 
 /** Statuses that still represent a live conversation. */
-export const ACTIVE_STATUSES = ['applied', 'screening', 'interview'] as const;
+export const ACTIVE_STATUSES = ['applied', 'screening', 'assessment', 'interview'] as const;
 
 /** Statuses that mean the process is over, whatever the outcome. */
 export const CONCLUDED_STATUSES = ['offer', 'rejected', 'withdrawn', 'ghosted'] as const;
@@ -29,7 +37,7 @@ export const CONCLUDED_STATUSES = ['offer', 'rejected', 'withdrawn', 'ghosted'] 
  * The happy-path order. Used to offer a one-click "advance" button and to decide whether a
  * status change is a step forward or a correction.
  */
-export const STATUS_PROGRESSION = ['applied', 'screening', 'interview', 'offer'] as const;
+export const STATUS_PROGRESSION = ['applied', 'screening', 'assessment', 'interview', 'offer'] as const;
 
 export function isActiveStatus(status: ApplicationStatus): boolean {
   return (ACTIVE_STATUSES as readonly string[]).includes(status);
@@ -53,6 +61,7 @@ export function nextStatus(status: ApplicationStatus): ApplicationStatus | null 
 export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   applied: 'blue',
   screening: 'cyan',
+  assessment: 'geekblue',
   interview: 'gold',
   offer: 'green',
   rejected: 'red',
@@ -60,9 +69,14 @@ export const STATUS_COLORS: Record<ApplicationStatus, string> = {
   ghosted: 'purple',
 };
 
+/**
+ * English labels, for everything outside the web UI: export, import, the API and the MCP.
+ * The web app shows its own translated labels (`status.*` in its `common` namespace).
+ */
 export const STATUS_LABELS: Record<ApplicationStatus, string> = {
   applied: 'Applied',
-  screening: 'Screening',
+  screening: 'Recruiter call',
+  assessment: 'Assessment',
   interview: 'Interview',
   offer: 'Offer',
   rejected: 'Rejected',
