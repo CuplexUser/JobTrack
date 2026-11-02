@@ -4,7 +4,7 @@
   "applications.verdict.error": "Error",
   "applications.readError": "Could not read that file",
   "applications.title": "Import applications",
-  "applications.description": "CSV or .xlsx with the same columns Export produces: Position, Company, Location, Date, Status, Notes. Location is optional. Rows that exactly match an application you have already logged are skipped automatically.",
+  "applications.description": "CSV or .xlsx with the columns Export produces. Position, Company and Date are required; Location, Status and Notes are optional, and headers can be in English or Swedish. Rows that exactly match an application you have already logged are skipped automatically.",
   "applications.dropzone": "Click or drag a CSV or Excel file here",
   "applications.newCount": "{{count}} new",
   "applications.duplicateCount": "{{count}} duplicate, will be skipped",

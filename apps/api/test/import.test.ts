@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { RepoBundle } from '../src/db/repos.js';
 import type { SearchIndex } from '../src/search/index.js';
@@ -5,7 +6,9 @@ import { createApplication, findAllMatching } from '../src/services/applications
 import { commitImport, parseImportFile, previewImport } from '../src/services/import.service.js';
 import { csvLines, buildWorkbook } from '../src/export/workbook.js';
 import { withNotes } from '../src/export/rows.js';
-import { applicationFilterSchema } from '@jobtrack/shared';
+import { exportColumns } from '../src/export/columns.js';
+import { IMPORT_FIELDS, IMPORT_HEADER_NAMES } from '../src/import/columns.js';
+import { applicationFilterSchema, DEFAULT_EXPORT_FIELDS } from '@jobtrack/shared';
 import { applicationInput, createMemoryRepos, createTestSearch } from './support/repos.js';
 
 let repos: RepoBundle;
@@ -48,11 +51,40 @@ describe('parseImportFile (csv)', () => {
 
   it('reports a missing required column as a file-level error', async () => {
     const { rows, errors } = await parseImportFile(
-      Buffer.from('Position,Company,Date\r\nBackend Engineer,Spotify,2026-03-12\r\n', 'utf8'),
+      Buffer.from('Position,Company,Status\r\nBackend Engineer,Spotify,Applied\r\n', 'utf8'),
       'csv',
     );
     expect(rows).toEqual([]);
     expect(errors[0]).toContain('missing');
+    expect(errors[0]).toContain('Position, Company, Date');
+  });
+
+  it('needs only position, company and date', async () => {
+    const { rows, errors } = await parseImportFile(
+      Buffer.from('Role,Company,City,Date\r\nBackend Engineer,Spotify,Lund,2026-03-12\r\n', 'utf8'),
+      'csv',
+    );
+    expect(errors).toEqual([]);
+    expect(rows[0]).toMatchObject({ position: 'Backend Engineer', location: 'Lund', status: '', notes: '' });
+  });
+
+  it('reads Swedish headers, in any case and order', async () => {
+    const { rows, errors } = await parseImportFile(
+      Buffer.from(
+        'DATUM,företag,Roll,Ort,Status,Anteckningar\r\n2026-03-12,Spotify,Backend Engineer,Lund,Interview,Bra\r\n',
+        'utf8',
+      ),
+      'csv',
+    );
+    expect(errors).toEqual([]);
+    expect(rows[0]).toMatchObject({
+      position: 'Backend Engineer',
+      company: 'Spotify',
+      location: 'Lund',
+      date: '2026-03-12',
+      status: 'Interview',
+      notes: 'Bra',
+    });
   });
 
   it('accepts a file that predates the Location column', async () => {
@@ -94,6 +126,46 @@ describe('parseImportFile (xlsx)', () => {
         status: 'Interview',
       }),
     ]);
+  });
+
+  it('parses a workbook exported with Swedish headers and only some columns', async () => {
+    const rows = await withNotes(repos, await findAllMatching(repos, applicationFilterSchema.parse({})));
+    const columns = exportColumns(
+      ['jobTitle', 'company', 'location', 'appliedOn', 'tags'],
+      ['Roll', 'Företag', 'Ort', 'Datum', 'Taggar'],
+    );
+    const buffer = await buildWorkbook(rows, columns);
+
+    const { rows: parsed, errors } = await parseImportFile(buffer, 'xlsx');
+    expect(errors).toEqual([]);
+    expect(parsed).toEqual([
+      expect.objectContaining({
+        position: 'Backend Engineer',
+        company: 'Spotify',
+        location: 'Stockholm',
+        date: '2026-03-12',
+        status: '',
+      }),
+    ]);
+  });
+});
+
+describe('import header names', () => {
+  it('reads the fields of the default export', () => {
+    expect([...IMPORT_FIELDS]).toEqual([...DEFAULT_EXPORT_FIELDS]);
+  });
+
+  it.each(['en', 'sv'])("recognizes every default export header in the web app's %s locale", (language) => {
+    // The export dialog's headers live in the web app's locale files; a header added or
+    // reworded there without being added here would export a file Import cannot read.
+    const url = new URL(`../../web/src/locales/${language}/applications.json`, import.meta.url);
+    const locale = JSON.parse(readFileSync(url, 'utf8')) as Record<string, string>;
+    for (const field of IMPORT_FIELDS) {
+      const header = locale[`export.field.${field}`];
+      expect(header, `export.field.${field}`).toBeDefined();
+      const names = IMPORT_HEADER_NAMES[field].map((name) => name.toLowerCase());
+      expect(names, `export.field.${field}`).toContain(header!.toLowerCase());
+    }
   });
 });
 

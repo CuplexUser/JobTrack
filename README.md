@@ -278,8 +278,8 @@ active UI language. These choices are the *export profile*, saved in the databas
 way. `GET /api/export` takes them as `columns` (comma list of fields) and `headers` (a JSON
 array matched by position); without them it writes the default six under English headers.
 
-Only the default English headers import back cleanly: renamed or translated headers will not
-match Import's column names.
+Import reads the default headers in either language, so an export in Swedish imports back
+too. A header you renamed yourself only imports if it is one of the names Import knows.
 
 CSV is written by hand against RFC 4180 with a UTF-8 BOM, so titles containing commas do not
 shift columns and `Malmö` survives a double-click into Excel.
@@ -297,8 +297,11 @@ shift columns and `Malmö` survives a double-click into Excel.
 ## Import
 
 CSV and `.xlsx`, in the same shape Export produces — Position, Company, Location, Date,
-Status, Notes, matched by header name rather than position. Location is optional, so a file
-exported before that column existed still imports. The obvious source is the app's own
+Status, Notes, matched by header name rather than position. Only Position, Company and Date
+are required, so a file exported before the Location column existed, or with only some
+columns picked in the export dialog, still imports; a missing status reads as Applied. Each
+column answers to its English and Swedish export header and a few common names (Role, City,
+Ort, ...); see `IMPORT_HEADER_NAMES` in `apps/api/src/import/columns.ts`. The obvious source is the app's own
 Export output, so a filtered export round-trips back in; a hand-built spreadsheet in the
 same shape works too.
 

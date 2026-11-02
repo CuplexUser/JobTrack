@@ -4,7 +4,7 @@
   "applications.verdict.error": "Fel",
   "applications.readError": "Kunde inte läsa den filen",
   "applications.title": "Importera ansökningar",
-  "applications.description": "CSV eller .xlsx med samma kolumner som Exportera skapar: Titel, Företag, Plats, Datum, Status, Anteckningar. Plats är valfritt. Rader som exakt matchar en ansökan du redan loggat hoppas över automatiskt.",
+  "applications.description": "CSV eller .xlsx med kolumnerna som Exportera skapar. Roll, Företag och Datum krävs; Ort, Status och Anteckningar är valfria, och rubrikerna kan vara på svenska eller engelska. Rader som exakt matchar en ansökan du redan loggat hoppas över automatiskt.",
   "applications.dropzone": "Klicka eller dra en CSV- eller Excel-fil hit",
   "applications.newCount": "{{count}} nya",
   "applications.duplicateCount": "{{count}} dubbletter hoppas över",

@@ -1,7 +1,7 @@
 /**
  * Import applications from a CSV/.xlsx in the same shape Export produces (Position, Company,
- * Location, Date, Status, Notes) — notably the app's own Export output. Location is optional,
- * so a file exported before that column existed still imports.
+ * Location, Date, Status, Notes) — notably the app's own Export output, with English or
+ * Swedish headers. Only Position, Company and Date are required.
  *
  * Two steps, both hitting the same endpoint: choosing a file previews what would happen
  * without writing anything, and only committing actually creates the new rows. Rows that
