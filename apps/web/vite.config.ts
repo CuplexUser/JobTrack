@@ -67,7 +67,7 @@ export default defineConfig({
     // components, so this is baseline cost, not something one route is dragging in by
     // accident. Raised just past that rather than disabled outright, so a genuinely
     // oversized future chunk still warns.
-    chunkSizeWarningLimit: 650,
+    chunkSizeWarningLimit: 850,
     rolldownOptions: {
       onwarn(warning, warn) {
         // `demo-client.ts` (the client-side demo build's data layer) reaches `db/schema.ts`

@@ -25,6 +25,7 @@
     "pretray": "npm run build --workspace=@jobtrack/shared",
     "tray": "npm run start --workspace=jobtrack",
     "pretest": "npm run build --workspace=@jobtrack/shared",
+    "bump": "node scripts/bump-versions.mjs",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
     "test": "vitest run",

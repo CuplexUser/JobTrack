@@ -37,10 +37,13 @@
  * Build `@jobtrack/shared` first (`npm run build --workspace=@jobtrack/shared`) — it ships
  * `dist/`, which `npm pack` does not build on its own (that's `prepublishOnly`'s job, and
  * that only runs for a real publish).
+ *
+ * `PACKAGES` and `inspect` are also exported for `bump-versions.mjs`, which bumps whatever
+ * this would fail. Importing the module runs nothing; only running it as a script does.
  */
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { appendFileSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, readdirSync, readFileSync, realpathSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { dirname, extname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -52,7 +55,7 @@ import { gunzipSync } from 'node:zlib';
 // `bundles` lists sources a package ships but doesn't own, which therefore can't be caught by
 // comparing tarballs (see BUNDLED_PREFIXES). apps/tray stages a built copy of the web UI and
 // the root .env.example into vendor/ at prepack time.
-const PACKAGES = [
+export const PACKAGES = [
   { dir: 'packages/shared' },
   { dir: 'apps/api' },
   { dir: 'apps/mcp' },
@@ -247,7 +250,7 @@ function diffTarballs(published, local, include) {
   return differences.sort();
 }
 
-async function inspect({ dir, bundles }) {
+export async function inspect({ dir, bundles }) {
   const packageDir = resolve(repoRoot, dir);
   const manifest = JSON.parse(readFileSync(join(packageDir, 'package.json'), 'utf8'));
   const { name, version } = manifest;
@@ -295,49 +298,60 @@ async function inspect({ dir, bundles }) {
   };
 }
 
-const planPath = process.argv.includes('--plan')
-  ? process.argv[process.argv.indexOf('--plan') + 1]
-  : null;
-
-// The version-bump check reads history, which a depth-1 clone doesn't have: it would find
-// no bump commit and wave every stale bundle through. Fail loudly instead of silently.
-if (PACKAGES.some((entry) => entry.bundles) && git(['rev-parse', '--is-shallow-repository']).trim() === 'true') {
-  console.error('This is a shallow clone; the version-bump check needs full history (actions/checkout: fetch-depth: 0).');
-  process.exit(1);
+/** True when this file is the script node was asked to run, not a module imported by one. */
+function runAsScript() {
+  if (!process.argv[1]) return false;
+  const same = (path) => (process.platform === 'win32' ? realpathSync(path).toLowerCase() : realpathSync(path));
+  return same(process.argv[1]) === same(fileURLToPath(import.meta.url));
 }
 
-const plan = [];
-for (const entry of PACKAGES) {
-  plan.push(await inspect(entry));
-}
+async function main() {
+  const planPath = process.argv.includes('--plan')
+    ? process.argv[process.argv.indexOf('--plan') + 1]
+    : null;
 
-const icons = { publish: '+', skip: '=', fail: 'x' };
-console.log('');
-for (const entry of plan) {
-  console.log(`${icons[entry.status]} ${entry.name}@${entry.version} — ${entry.status}: ${entry.reason}`);
-  for (const difference of entry.differences ?? []) console.log(`      ${difference}`);
-  for (const note of entry.notes ?? []) console.log(`      note: bundled ${note}`);
-}
-console.log('');
-
-if (planPath) writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
-
-const failures = plan.filter((entry) => entry.status === 'fail');
-if (failures.length > 0) {
-  const names = failures.map((entry) => `${entry.name}@${entry.version}`).join(', ');
-  console.error(
-    `Refusing to publish: ${names} ${failures.length === 1 ? 'is' : 'are'} already on the ` +
-      'registry with different contents. Bump the version in package.json.',
-  );
-  if (process.env.GITHUB_STEP_SUMMARY) {
-    const lines = failures.map(
-      (entry) => `- \`${entry.name}@${entry.version}\` is published with different contents — bump its version.`,
-    );
-    appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Publish blocked\n\n${lines.join('\n')}\n`);
+  // The version-bump check reads history, which a depth-1 clone doesn't have: it would find
+  // no bump commit and wave every stale bundle through. Fail loudly instead of silently.
+  if (PACKAGES.some((entry) => entry.bundles) && git(['rev-parse', '--is-shallow-repository']).trim() === 'true') {
+    console.error('This is a shallow clone; the version-bump check needs full history (actions/checkout: fetch-depth: 0).');
+    process.exit(1);
   }
-  process.exit(1);
+
+  const plan = [];
+  for (const entry of PACKAGES) {
+    plan.push(await inspect(entry));
+  }
+
+  const icons = { publish: '+', skip: '=', fail: 'x' };
+  console.log('');
+  for (const entry of plan) {
+    console.log(`${icons[entry.status]} ${entry.name}@${entry.version} — ${entry.status}: ${entry.reason}`);
+    for (const difference of entry.differences ?? []) console.log(`      ${difference}`);
+    for (const note of entry.notes ?? []) console.log(`      note: bundled ${note}`);
+  }
+  console.log('');
+
+  if (planPath) writeFileSync(planPath, `${JSON.stringify(plan, null, 2)}\n`);
+
+  const failures = plan.filter((entry) => entry.status === 'fail');
+  if (failures.length > 0) {
+    const names = failures.map((entry) => `${entry.name}@${entry.version}`).join(', ');
+    console.error(
+      `Refusing to publish: ${names} ${failures.length === 1 ? 'is' : 'are'} already on the ` +
+        'registry with different contents. Bump the version in package.json.',
+    );
+    if (process.env.GITHUB_STEP_SUMMARY) {
+      const lines = failures.map(
+        (entry) => `- \`${entry.name}@${entry.version}\` is published with different contents — bump its version.`,
+      );
+      appendFileSync(process.env.GITHUB_STEP_SUMMARY, `### Publish blocked\n\n${lines.join('\n')}\n`);
+    }
+    process.exit(1);
+  }
+
+  if (plan.every((entry) => entry.status === 'skip')) {
+    console.log('Nothing to publish — every package is already on the registry, unchanged.');
+  }
 }
 
-if (plan.every((entry) => entry.status === 'skip')) {
-  console.log('Nothing to publish — every package is already on the registry, unchanged.');
-}
+if (runAsScript()) await main();

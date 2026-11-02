@@ -55,6 +55,24 @@ putting the `publish` job in a GitHub environment if you want a second pair of e
 push path; note the environment name then has to be added to all four trusted publisher
 configurations on npmjs.com, or authentication fails.
 
+### Bumping versions
+
+`npm run bump <major|minor|patch>` bumps every package that needs it, so you never have to work
+out by hand which of the four moved:
+
+```powershell
+npm run bump minor              # or major / patch
+npm run bump minor -- --dry-run # show what would change, write nothing
+```
+
+It decides with the same check as the gate below, so it bumps exactly what CI would otherwise
+refuse: a package whose published tarball differs from this checkout, and the tray when the web
+UI or `.env.example` changed since its version was set, including changes not committed yet. A
+package whose version is not on the registry yet is already bumped and is left alone. Bumps
+cascade the way the release commits always have: a new `@jobtrack/shared` moves the `^` range in
+`@jobtrack/api`, `@jobtrack/mcp` and the tray, and each of those gets a new version for it.
+`package-lock.json` is updated to match. Nothing is committed or pushed.
+
 ### One-time setup: a trusted publisher per package
 
 Trusted publishing is configured **per package on npmjs.com**, not in this repo, and all four
