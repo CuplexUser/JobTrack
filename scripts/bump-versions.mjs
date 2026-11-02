@@ -23,6 +23,11 @@
  *   npm run bump minor              # or major / patch
  *   npm run bump minor -- --dry-run # show what would change, write nothing
  *   node scripts/bump-versions.mjs --patch
+ *   node scripts/bump-versions.mjs --check   # the pre-push hook: exit 1 if a bump is missing
+ *
+ * `--check` writes nothing and judges only what is committed (uncommitted changes are not
+ * part of a push). The package tarballs are still packed from the working tree, so an
+ * uncommitted edit to a package's own files can make it fail; commit or stash it.
  *
  * It reads the npm registry and packs each package locally (the tray's pack rebuilds the web
  * UI), so it takes a minute. Nothing is committed or pushed.
@@ -38,7 +43,8 @@ const DEPENDENCY_FIELDS = ['dependencies', 'devDependencies', 'peerDependencies'
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 const USAGE = `Usage: npm run bump <major|minor|patch> [-- --dry-run]
-       node scripts/bump-versions.mjs --major|--minor|--patch [--dry-run]`;
+       node scripts/bump-versions.mjs --major|--minor|--patch [--dry-run]
+       node scripts/bump-versions.mjs --check   (exit 1 if a committed change needs a bump)`;
 
 function parseArgs(argv) {
   const words = argv.map((arg) => arg.replace(/^--/, ''));
@@ -47,14 +53,23 @@ function parseArgs(argv) {
     process.exit(0);
   }
   const levels = words.filter((word) => LEVELS.includes(word));
-  const unknown = words.filter((word) => !LEVELS.includes(word) && word !== 'dry-run');
+  const unknown = words.filter((word) => !LEVELS.includes(word) && word !== 'dry-run' && word !== 'check');
+  if (words.includes('check')) {
+    if (levels.length > 0 || unknown.length > 0 || words.includes('dry-run')) {
+      console.error('--check takes no other arguments.');
+      console.error(USAGE);
+      process.exit(2);
+    }
+    // The level only shapes the suggested version numbers; nothing is written.
+    return { level: 'patch', dryRun: true, check: true };
+  }
   if (levels.length !== 1 || unknown.length > 0) {
     if (unknown.length > 0) console.error(`Unknown argument: ${unknown.join(', ')}`);
     else console.error(levels.length === 0 ? 'Choose major, minor or patch.' : 'Choose only one of major, minor or patch.');
     console.error(USAGE);
     process.exit(2);
   }
-  return { level: levels[0], dryRun: words.includes('dry-run') };
+  return { level: levels[0], dryRun: words.includes('dry-run'), check: false };
 }
 
 function increment(version, level) {
@@ -98,7 +113,7 @@ function buildShared() {
   if (result.status !== 0) throw new Error('Building @jobtrack/shared failed.');
 }
 
-const { level, dryRun } = parseArgs(process.argv.slice(2));
+const { level, dryRun, check } = parseArgs(process.argv.slice(2));
 
 console.log('Building @jobtrack/shared and comparing every package with the registry...\n');
 buildShared();
@@ -115,7 +130,8 @@ for (const entry of PACKAGES) {
   const reasons = [];
 
   if (result.status === 'fail') reasons.push(result.reason);
-  if (result.status === 'skip' && entry.bundles) {
+  // --check asks about what is being pushed, which uncommitted changes are not part of.
+  if (!check && result.status === 'skip' && entry.bundles) {
     const pending = uncommittedChanges(entry.bundles);
     if (pending.length > 0) reasons.push(`${entry.bundles.join(' / ')} has ${pending.length} uncommitted change(s)`);
   }
@@ -157,6 +173,15 @@ for (const change of changes) {
 }
 for (const { name, version } of unchanged) console.log(`${name} ${version} (no bump needed)`);
 console.log('');
+
+if (check) {
+  console.error(
+    'The Publish to npm workflow would refuse this push: the packages above changed without a new version.\n' +
+      'Run `npm run bump patch` (or minor / major), commit the result, and push again.\n' +
+      'To push anyway: git push --no-verify',
+  );
+  process.exit(1);
+}
 
 if (dryRun) {
   console.log('Dry run: nothing was written.');

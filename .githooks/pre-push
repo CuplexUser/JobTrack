@@ -1,0 +1,20 @@
+#!/bin/sh
+# Stops a push to main that the Publish to npm workflow would reject: a published package
+# (or the web UI the tray bundles) changed without a version bump. See docs/publishing.md.
+#
+# Installed by `npm install` (the root `prepare` script sets core.hooksPath to .githooks).
+# Skip it once with: git push --no-verify
+
+zero=0000000000000000000000000000000000000000
+pushes_main=false
+while read -r local_ref local_sha remote_ref remote_sha; do
+  if [ "$remote_ref" = "refs/heads/main" ] && [ "$local_sha" != "$zero" ]; then
+    pushes_main=true
+  fi
+done
+
+[ "$pushes_main" = true ] || exit 0
+
+cd "$(git rev-parse --show-toplevel)" || exit 1
+echo "pre-push: checking that every changed package has a new version (about a minute)..."
+exec node scripts/bump-versions.mjs --check

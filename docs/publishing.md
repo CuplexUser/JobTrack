@@ -73,6 +73,12 @@ cascade the way the release commits always have: a new `@jobtrack/shared` moves 
 `@jobtrack/api`, `@jobtrack/mcp` and the tray, and each of those gets a new version for it.
 `package-lock.json` is updated to match. Nothing is committed or pushed.
 
+`node scripts/bump-versions.mjs --check` asks the same question without writing anything and
+exits non-zero when a bump is missing. The `.githooks/pre-push` hook runs it on every push to
+`main`; the root `prepare` script (`scripts/install-hooks.mjs`) sets `core.hooksPath` to
+`.githooks` on `npm install`. The check judges only committed changes, since uncommitted ones
+are not part of the push, and `git push --no-verify` skips it.
+
 ### One-time setup: a trusted publisher per package
 
 Trusted publishing is configured **per package on npmjs.com**, not in this repo, and all four

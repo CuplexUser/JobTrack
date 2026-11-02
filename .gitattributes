@@ -1,0 +1,2 @@
+# Git hooks are shell scripts: CRLF line endings would break them on checkout.
+.githooks/* text eol=lf

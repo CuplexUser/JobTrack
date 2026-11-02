@@ -508,6 +508,10 @@ workflow would otherwise reject, moves dependents' `^` ranges along (a new `@job
 also bumps `@jobtrack/api`, `@jobtrack/mcp` and `jobtrack`), and leaves alone a package that is
 already bumped but not yet published. It does not commit or push.
 
+A pre-push hook (`.githooks/pre-push`, switched on by `npm install`) runs the same check when
+you push to main and stops the push if a bump is missing, so this is caught before CI. It takes
+about a minute and only looks at what is committed; `git push --no-verify` skips it.
+
 ---
 
 ## Backup & restore
