@@ -231,6 +231,7 @@ means something has to bring the process back up:
 | `npm run mcp` | start the MCP server (stdio) — see [MCP server](#mcp-server) |
 | `npm run tray` | run the API + web UI as one process, with a Windows tray icon — see [Tray app](#tray-app) |
 | `npm run clean` | remove build output and caches |
+| `npm run bump <major\|minor\|patch>` | raise the version of every published package that changed, so the next push to main releases it (`-- --dry-run` to preview) — see [Releasing](#releasing-a-new-version) |
 | `npm run icons --workspace=@jobtrack/web` | regenerate favicon.ico / apple-touch-icon from the SVG sources |
 | `npm run build --workspace=@jobtrack/extension` | build the browser clipper into `apps/extension/dist` (load unpacked) |
 | `npm run package --workspace=@jobtrack/extension` | build and package the clipper for release into `apps/extension/release` |
@@ -488,6 +489,24 @@ Downloads are on the [Releases page](https://github.com/CuplexUser/JobTrack/rele
 `@jobtrack/shared` are all set up to be published standalone, not just run from a clone of
 this repo — see [`docs/publishing.md`](docs/publishing.md) for how the packaging works and
 the exact `npm publish` steps.
+
+### Releasing a new version
+
+A version bump pushed to main *is* the release: the Publish to npm workflow publishes every
+version that isn't on the registry yet, and the Windows installer is built from that. It also
+refuses to publish when a package changed without a bump, and that includes any change under
+`apps/web` (even a config tweak), since the `jobtrack` package bundles the web UI. So before
+pushing changes meant for a release:
+
+```bash
+npm run bump minor -- --dry-run   # see which packages need a new version, and why
+npm run bump minor                # or major / patch; edits package.json files and the lockfile
+```
+
+The script uses the same check as the workflow, so it bumps exactly the packages the
+workflow would otherwise reject, moves dependents' `^` ranges along (a new `@jobtrack/shared`
+also bumps `@jobtrack/api`, `@jobtrack/mcp` and `jobtrack`), and leaves alone a package that is
+already bumped but not yet published. It does not commit or push.
 
 ---
 
