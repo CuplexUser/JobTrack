@@ -174,6 +174,10 @@
   "language.title": "Språk",
   "language.system": "System",
 
+  "behavior.title": "Beteende",
+  "behavior.openAfterConvert.label": "Öppna den nya ansökan efter att en tjänst omvandlats",
+  "behavior.openAfterConvert.description": "När det är avstängt stannar du kvar på sidan Lediga tjänster så att flera kan omvandlas i rad. Bekräftelsen länkar ändå till den nya ansökan.",
+
   "profile.title": "Din profil",
   "profile.description": "Vad du söker efter. Sidan Lediga tjänster rankar sparade tjänster mot den och visar varför var och en fick sin poäng. Lämna det som inte spelar roll för dig tomt.",
   "profile.aboutYou.label": "Om dig",

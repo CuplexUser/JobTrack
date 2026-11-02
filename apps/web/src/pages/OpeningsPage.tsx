@@ -2,7 +2,8 @@
  * Saved opportunities — things worth revisiting when there is time or the missing details
  * show up. The one action that matters here is Convert: it hands the opening's fields to
  * the same `createApplication` path the New Application form uses, then archives the
- * opening rather than deleting it.
+ * opening rather than deleting it. Whether the page then opens the new application or stays
+ * here (for converting several in a row) is a Settings > Browser > Behavior choice.
  *
  * The Active/Archived switch surfaces openings that have been archived — either converted
  * into an application, or archived by hand (from here or the MCP tools). Archived openings
@@ -60,7 +61,7 @@ import {
 import { OpeningDrawer } from '../components/OpeningDrawer.js';
 import { PostingIngestModal } from '../components/PostingIngestModal.js';
 import { FitBadge } from '../components/FitBadge.js';
-import { parse, usePreference } from '../preferences.js';
+import { parse, useOpenAfterConvert, usePreference } from '../preferences.js';
 import { useStatusLabel } from '../hooks/useLabels.js';
 
 interface ConvertFormValues {
@@ -85,6 +86,7 @@ export function OpeningsPage() {
   const { data: tagData } = useTags();
   const deleteOpening = useDeleteOpening();
   const convertOpening = useConvertOpening();
+  const [openAfterConvert] = useOpenAfterConvert();
   const updateOpening = useUpdateOpening();
 
   const [locations, setLocations] = usePreference<string[]>('filters', 'openings.locations', [], parse.strings);
@@ -154,9 +156,23 @@ export function OpeningsPage() {
           tags: values.tags ?? [],
         },
       });
-      message.success(t('page.convertedMessage'));
       setConverting(null);
-      navigate(`/applications/${application.id}`);
+      const path = `/applications/${application.id}`;
+      if (openAfterConvert) {
+        message.success(t('page.convertedMessage'));
+        navigate(path);
+        return;
+      }
+      // Staying here so the next opening can be converted; the new application is a click away.
+      message.success({
+        content: (
+          <>
+            {t('page.convertedMessage')}{' '}
+            <Typography.Link onClick={() => navigate(path)}>{t('page.openApplication')}</Typography.Link>
+          </>
+        ),
+        duration: 5,
+      });
     } catch (error) {
       message.error(error instanceof Error ? error.message : t('page.convertError'));
     }

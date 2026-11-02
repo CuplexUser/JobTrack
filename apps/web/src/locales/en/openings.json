@@ -38,6 +38,7 @@
   "page.createApplication": "Create application",
   "page.convertedMessage": "Converted to an application",
   "page.convertError": "Could not convert",
+  "page.openApplication": "Open application",
   "page.restoredMessage": "Opening restored",
   "page.restoreError": "Could not restore",
 

@@ -174,6 +174,10 @@
   "language.title": "Language",
   "language.system": "System",
 
+  "behavior.title": "Behavior",
+  "behavior.openAfterConvert.label": "Open the new application after converting an opening",
+  "behavior.openAfterConvert.description": "When off, you stay on the Openings page so several can be converted in a row. The confirmation still links to the new application.",
+
   "profile.title": "Your profile",
   "profile.description": "What you are looking for. The Openings page ranks saved openings against it and shows why each one scored as it did. Leave anything blank that does not matter to you.",
   "profile.aboutYou.label": "About you",

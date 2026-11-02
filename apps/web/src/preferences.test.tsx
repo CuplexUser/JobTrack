@@ -15,6 +15,7 @@ import {
   parse,
   readPreference,
   setRememberMode,
+  useOpenAfterConvert,
   usePreference,
   writePreference,
 } from './preferences.js';
@@ -97,6 +98,25 @@ describe('usePreference', () => {
       usePreference('view', 'openings.order', 'newest', parse.oneOf(['newest', 'fit'])),
     );
     expect(result.current[0]).toBe('newest');
+  });
+});
+
+describe('useOpenAfterConvert', () => {
+  it('stays on the Openings page by default', () => {
+    const { result } = renderHook(() => useOpenAfterConvert());
+    expect(result.current[0]).toBe(false);
+  });
+
+  it('keeps the choice in localStorage whatever the remember modes, and survives Forget', () => {
+    setRememberMode('view', 'off');
+    setRememberMode('filters', 'off');
+    const first = renderHook(() => useOpenAfterConvert());
+    act(() => first.result.current[1](true));
+    expect(local.getItem('jobtrack.setting.openings.openAfterConvert')).toBe('true');
+
+    forgetPreferences();
+    first.unmount();
+    expect(renderHook(() => useOpenAfterConvert()).result.current[0]).toBe(true);
   });
 });
 

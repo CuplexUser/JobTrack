@@ -175,12 +175,58 @@ export function usePreference<T>(
   return [value, update];
 }
 
+/**
+ * A choice made on the Settings page about how the UI behaves (not a sort order or filter that
+ * was merely remembered). Always kept in `localStorage` under `jobtrack.setting.<name>`, so the
+ * Remembered-in-this-browser modes and its Forget button leave it alone.
+ */
+const SETTING_PREFIX = 'jobtrack.setting.';
+
+export function useBrowserSetting<T>(
+  name: string,
+  fallback: T,
+  parse: (stored: unknown) => T | undefined,
+): [T, (value: T) => void] {
+  const key = `${SETTING_PREFIX}${name}`;
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = window.localStorage.getItem(key);
+      return raw === null ? fallback : (parse(JSON.parse(raw)) ?? fallback);
+    } catch {
+      return fallback;
+    }
+  });
+
+  const update = useCallback(
+    (next: T) => {
+      setValue(next);
+      try {
+        window.localStorage.setItem(key, JSON.stringify(next));
+      } catch {
+        // Applies until the page is left; not kept for the next visit.
+      }
+    },
+    [key],
+  );
+
+  return [value, update];
+}
+
+/**
+ * After converting an opening, go to the new application (true) or stay on Openings (false).
+ * Staying is the default, so several openings can be converted in a row.
+ */
+export function useOpenAfterConvert(): [boolean, (value: boolean) => void] {
+  return useBrowserSetting('openings.openAfterConvert', false, parse.boolean);
+}
+
 /** Parsers for `usePreference`. */
 export const parse = {
   oneOf:
     <T extends string>(values: readonly T[]) =>
     (stored: unknown): T | undefined =>
       values.includes(stored as T) ? (stored as T) : undefined,
+  boolean: (stored: unknown): boolean | undefined => (typeof stored === 'boolean' ? stored : undefined),
   string: (stored: unknown): string | undefined => (typeof stored === 'string' ? stored : undefined),
   strings: (stored: unknown): string[] | undefined =>
     Array.isArray(stored) && stored.every((item) => typeof item === 'string') ? stored : undefined,

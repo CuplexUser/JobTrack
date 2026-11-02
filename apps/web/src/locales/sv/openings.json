@@ -38,6 +38,7 @@
   "page.createApplication": "Skapa ansökan",
   "page.convertedMessage": "Omvandlad till en ansökan",
   "page.convertError": "Kunde inte omvandla",
+  "page.openApplication": "Öppna ansökan",
   "page.restoredMessage": "Tjänsten återställd",
   "page.restoreError": "Kunde inte återställa",
 

@@ -1,7 +1,7 @@
 /**
  * Settings, split into tabs so a rarely-touched section (Database) never makes a frequently
  * touched one (Profile) something to scroll past: Profile (job search profile and fit
- * scoring), Automation, Browser (what this browser remembers), Database (which target is
+ * scoring), Automation, Browser (language, behavior, what this browser remembers), Database (which target is
  * active, full-fidelity backup/restore, automatic backups, reset/demo data), and About. The active tab is
  * remembered per browser, same as any other view preference.
  *
@@ -61,6 +61,7 @@ import { AutomationCard } from '../components/AutomationCard.js';
 import { AutoBackupCard } from '../components/AutoBackupCard.js';
 import { RememberCard } from '../components/RememberCard.js';
 import { LanguageCard } from '../components/LanguageCard.js';
+import { BehaviorCard } from '../components/BehaviorCard.js';
 
 function useTableLabels(): Record<string, string> {
   const { t } = useTranslation('settings');
@@ -562,6 +563,7 @@ export function SettingsPage() {
             children: (
               <Space direction="vertical" size={16} style={{ width: '100%' }}>
                 <LanguageCard />
+                <BehaviorCard />
                 <RememberCard />
               </Space>
             ),
