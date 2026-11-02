@@ -9,6 +9,7 @@
 
 import {
   dedupeLocationTiers,
+  exportProfileSchema,
   fitWeightsSchema,
   jobSourcesSchema,
   knownLocationsSchema,
@@ -20,6 +21,7 @@ import {
   languageSchema,
   profileSchema,
   rulesSchema,
+  type ExportProfile,
   type FitWeights,
   type JobSources,
   type KnownLocationChange,
@@ -37,6 +39,7 @@ const FIT_WEIGHTS_KEY = 'fitWeights';
 const LANGUAGE_KEY = 'language';
 const JOB_SOURCES_KEY = 'jobSources';
 const KNOWN_LOCATIONS_KEY = 'knownLocations';
+const EXPORT_PROFILE_KEY = 'exportProfile';
 
 async function readSetting<S extends z.ZodType>(repos: Repos, key: string, schema: S): Promise<z.output<S>> {
   const row = await repos.appSettings.findOne({ where: { settingKey: key } });
@@ -107,6 +110,21 @@ export async function getLanguage(repos: Repos): Promise<Language> {
 export async function updateLanguage(repos: Repos, patch: Partial<Language>): Promise<Language> {
   const next = languageSchema.parse({ ...(await getLanguage(repos)), ...sentFields(patch) });
   await writeSetting(repos, LANGUAGE_KEY, next);
+  return next;
+}
+
+/**
+ * How the Applications page exports: format, and which columns in which order under which
+ * headers. The default profile until one is saved.
+ */
+export async function getExportProfile(repos: Repos): Promise<ExportProfile> {
+  return readSetting(repos, EXPORT_PROFILE_KEY, exportProfileSchema);
+}
+
+/** `columns`, when sent, replaces the stored list as a whole; `format` left out is kept. */
+export async function updateExportProfile(repos: Repos, patch: Partial<ExportProfile>): Promise<ExportProfile> {
+  const next = exportProfileSchema.parse({ ...(await getExportProfile(repos)), ...sentFields(patch) });
+  await writeSetting(repos, EXPORT_PROFILE_KEY, next);
   return next;
 }
 

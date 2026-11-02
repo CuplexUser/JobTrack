@@ -14,6 +14,9 @@ import type {
   ContactLink,
   ContactView,
   DuplicateCheck,
+  ExportField,
+  ExportFormat,
+  ExportProfile,
   FitWeights,
   JobSources,
   KnownLocationChange,
@@ -107,6 +110,12 @@ export function toQuery(params: Record<string, unknown>): string {
   }
   const query = search.toString();
   return query ? `?${query}` : '';
+}
+
+/** The columns of one export, in order, each with the header it is written under. */
+export interface ExportLayout {
+  columns: ExportField[];
+  headers: string[];
 }
 
 export interface ApplicationListResponse {
@@ -521,9 +530,17 @@ export const httpApi = {
   search: (q: string, types?: string[]) =>
     request<SearchResponse>(`/api/search${toQuery({ q, types, limit: 25 })}`),
 
-  /** Exports are a plain navigation, so the browser handles the download itself. */
-  exportUrl: (filter: Record<string, unknown>, format: 'csv' | 'xlsx') =>
-    `/api/export${toQuery({ ...filter, format })}`,
+  /**
+   * Exports are a plain navigation, so the browser handles the download itself. `columns` and
+   * their `headers` (matched by position) choose what is written; without them the export is
+   * the default six columns.
+   */
+  exportUrl: (filter: Record<string, unknown>, format: ExportFormat, layout?: ExportLayout) =>
+    `/api/export${toQuery({
+      ...filter,
+      format,
+      ...(layout ? { columns: layout.columns, headers: JSON.stringify(layout.headers) } : {}),
+    })}`,
 
   previewImport: (file: File, format: 'csv' | 'xlsx') =>
     importRequest<ImportPreviewResponse>(file, format, 'preview'),
@@ -563,6 +580,12 @@ export const httpApi = {
 
   updateJobSources: (body: unknown) =>
     request<JobSources>('/api/job-sources', { method: 'PUT', body: JSON.stringify(body) }),
+
+  /** Kept in the database so every browser exports the same way. */
+  getExportProfile: () => request<ExportProfile>('/api/settings/export-profile'),
+
+  updateExportProfile: (body: unknown) =>
+    request<ExportProfile>('/api/settings/export-profile', { method: 'PUT', body: JSON.stringify(body) }),
 
   /** Shared with the Windows tray app; see `settings.service.ts`'s `getLanguage`. */
   getLanguage: () => request<Language>('/api/settings/language'),

@@ -266,9 +266,20 @@ survives storage unchanged.
 CSV and `.xlsx`, both driven by the same filter object as the list view — so what you export
 is exactly what you were looking at, including an active search.
 
-Six columns: **Position, Company, Location, Date, Status, Notes**. A list, not a report; there is no
-summary or statistics sheet. The workbook keeps one worksheet per year, matching how the app
-organizes applications everywhere else.
+By default, six columns: **Position, Company, Location, Date, Status, Notes**. A list, not a report;
+there is no summary or statistics sheet. The workbook keeps one worksheet per year, matching how
+the app organizes applications everywhere else.
+
+The **Export** button opens a dialog where you pick the format, tick which columns to include
+(work mode, source, follow-up date, salary, job URL and tags are offered too), drag them into
+order, and optionally rename each header. A header left blank uses the field's name in the
+active UI language. These choices are the *export profile*, saved in the database
+(`GET`/`PUT /api/settings/export-profile`) on every export, so every browser exports the same
+way. `GET /api/export` takes them as `columns` (comma list of fields) and `headers` (a JSON
+array matched by position); without them it writes the default six under English headers.
+
+Only the default English headers import back cleanly: renamed or translated headers will not
+match Import's column names.
 
 CSV is written by hand against RFC 4180 with a UTF-8 BOM, so titles containing commas do not
 shift columns and `Malmö` survives a double-click into Excel.

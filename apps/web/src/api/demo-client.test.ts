@@ -93,4 +93,11 @@ describe('demo-client', () => {
     expect(text).toContain('Position');
     expect(text.split('\n').length).toBeGreaterThan(1);
   });
+
+  it('writes only the chosen columns under the chosen headers', async () => {
+    const { demoExportCsv } = await import('./demo-client.js');
+    const { blob } = await demoExportCsv({}, { columns: ['company', 'jobTitle'], headers: ['Företag', 'Roll'] });
+    const header = (await blob.text()).replace(/^﻿/, '').split('\r\n')[0];
+    expect(header).toBe('Företag,Roll');
+  });
 });

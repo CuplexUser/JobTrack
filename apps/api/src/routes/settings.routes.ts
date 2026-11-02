@@ -5,6 +5,7 @@
 
 import type { FastifyInstance } from 'fastify';
 import {
+  exportProfilePatchSchema,
   fitWeightsPatchSchema,
   jobSourcesPatchSchema,
   knownLocationAddSchema,
@@ -17,6 +18,7 @@ import {
 import type { Deps } from '../deps.js';
 import {
   addKnownLocation,
+  getExportProfile,
   getFitWeights,
   getJobSources,
   getKnownLocations,
@@ -25,6 +27,7 @@ import {
   getRules,
   removeKnownLocation,
   renameKnownLocation,
+  updateExportProfile,
   updateFitWeights,
   updateJobSources,
   updateLanguage,
@@ -58,6 +61,16 @@ export async function settingsRoutes(app: FastifyInstance, deps: Deps): Promise<
   app.get('/api/settings/language', async () => getLanguage(repos));
 
   app.put('/api/settings/language', async (request) => updateLanguage(repos, languagePatchSchema.parse(request.body)));
+
+  /**
+   * How the Applications page exports, kept in the database so every browser exports the same
+   * way. A partial update: a field left out keeps its stored value.
+   */
+  app.get('/api/settings/export-profile', async () => getExportProfile(repos));
+
+  app.put('/api/settings/export-profile', async (request) =>
+    updateExportProfile(repos, exportProfilePatchSchema.parse(request.body)),
+  );
 
   /** Job platforms and APIs the user searches, best first. Reference only; nothing here is called. */
   app.get('/api/job-sources', async () => getJobSources(repos));

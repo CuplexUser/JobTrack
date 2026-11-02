@@ -14,7 +14,6 @@ import {
   Card,
   Col,
   DatePicker,
-  Dropdown,
   Empty,
   Flex,
   Input,
@@ -58,6 +57,7 @@ import { PeriodTree } from '../components/PeriodTree.js';
 import { StatusTag } from '../components/StatusTag.js';
 import { ApplicationDrawer } from '../components/ApplicationDrawer.js';
 import { ImportModal } from '../components/ImportModal.js';
+import { ExportModal } from '../components/ExportModal.js';
 import { useStatusLabel } from '../hooks/useLabels.js';
 
 /**
@@ -116,6 +116,7 @@ export function ApplicationsPage() {
   const [params, setParams] = useSearchParams();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [importOpen, setImportOpen] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
 
   const sort = params.get('sort') ?? 'appliedOn';
   // A URL without an explicit direction sorts the way the picker says it does, rather than
@@ -335,26 +336,9 @@ export function ApplicationsPage() {
             </Space>
 
             <Space>
-              <Dropdown
-                menu={{
-                  items: DEMO
-                    ? [{ key: 'csv', label: t('list.exportCsv') }]
-                    : [
-                        { key: 'csv', label: t('list.exportCsv') },
-                        { key: 'xlsx', label: t('list.exportXlsx') },
-                      ],
-                  onClick: ({ key }) => {
-                    if (DEMO) {
-                      void demoExportCsv(filter).then(({ filename, blob }) => downloadBlob(filename, blob));
-                      return;
-                    }
-                    // A plain navigation, so the browser handles the download itself.
-                    window.location.href = api.exportUrl(filter, key as 'csv' | 'xlsx');
-                  },
-                }}
-              >
-                <Button icon={<DownloadOutlined />}>{t('list.export')}</Button>
-              </Dropdown>
+              <Button icon={<DownloadOutlined />} onClick={() => setExportOpen(true)}>
+                {t('list.export')}
+              </Button>
               <Button icon={<UploadOutlined />} onClick={() => setImportOpen(true)}>
                 {t('list.import')}
               </Button>
@@ -508,6 +492,20 @@ export function ApplicationsPage() {
 
       <ApplicationDrawer open={drawerOpen} onClose={() => setDrawerOpen(false)} />
       <ImportModal open={importOpen} onClose={() => setImportOpen(false)} />
+      <ExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        count={summary?.total}
+        formats={DEMO ? ['csv'] : ['xlsx', 'csv']}
+        onExport={(format, layout) => {
+          if (DEMO) {
+            void demoExportCsv(filter, layout).then(({ filename, blob }) => downloadBlob(filename, blob));
+            return;
+          }
+          // A plain navigation, so the browser handles the download itself.
+          window.location.href = api.exportUrl(filter, format, layout);
+        }}
+      />
     </Row>
   );
 }

@@ -4,6 +4,10 @@
  * Both formats take the same filter object as the list view, so what you export is exactly
  * what the table was showing — including an active search query, which is resolved to
  * ranked ids first.
+ *
+ * Which columns, in which order and under which headers is the caller's to say (`columns` and
+ * `headers`); the web app sends the saved export profile, with headers already in the active
+ * language. Left out, an export is the classic six columns under English headers.
  */
 
 import type { FastifyInstance } from 'fastify';
@@ -11,7 +15,7 @@ import { PassThrough } from 'node:stream';
 import { exportQuerySchema, monthName } from '@jobtrack/shared';
 import type { Deps } from '../deps.js';
 import { findAllMatching, listApplications } from '../services/applications.service.js';
-import { exportFilename } from '../export/columns.js';
+import { exportColumns, exportFilename } from '../export/columns.js';
 import { buildWorkbook, csvLines } from '../export/workbook.js';
 import { withNotes } from '../export/rows.js';
 
@@ -39,6 +43,7 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
     const rows = await withNotes(repos, matched);
 
     const scope = describeScope(query);
+    const columns = exportColumns(query.columns, query.headers);
 
     if (query.format === 'csv') {
       reply
@@ -49,7 +54,7 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
       // flowing before the whole document exists.
       const stream = new PassThrough();
       queueMicrotask(() => {
-        for (const line of csvLines(rows)) stream.write(line);
+        for (const line of csvLines(rows, columns)) stream.write(line);
         stream.end();
       });
       return reply.send(stream);
@@ -65,7 +70,7 @@ export async function exportRoutes(app: FastifyInstance, deps: Deps): Promise<vo
     // Sent as a buffer rather than piped: the workbook is small enough that holding it in
     // memory costs nothing, and Content-Length lets the browser show real download
     // progress instead of an open-ended spinner.
-    return reply.send(await buildWorkbook(rows));
+    return reply.send(await buildWorkbook(rows, columns));
   });
 }
 

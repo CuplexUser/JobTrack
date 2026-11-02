@@ -20,12 +20,15 @@
 
 import ExcelJS from 'exceljs';
 import { toCsvLines } from '@jobtrack/shared';
-import { EXPORT_COLUMNS } from './columns.js';
+import { EXPORT_COLUMNS, type ExportColumn } from './columns.js';
 import type { ExportRow } from './rows.js';
 
 /** Line-by-line so a large CSV export streams instead of being built in memory first. */
-export function* csvLines(rows: readonly ExportRow[]): Generator<string> {
-  yield* toCsvLines(rows, EXPORT_COLUMNS, { bom: true });
+export function* csvLines(
+  rows: readonly ExportRow[],
+  columns: readonly ExportColumn[] = EXPORT_COLUMNS,
+): Generator<string> {
+  yield* toCsvLines(rows, columns, { bom: true });
 }
 
 const HEADER_FILL: ExcelJS.Fill = {
@@ -36,11 +39,16 @@ const HEADER_FILL: ExcelJS.Fill = {
 
 const WRAPPED = { vertical: 'top', wrapText: true } as const;
 
-/** Build the .xlsx as a buffer, ready to send. */
-export async function buildWorkbook(rows: readonly ExportRow[]): Promise<Buffer> {
+/** Build the .xlsx as a buffer, ready to send, with `columns` in that order. */
+export async function buildWorkbook(
+  rows: readonly ExportRow[],
+  columns: readonly ExportColumn[] = EXPORT_COLUMNS,
+): Promise<Buffer> {
   const workbook = new ExcelJS.Workbook();
   workbook.creator = 'JobTrack';
   workbook.created = new Date();
+
+  const wraps = columns.some((column) => column.wrap);
 
   const byYear = new Map<number, ExportRow[]>();
   for (const row of rows) {
@@ -51,27 +59,27 @@ export async function buildWorkbook(rows: readonly ExportRow[]): Promise<Buffer>
 
   if (byYear.size === 0) {
     // An empty export still needs a readable sheet with its headers in place.
-    addSheet(workbook, 'Applications');
+    addSheet(workbook, 'Applications', columns);
   }
 
   // Newest year first, matching the order the app shows them in.
   for (const year of [...byYear.keys()].sort((a, b) => b - a)) {
-    const sheet = addSheet(workbook, String(year));
+    const sheet = addSheet(workbook, String(year), columns);
 
     const yearRows = (byYear.get(year) ?? [])
       .slice()
       .sort((a, b) => (a.appliedOn < b.appliedOn ? 1 : -1));
 
     for (const row of yearRows) {
-      const added = sheet.addRow(EXPORT_COLUMNS.map((column) => column.value(row)));
+      const added = sheet.addRow(columns.map((column) => column.value(row)));
       // Notes can run to several paragraphs; without this the row is one line tall and
       // everything after the first newline is invisible.
-      added.alignment = { ...WRAPPED };
+      if (wraps) added.alignment = { ...WRAPPED };
     }
 
     sheet.autoFilter = {
       from: { row: 1, column: 1 },
-      to: { row: yearRows.length + 1, column: EXPORT_COLUMNS.length },
+      to: { row: yearRows.length + 1, column: columns.length },
     };
   }
 
@@ -80,12 +88,17 @@ export async function buildWorkbook(rows: readonly ExportRow[]): Promise<Buffer>
 }
 
 /** A worksheet with the shared columns and a frozen, styled header. */
-function addSheet(workbook: ExcelJS.Workbook, name: string): ExcelJS.Worksheet {
+function addSheet(
+  workbook: ExcelJS.Workbook,
+  name: string,
+  columns: readonly ExportColumn[],
+): ExcelJS.Worksheet {
   const sheet = workbook.addWorksheet(name, { views: [{ state: 'frozen', ySplit: 1 }] });
 
-  sheet.columns = EXPORT_COLUMNS.map((column) => ({
+  sheet.columns = columns.map((column) => ({
     header: column.header,
-    key: column.header,
+    // The field, not the header: two columns may be given the same header.
+    key: column.field,
     width: column.width,
     ...(column.wrap ? { style: { alignment: { ...WRAPPED } } } : {}),
   }));

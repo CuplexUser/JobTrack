@@ -9,7 +9,10 @@ import {
   CHANNELS,
   CONTACT_LINK_TARGETS,
   CONTACT_ROLES,
+  DEFAULT_EXPORT_FIELDS,
   DIRECTIONS,
+  EXPORT_FIELDS,
+  type ExportField,
   WORK_MODES,
   NOTE_TARGETS,
   RELATIONSHIPS,
@@ -253,9 +256,47 @@ export const searchQuerySchema = z.object({
   types: csvArray(z.enum(['application', 'company', 'note', 'contact'])),
 });
 
-export const exportQuerySchema = applicationFilterSchema.extend({
-  format: z.enum(['csv', 'xlsx']).default('csv'),
-});
+export const exportFieldSchema = z.enum(EXPORT_FIELDS);
+export const exportFormatSchema = z.enum(['csv', 'xlsx']);
+export type ExportFormat = z.output<typeof exportFormatSchema>;
+
+/** Longest header a column can be given, in characters. */
+export const EXPORT_HEADER_MAX = 80;
+
+/** `null` → `undefined`, a JSON array string → the array; anything else is left for zod to judge. */
+function jsonArray(value: unknown): unknown {
+  if (value === undefined || value === null || value === '') return undefined;
+  if (typeof value !== 'string') return value;
+  try {
+    return JSON.parse(value) as unknown;
+  } catch {
+    return value;
+  }
+}
+
+/**
+ * Which columns, in which order, under which headers. Both optional: without `columns` the
+ * export carries `DEFAULT_EXPORT_FIELDS` under their English headers, as it always did.
+ * `headers` is a JSON array (a header may well contain a comma) matched to `columns` by
+ * position; an empty one falls back to the English header for that column.
+ */
+export const exportQuerySchema = applicationFilterSchema
+  .extend({
+    format: exportFormatSchema.default('csv'),
+    columns: csvArray(exportFieldSchema),
+    headers: z.preprocess(
+      jsonArray,
+      z.array(z.string().trim().max(EXPORT_HEADER_MAX)).max(EXPORT_FIELDS.length).optional(),
+    ),
+  })
+  .superRefine((query, ctx) => {
+    if (query.columns && new Set(query.columns).size !== query.columns.length) {
+      ctx.addIssue({ code: 'custom', path: ['columns'], message: 'A column can only be exported once' });
+    }
+    if (query.headers && query.headers.length !== (query.columns ?? DEFAULT_EXPORT_FIELDS).length) {
+      ctx.addIssue({ code: 'custom', path: ['headers'], message: 'Expected one header per column' });
+    }
+  });
 
 export type ExportQuery = z.output<typeof exportQuerySchema>;
 
@@ -699,6 +740,64 @@ export const languagePatchSchema = z.object({
 });
 
 export type Language = z.output<typeof languageSchema>;
+
+/**
+ * One column in the saved export profile. `header: null` means "whatever the active language
+ * calls this field", so switching the UI to Swedish also switches the headers, while a header
+ * the user typed themselves stays exactly as typed in every language.
+ */
+export const exportColumnSettingSchema = z.object({
+  field: exportFieldSchema,
+  enabled: z.boolean().default(true),
+  header: optionalTrimmed(EXPORT_HEADER_MAX),
+});
+
+export type ExportColumnSetting = z.output<typeof exportColumnSettingSchema>;
+
+/**
+ * Every field exactly once: the stored order first (a repeat dropped), then any field the
+ * stored list does not mention, switched off. That is how a column added in a later version
+ * shows up in an older saved profile without turning itself on.
+ */
+export function completeExportColumns(columns: readonly ExportColumnSetting[]): ExportColumnSetting[] {
+  const seen = new Set<ExportField>();
+  const complete: ExportColumnSetting[] = [];
+  for (const column of columns) {
+    if (seen.has(column.field)) continue;
+    seen.add(column.field);
+    complete.push(column);
+  }
+  for (const field of EXPORT_FIELDS) {
+    if (!seen.has(field)) complete.push({ field, enabled: false, header: null });
+  }
+  return complete;
+}
+
+/** The profile nobody has changed yet: the classic six columns, translated headers. */
+export function defaultExportColumns(): ExportColumnSetting[] {
+  return completeExportColumns(DEFAULT_EXPORT_FIELDS.map((field) => ({ field, enabled: true, header: null })));
+}
+
+const exportColumnList = z.array(exportColumnSettingSchema).max(EXPORT_FIELDS.length * 2);
+
+/**
+ * How the Applications page exports: the format, and the columns in order. Stored in the
+ * database rather than the browser, so every browser (and the Windows app) exports the same way.
+ */
+export const exportProfileSchema = z.object({
+  format: exportFormatSchema.default('xlsx'),
+  columns: exportColumnList
+    .optional()
+    .transform((columns) => (columns && columns.length > 0 ? completeExportColumns(columns) : defaultExportColumns())),
+});
+
+/** `columns`, when sent, replaces the stored list as a whole. */
+export const exportProfilePatchSchema = z.object({
+  format: exportFormatSchema.optional(),
+  columns: exportColumnList.optional(),
+});
+
+export type ExportProfile = z.output<typeof exportProfileSchema>;
 
 /**
  * A place the user looks for jobs: a job board they browse, or an API an assistant can query.

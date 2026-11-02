@@ -94,6 +94,37 @@ export const WORK_MODE_LABELS: Record<WorkMode, string> = {
   unspecified: 'Unspecified',
 };
 
+/**
+ * Every column an application export can carry, in the order the export dialog first lists
+ * them. Each has a value (`apps/api/src/export/columns.ts`) and a translated header in the web
+ * app (`export.field.*` in its `applications` namespace).
+ */
+export const EXPORT_FIELDS = [
+  'jobTitle',
+  'company',
+  'location',
+  'appliedOn',
+  'status',
+  'notes',
+  'workMode',
+  'source',
+  'followUpOn',
+  'salary',
+  'jobUrl',
+  'tags',
+] as const;
+export type ExportField = (typeof EXPORT_FIELDS)[number];
+
+/** What an export carries when nothing else was chosen: what it always carried before. */
+export const DEFAULT_EXPORT_FIELDS: readonly ExportField[] = [
+  'jobTitle',
+  'company',
+  'location',
+  'appliedOn',
+  'status',
+  'notes',
+];
+
 /** What a tag or a note can be attached to. */
 export const LINK_TARGETS = ['company', 'application'] as const;
 export type LinkTarget = (typeof LINK_TARGETS)[number];

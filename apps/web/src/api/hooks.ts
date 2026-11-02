@@ -44,6 +44,7 @@ export const keys = {
   jobSources: () => ['job-sources'] as const,
   knownLocations: () => ['known-locations'] as const,
   language: () => ['language'] as const,
+  exportProfile: () => ['export-profile'] as const,
   autoGhostPreview: () => ['rules', 'auto-ghost'] as const,
   contact: (id: string) => ['contact', id] as const,
   linkedContacts: (targetType: string, targetId: string) => ['contacts', 'linked', targetType, targetId] as const,
@@ -585,6 +586,19 @@ export function useSaveLanguage() {
   return useMutation({
     mutationFn: (body: unknown) => api.updateLanguage(body),
     onSuccess: (language) => client.setQueryData(keys.language(), language),
+  });
+}
+
+/** How the Applications page exports; the default profile until one is saved. */
+export function useExportProfile() {
+  return useQuery({ queryKey: keys.exportProfile(), queryFn: () => api.getExportProfile() });
+}
+
+export function useSaveExportProfile() {
+  const client = useQueryClient();
+  return useMutation({
+    mutationFn: (body: unknown) => api.updateExportProfile(body),
+    onSuccess: (profile) => client.setQueryData(keys.exportProfile(), profile),
   });
 }
 

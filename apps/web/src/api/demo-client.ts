@@ -40,6 +40,7 @@ import {
   createJobOpeningSchema,
   createNoteSchema,
   duplicateCheckSchema,
+  exportProfilePatchSchema,
   exportQuerySchema,
   fitWeightsPatchSchema,
   jobSourcesPatchSchema,
@@ -96,6 +97,7 @@ import { getStatistics } from '@jobtrack/api/services/statistics';
 import { fitOpening, rankOpenings } from '@jobtrack/api/services/fit';
 import {
   addKnownLocation,
+  getExportProfile,
   getFitWeights,
   getJobSources,
   getKnownLocations,
@@ -104,6 +106,7 @@ import {
   getRules,
   removeKnownLocation,
   renameKnownLocation,
+  updateExportProfile,
   updateFitWeights,
   updateJobSources,
   updateLanguage,
@@ -144,9 +147,9 @@ import { seedDemoData } from '@jobtrack/api/backup/seed';
 import { parseCsvImport } from '@jobtrack/api/import/csv';
 import { statusFromLabel, type RawImportRow } from '@jobtrack/api/import/columns';
 import { withNotes } from '@jobtrack/api/export/rows';
-import { EXPORT_COLUMNS, exportFilename } from '@jobtrack/api/export/columns';
+import { exportColumns, exportFilename } from '@jobtrack/api/export/columns';
 
-import { ApiError, httpApi, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from './client.js';
+import { ApiError, httpApi, type ExportLayout, type ImportCommitResponse, type ImportPreviewResponse, type ImportPreviewRow } from './client.js';
 
 const STORAGE_KEY = 'jobtrack-demo-v1';
 
@@ -354,10 +357,13 @@ function describeExportScope(query: { year?: number; month?: number; q?: string 
  * separately from `demoApi` (not through `exportUrl`, which is synchronous) — `ApplicationsPage`
  * calls this directly in demo mode. XLSX export is not offered in the demo; see that page.
  */
-export async function demoExportCsv(filter: Record<string, unknown>): Promise<{ filename: string; blob: Blob }> {
+export async function demoExportCsv(
+  filter: Record<string, unknown>,
+  layout?: ExportLayout,
+): Promise<{ filename: string; blob: Blob }> {
   return guarded(async () => {
     const { repos, search } = await getState();
-    const query = exportQuerySchema.parse({ ...filter, format: 'csv' });
+    const query = exportQuerySchema.parse({ ...filter, format: 'csv', ...layout });
 
     let matched;
     if (query.q) {
@@ -369,7 +375,7 @@ export async function demoExportCsv(filter: Record<string, unknown>): Promise<{ 
     }
 
     const rows = await withNotes(repos, matched);
-    const text = [...toCsvLines(rows, EXPORT_COLUMNS, { bom: true })].join('');
+    const text = [...toCsvLines(rows, exportColumns(query.columns, query.headers), { bom: true })].join('');
     return {
       filename: exportFilename('csv', describeExportScope(query)),
       blob: new Blob([text], { type: 'text/csv;charset=utf-8' }),
@@ -831,6 +837,20 @@ export const demoApi: typeof httpApi = {
       const sources = await updateJobSources(repos, jobSourcesPatchSchema.parse(body));
       await persist(repos);
       return sources;
+    }),
+
+  getExportProfile: () =>
+    guarded(async () => {
+      const { repos } = await getState();
+      return getExportProfile(repos);
+    }),
+
+  updateExportProfile: (body) =>
+    guarded(async () => {
+      const { repos } = await getState();
+      const profile = await updateExportProfile(repos, exportProfilePatchSchema.parse(body));
+      await persist(repos);
+      return profile;
     }),
 
   getLanguage: () =>
