@@ -218,6 +218,9 @@
   "profile.saveButton": "Spara profil",
   "profile.saveSuccess": "Profilen sparad. Tjänster rankas mot den.",
   "profile.saveError": "Kunde inte spara profilen",
+  "profile.targetTitles.tooMany": "Högst {{max}} jobbtitlar. Ta bort några för att spara.",
+  "profile.keywords.tooMany": "Högst {{max}} ord. Ta bort några för att spara.",
+  "profile.checkFieldsError": "Kunde inte spara profilen. Kontrollera de markerade fälten.",
 
   "sources.platforms.title": "Jobbplattformar",
   "sources.platforms.description": "Jobbsajterna du söker på, viktigast först. En assistent som är ansluten till JobTrack läser listan för att veta var den ska leta och i vilken ordning.",

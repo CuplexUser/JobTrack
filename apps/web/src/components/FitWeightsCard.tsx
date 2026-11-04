@@ -9,6 +9,7 @@ import { App as AntApp, Button, Card, Col, Form, InputNumber, Row, Space, Typogr
 import { useTranslation } from 'react-i18next';
 import { DEFAULT_FIT_WEIGHTS, type FitWeights } from '@jobtrack/shared';
 import { useFitWeights, useSaveFitWeights } from '../api/hooks.js';
+import { sameValue, useReportUnsaved } from './UnsavedChanges.js';
 
 const POINT_FIELDS: { name: keyof FitWeights; labelKey: string }[] = [
   { name: 'title', labelKey: 'fitWeights.fields.title' },
@@ -25,6 +26,8 @@ export function FitWeightsCard() {
   const { message } = AntApp.useApp();
   const { data, isLoading } = useFitWeights();
   const save = useSaveFitWeights();
+  const watched = Form.useWatch((values: FitWeights) => values, { form, preserve: true });
+  useReportUnsaved(data !== undefined && watched !== undefined && !sameValue(watched, data));
 
   useEffect(() => {
     if (data) form.setFieldsValue(data);

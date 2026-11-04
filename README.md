@@ -619,12 +619,12 @@ leave on a page nobody but you can reach.
 `npm audit` is clean. Three transitive packages are pinned forward via `overrides` in the
 root `package.json`:
 
-- **sharp** `^0.35.4` — versions below 0.35.0 inherit four libvips CVEs, and below 0.35.4 two
-  libheif ones (GHSA-rgj7-g3m4-5g8c). Arrives via transformers for image pipelines this app
-  never uses.
+- **sharp** `^0.35.5` — versions below 0.35.0 inherit four libvips CVEs, below 0.35.4 two
+  libheif ones (GHSA-rgj7-g3m4-5g8c), and below 0.35.5 a librsvg one (CVE-2026-96889). Arrives
+  via transformers for image pipelines this app never uses.
 - **adm-zip** `^0.6.1` — via onnxruntime-node; 0.6.0 and earlier follow destination symlinks
   on extraction (GHSA-vwc7-r8mq-g2x9).
-- **uuid** `^11.1.1` — exceljs pins uuid@7 but only calls `require('uuid').v4`, which v11
+- **uuid** `^11.1.1` — exceljs asks for uuid@8 but only calls `require('uuid').v4`, which v11
   still exports from its CJS build.
 
 Changing `overrides` requires a clean install (`rm -rf node_modules package-lock.json &&

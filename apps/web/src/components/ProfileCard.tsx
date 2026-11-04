@@ -9,9 +9,19 @@
 import { useEffect } from 'react';
 import { App as AntApp, Button, Card, Col, Form, Input, InputNumber, Row, Select, Space, Typography } from 'antd';
 import { useTranslation } from 'react-i18next';
-import { WORK_MODES, WORK_MODE_LABELS, type LocationTier, type Profile, type WorkMode } from '@jobtrack/shared';
+import {
+  MAX_PROFILE_KEYWORDS,
+  MAX_TARGET_TITLES,
+  WORK_MODES,
+  WORK_MODE_LABELS,
+  type LocationTier,
+  type Profile,
+  type WorkMode,
+} from '@jobtrack/shared';
+import { ApiError } from '../api/index.js';
 import { useProfile, useSaveProfile } from '../api/hooks.js';
 import { LocationTiersInput } from './LocationTiersInput.js';
+import { sameValue, useReportUnsaved } from './UnsavedChanges.js';
 
 interface FormValues {
   summary?: string;
@@ -29,43 +39,66 @@ function ListInput({ placeholder, ...props }: { placeholder: string; value?: str
   return <Select mode="tags" open={false} tokenSeparators={[',']} placeholder={placeholder} suffixIcon={null} {...props} />;
 }
 
+function toFormValues(profile: Profile): FormValues {
+  return {
+    summary: profile.summary ?? undefined,
+    targetTitles: profile.targetTitles,
+    locationTiers: profile.locationTiers,
+    workModes: profile.workModes,
+    salaryFloor: profile.salaryFloor,
+    salaryCurrency: profile.salaryCurrency ?? undefined,
+    includeKeywords: profile.includeKeywords,
+    excludeKeywords: profile.excludeKeywords,
+  };
+}
+
+/** What a save sends for these form values. */
+function toProfile(values: FormValues): Profile {
+  return {
+    summary: values.summary?.trim() || null,
+    targetTitles: values.targetTitles ?? [],
+    locationTiers: (values.locationTiers ?? []).filter((tier) => tier.places.length > 0),
+    workModes: values.workModes ?? [],
+    salaryFloor: values.salaryFloor ?? null,
+    salaryCurrency: values.salaryCurrency?.trim() || null,
+    includeKeywords: values.includeKeywords ?? [],
+    excludeKeywords: values.excludeKeywords ?? [],
+  };
+}
+
 export function ProfileCard() {
   const { t } = useTranslation('settings');
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const { data, isLoading } = useProfile();
   const save = useSaveProfile();
+  const watched = Form.useWatch((values: FormValues) => values, { form, preserve: true });
+  useReportUnsaved(data !== undefined && watched !== undefined && !sameValue(toProfile(watched), toProfile(toFormValues(data))));
 
   useEffect(() => {
-    if (!data) return;
-    form.setFieldsValue({
-      summary: data.summary ?? undefined,
-      targetTitles: data.targetTitles,
-      locationTiers: data.locationTiers,
-      workModes: data.workModes,
-      salaryFloor: data.salaryFloor,
-      salaryCurrency: data.salaryCurrency ?? undefined,
-      includeKeywords: data.includeKeywords,
-      excludeKeywords: data.excludeKeywords,
-    });
+    if (data) form.setFieldsValue(toFormValues(data));
   }, [data, form]);
 
+  const tooMany = (max: number, key: string) => ({ type: 'array' as const, max, message: t(key, { max }) });
+
   async function handleFinish(values: FormValues): Promise<void> {
-    const body: Profile = {
-      summary: values.summary?.trim() || null,
-      targetTitles: values.targetTitles ?? [],
-      locationTiers: (values.locationTiers ?? []).filter((tier) => tier.places.length > 0),
-      workModes: values.workModes ?? [],
-      salaryFloor: values.salaryFloor ?? null,
-      salaryCurrency: values.salaryCurrency?.trim() || null,
-      includeKeywords: values.includeKeywords ?? [],
-      excludeKeywords: values.excludeKeywords ?? [],
-    };
     try {
-      await save.mutateAsync(body);
+      await save.mutateAsync(toProfile(values));
       message.success(t('profile.saveSuccess'));
     } catch (error) {
-      message.error(error instanceof Error ? error.message : t('profile.saveError'));
+      if (error instanceof ApiError && error.fieldErrors.length > 0) {
+        // Show each server-side problem under the field it is about ("locationTiers.0.places"
+        // under the locations input), so a refusal says what to fix.
+        form.setFields(
+          error.fieldErrors.map((issue) => ({
+            name: issue.path.split('.')[0] as keyof FormValues,
+            errors: [issue.message],
+          })),
+        );
+        message.error(t('profile.checkFieldsError'));
+      } else {
+        message.error(error instanceof Error ? error.message : t('profile.saveError'));
+      }
     }
   }
 
@@ -81,7 +114,11 @@ export function ProfileCard() {
             <Input.TextArea rows={6} placeholder={t('profile.aboutYou.placeholder')} />
           </Form.Item>
 
-          <Form.Item name="targetTitles" label={t('profile.targetTitles.label')}>
+          <Form.Item
+            name="targetTitles"
+            label={t('profile.targetTitles.label')}
+            rules={[tooMany(MAX_TARGET_TITLES, 'profile.targetTitles.tooMany')]}
+          >
             <ListInput placeholder={t('profile.targetTitles.placeholder')} />
           </Form.Item>
 
@@ -117,7 +154,11 @@ export function ProfileCard() {
 
           <Row gutter={12}>
             <Col xs={24} md={12}>
-              <Form.Item name="includeKeywords" label={t('profile.includeKeywords.label')}>
+              <Form.Item
+                name="includeKeywords"
+                label={t('profile.includeKeywords.label')}
+                rules={[tooMany(MAX_PROFILE_KEYWORDS, 'profile.keywords.tooMany')]}
+              >
                 <ListInput placeholder={t('profile.includeKeywords.placeholder')} />
               </Form.Item>
             </Col>
@@ -126,6 +167,7 @@ export function ProfileCard() {
                 name="excludeKeywords"
                 label={t('profile.excludeKeywords.label')}
                 tooltip={t('profile.excludeKeywords.tooltip')}
+                rules={[tooMany(MAX_PROFILE_KEYWORDS, 'profile.keywords.tooMany')]}
               >
                 <ListInput placeholder={t('profile.excludeKeywords.placeholder')} />
               </Form.Item>

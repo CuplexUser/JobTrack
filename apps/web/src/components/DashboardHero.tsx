@@ -7,6 +7,7 @@
  * thing on the page.
  */
 
+import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Button, Flex, Typography } from 'antd';
 import { BarChartOutlined, PlusOutlined } from '@ant-design/icons';
@@ -60,7 +61,8 @@ export interface DashboardHeroProps {
 
 export function DashboardHero({ data, onNewApplication }: DashboardHeroProps) {
   const { t, i18n } = useTranslation('dashboard');
-  const now = new Date();
+  // Read once, when the dashboard opens, so re-renders all agree on which month it is.
+  const [now] = useState(() => new Date());
   const period = toPeriod(todayDateOnly(now));
   const { stats, volume } = data;
 

@@ -43,6 +43,7 @@ import { useTranslation } from 'react-i18next';
 import { ageRecipientProblem, type BackupConfig, type BackupRecipient, type BackupTestResult, type GeneratedBackupKey } from '@jobtrack/shared';
 import { api } from '../api/index.js';
 import { useAutoBackup, useAutoBackupFiles, useRunAutoBackup, useSaveAutoBackup, useSetBackupPassphrase } from '../api/hooks.js';
+import { useReportUnsaved } from './UnsavedChanges.js';
 
 /** The README section on encryption and keys, for the full story behind the in-app summary. */
 const KEYS_DOCS_URL = 'https://github.com/CuplexUser/JobTrack#encryption';
@@ -96,6 +97,7 @@ export function AutoBackupCard() {
   const weekdays = useMemo(() => weekdayNames(i18n.language), [i18n.language]);
   const draft = edits ?? status?.config ?? null;
   const dirty = edits !== null && status !== undefined && JSON.stringify(edits) !== JSON.stringify(status.config);
+  useReportUnsaved(dirty);
 
   if (!draft || !status) return <Card title={t('autoBackup.title')} loading={isLoading} />;
 

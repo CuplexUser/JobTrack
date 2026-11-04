@@ -6,6 +6,8 @@ import {
   DEFAULT_JOB_PLATFORMS,
   jobSourcesPatchSchema,
   jobSourcesSchema,
+  MAX_PROFILE_KEYWORDS,
+  MAX_TARGET_TITLES,
   openingFilterSchema,
   profilePatchSchema,
   profileSchema,
@@ -103,6 +105,25 @@ describe('profileSchema locations', () => {
   it('rejects an empty level and a share outside 0 to 100', () => {
     expect(profilePatchSchema.safeParse({ locationTiers: [{ places: [], share: 50 }] }).success).toBe(false);
     expect(profilePatchSchema.safeParse({ locationTiers: [{ places: ['Stockholm'], share: 101 }] }).success).toBe(false);
+  });
+});
+
+describe('profileSchema list limits', () => {
+  const words = (count: number) => Array.from({ length: count }, (_, i) => `Word ${i + 1}`);
+
+  it('takes up to the most job titles and keywords, and refuses one more', () => {
+    for (const [field, max] of [
+      ['targetTitles', MAX_TARGET_TITLES],
+      ['includeKeywords', MAX_PROFILE_KEYWORDS],
+      ['excludeKeywords', MAX_PROFILE_KEYWORDS],
+    ] as const) {
+      expect(profilePatchSchema.safeParse({ [field]: words(max) }).success).toBe(true);
+      expect(profilePatchSchema.safeParse({ [field]: words(max + 1) }).success).toBe(false);
+    }
+  });
+
+  it('has room for more than 20 job titles', () => {
+    expect(profilePatchSchema.safeParse({ targetTitles: words(21) }).success).toBe(true);
   });
 });
 

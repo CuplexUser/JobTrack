@@ -21,6 +21,7 @@ import {
   TeamOutlined,
 } from '@ant-design/icons';
 import { RememberParams } from './components/RememberParams.js';
+import { UnsavedChangesProvider } from './components/UnsavedChanges.js';
 import { APPLICATIONS_PARAMS, CONTACTS_PARAMS, STATISTICS_PARAMS } from './preferences.js';
 import { buildAntdTheme, palette } from './theme.js';
 import { SUPPORTED_LANGUAGES, type SupportedLanguage } from './locales/index.js';
@@ -146,6 +147,7 @@ export function App() {
   return (
     <ConfigProvider theme={buildAntdTheme(dark ? 'dark' : 'light')} locale={antdLocale}>
       <AntApp>
+        <UnsavedChangesProvider>
         <Layout style={{ minHeight: '100vh' }}>
           <Layout.Header
             style={{
@@ -207,6 +209,7 @@ export function App() {
             </Suspense>
           </Layout.Content>
         </Layout>
+        </UnsavedChangesProvider>
       </AntApp>
     </ConfigProvider>
   );

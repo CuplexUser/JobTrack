@@ -151,7 +151,7 @@ function QuickTile({ quick, onPick, active }: { quick: QuickWindow; onPick: () =
 }
 
 export function StatisticsPage() {
-  const { t, i18n } = useTranslation('statistics');
+  const { t } = useTranslation('statistics');
   const statusLabel = useStatusLabel();
   const [params, setParams] = useSearchParams();
   const today = todayDateOnly();

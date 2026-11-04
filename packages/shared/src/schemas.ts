@@ -594,6 +594,12 @@ export const linkContactSchema = z.object({
 
 const shortList = (max: number) => z.array(z.string().trim().min(1).max(200)).max(max);
 
+/** Most job titles the profile can list. */
+export const MAX_TARGET_TITLES = 50;
+
+/** Most words each of the profile's keyword lists (include and exclude) can hold. */
+export const MAX_PROFILE_KEYWORDS = 50;
+
 /** Most places the profile can list, across every priority level. */
 export const MAX_PROFILE_LOCATIONS = 50;
 
@@ -660,7 +666,7 @@ export const profileSchema = z.preprocess(
   z.object({
     /** A CV or a few paragraphs about the user's experience, compared against posting text by meaning. */
     summary: optionalTrimmed(50000),
-    targetTitles: shortList(20).default([]),
+    targetTitles: shortList(MAX_TARGET_TITLES).default([]),
     /** Preferred locations in priority levels, best first. */
     locationTiers: locationTierList.default([]),
     workModes: z.array(workModeSchema).max(4).default([]),
@@ -671,8 +677,8 @@ export const profileSchema = z.preprocess(
       .nullish()
       .transform((v) => v ?? null),
     salaryCurrency: optionalTrimmed(8),
-    includeKeywords: shortList(30).default([]),
-    excludeKeywords: shortList(30).default([]),
+    includeKeywords: shortList(MAX_PROFILE_KEYWORDS).default([]),
+    excludeKeywords: shortList(MAX_PROFILE_KEYWORDS).default([]),
   }),
 );
 
@@ -712,14 +718,14 @@ export const knownLocationRemoveSchema = z.object({ place: knownPlace });
  */
 export const profilePatchSchema = z.object({
   summary: optionalTrimmed(50000).optional(),
-  targetTitles: shortList(20).optional(),
+  targetTitles: shortList(MAX_TARGET_TITLES).optional(),
   /** Replaced as a whole: send every level, best first, each place in one level only. */
   locationTiers: uniqueLocationTierList.optional(),
   workModes: z.array(workModeSchema).max(4).optional(),
   salaryFloor: z.number().int().nonnegative().nullish(),
   salaryCurrency: optionalTrimmed(8).optional(),
-  includeKeywords: shortList(30).optional(),
-  excludeKeywords: shortList(30).optional(),
+  includeKeywords: shortList(MAX_PROFILE_KEYWORDS).optional(),
+  excludeKeywords: shortList(MAX_PROFILE_KEYWORDS).optional(),
 });
 
 /**

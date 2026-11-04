@@ -1,6 +1,6 @@
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
-import { BrowserRouter } from 'react-router-dom';
+import { createBrowserRouter, RouterProvider } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import 'antd/dist/reset.css';
 import './index.css';
@@ -19,12 +19,14 @@ const queryClient = new QueryClient({
   },
 });
 
+// A data router rather than `<BrowserRouter>` so a page can ask before navigating away from
+// unsaved edits (`useBlocker`). The pages themselves are still declared in `App`.
+const router = createBrowserRouter([{ path: '*', element: <App /> }]);
+
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
-      <BrowserRouter>
-        <App />
-      </BrowserRouter>
+      <RouterProvider router={router} />
     </QueryClientProvider>
   </StrictMode>,
 );

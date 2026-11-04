@@ -13,6 +13,7 @@ import { App as AntApp, Button, Card, Col, Empty, Form, Input, Row, Space, Switc
 import { useTranslation } from 'react-i18next';
 import type { JobSource } from '@jobtrack/shared';
 import { useJobSources, useSaveJobSources } from '../api/hooks.js';
+import { sameValue, useReportUnsaved } from './UnsavedChanges.js';
 
 interface Props {
   kind: 'platforms' | 'apis';
@@ -22,24 +23,33 @@ interface FormValues {
   sources: JobSource[];
 }
 
+/** What a save sends for these rows. */
+function toSources(rows: Partial<JobSource>[]): JobSource[] {
+  return rows.map((source) => ({
+    name: source.name?.trim() ?? '',
+    url: source.url?.trim() || null,
+    notes: source.notes?.trim() || null,
+    enabled: source.enabled ?? true,
+  }));
+}
+
 export function JobSourcesCard({ kind }: Props) {
   const { t } = useTranslation('settings');
   const [form] = Form.useForm<FormValues>();
   const { message } = AntApp.useApp();
   const { data, isLoading } = useJobSources();
   const save = useSaveJobSources();
+  const watched = Form.useWatch((values: FormValues) => values, { form, preserve: true });
+  useReportUnsaved(
+    data !== undefined && watched !== undefined && !sameValue(toSources(watched.sources ?? []), toSources(data[kind])),
+  );
 
   useEffect(() => {
     if (data) form.setFieldsValue({ sources: data[kind] });
   }, [data, form, kind]);
 
   async function handleFinish(values: FormValues): Promise<void> {
-    const sources = (values.sources ?? []).map((source) => ({
-      name: source.name.trim(),
-      url: source.url?.trim() || null,
-      notes: source.notes?.trim() || null,
-      enabled: source.enabled ?? true,
-    }));
+    const sources = toSources(values.sources ?? []);
     try {
       await save.mutateAsync({ [kind]: sources });
       message.success(t('sources.saveSuccess'));

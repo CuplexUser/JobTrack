@@ -218,6 +218,9 @@
   "profile.saveButton": "Save profile",
   "profile.saveSuccess": "Profile saved. Openings are ranked against it.",
   "profile.saveError": "Could not save the profile",
+  "profile.targetTitles.tooMany": "At most {{max}} job titles. Remove some to save.",
+  "profile.keywords.tooMany": "At most {{max}} words. Remove some to save.",
+  "profile.checkFieldsError": "Could not save the profile. Check the highlighted fields.",
 
   "sources.platforms.title": "Job platforms",
   "sources.platforms.description": "The job boards and sites you search, most important first. An assistant connected to JobTrack reads this list to know where to look and in what order.",
